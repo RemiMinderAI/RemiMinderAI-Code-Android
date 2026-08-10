@@ -540,20 +540,34 @@ async def get_visit_summary_structured(
             get_latest_ai_structured_summary_for_visit,
             get_latest_ai_summary_for_visit,
         )
-        user_uuid = await get_user_uuid(user_id)
-        await assert_patient_access(user_uuid, user_uuid, "view")
+        from services.cloud_sql_engine import get_cloud_sql_engine
+        from sqlalchemy import text as sa_text
 
-        logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
+        caller_uuid = await get_user_uuid(user_id)
 
-        # Step 2: Fetch latest structured summary for this visit
+        # Find who owns this visit (may differ from caller if caregiver)
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            visit_row = conn.execute(
+                sa_text("SELECT user_id FROM summaries_log WHERE visit_id = :vid LIMIT 1"),
+                {"vid": visit_id},
+            ).fetchone()
+        owner_uuid = str(visit_row[0]) if visit_row else caller_uuid
+
+        if owner_uuid != caller_uuid:
+            await assert_patient_access(caller_uuid, owner_uuid, "view")
+
+        logger.info(f"Resolved firebase_uid={user_id} to caller_uuid={caller_uuid}, visit_owner={owner_uuid}")
+
+        # Step 2: Fetch latest structured summary using the visit OWNER's UUID
         structured_data = await get_latest_ai_structured_summary_for_visit(
-            visit_id, user_uuid, firebase_uid=user_id
+            visit_id, owner_uuid, firebase_uid=user_id
         )
 
         logger.info(
-            "DB query result for visit_id=%s, user_uuid=%s: structured_data=%s",
+            "DB query result for visit_id=%s, owner_uuid=%s: structured_data=%s",
             visit_id,
-            user_uuid,
+            owner_uuid,
             structured_data is not None,
         )
 
@@ -561,9 +575,9 @@ async def get_visit_summary_structured(
         if structured_data:
             return structured_data
 
-        # Legacy rows: summary_text saved without structured_data_json — still show Visit Details UI.
+        # Legacy rows: summary_text saved without structured_data_json
         summary_text = await get_latest_ai_summary_for_visit(
-            visit_id, user_uuid, firebase_uid=user_id
+            visit_id, owner_uuid, firebase_uid=user_id
         )
         if summary_text and str(summary_text).strip():
             logger.info(
@@ -989,15 +1003,46 @@ async def sync_caregiver_patient_access(
     patient_id: str,
     user_id: str = Depends(get_user_id),
 ):
-    """Sync care team access for a caregiver-patient link."""
+    """Sync care team access: if a Firestore link exists but the SQL row
+    is missing, create it so caregiver endpoints stop returning 403."""
     try:
-        from services.db_service import get_user_uuid
+        from services.db_service import get_user_uuid, get_care_team_membership
+        from services.cloud_sql_engine import get_cloud_sql_engine
+        from sqlalchemy import text as sa_text
+
         caregiver_uuid = await get_user_uuid(user_id)
         patient_uuid = await get_user_uuid(patient_id)
-        await assert_patient_access(caregiver_uuid, patient_uuid, "view")
-        return {"status": "ok", "access": "confirmed"}
+
+        membership = await get_care_team_membership(
+            patient_id=patient_uuid,
+            member_user_id=caregiver_uuid,
+        )
+
+        if membership:
+            return {"status": "ok", "access": "confirmed"}
+
+        engine = get_cloud_sql_engine()
+        with engine.begin() as conn:
+            conn.execute(
+                sa_text("""
+                    INSERT INTO care_team_members
+                        (patient_id, member_user_id, role, permission, status)
+                    VALUES
+                        (CAST(:patient_id AS uuid), CAST(:member_id AS uuid),
+                         'caregiver', 'view', 'active')
+                    ON CONFLICT (patient_id, member_user_id) DO NOTHING
+                """),
+                {"patient_id": patient_uuid, "member_id": caregiver_uuid},
+            )
+
+        from services.cache_service import invalidate
+        invalidate(f"care_team_member:{patient_uuid}:{caregiver_uuid}")
+
+        logger.info("sync-access created SQL row caregiver=%s patient=%s", caregiver_uuid, patient_uuid)
+        return {"status": "ok", "access": "created"}
     except HTTPException:
         raise
     except Exception as e:
         logger.error("sync-access failed caregiver=%s patient=%s: %s", user_id, patient_id, e)
         raise HTTPException(status_code=500, detail=str(e))
+

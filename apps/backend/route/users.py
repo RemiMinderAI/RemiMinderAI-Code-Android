@@ -2,6 +2,7 @@
 User management routes for authentication
 """
 import logging
+from services.subscription_service import get_subscription_status
 from fastapi import APIRouter, Depends, HTTPException, Body, Response, status
 
 logger = logging.getLogger(__name__)
@@ -439,6 +440,15 @@ async def update_language_preferences(
     except Exception as e:
         logger.error(f"Failed to update language preferences: {str(e)}")
         raise HTTPException(500, f"Failed to update language preferences: {str(e)}")
+
+
+@router.get("/me/monetization")
+async def get_monetization_status(current_user: dict = Depends(get_current_user)):
+    """Return the current user's subscription/trial status."""
+    firebase_uid = current_user.get("sub")
+    if not firebase_uid:
+        raise HTTPException(status_code=401, detail="Invalid user authentication")
+    return await get_subscription_status(firebase_uid)
 
 
 @router.put("/me/name")
