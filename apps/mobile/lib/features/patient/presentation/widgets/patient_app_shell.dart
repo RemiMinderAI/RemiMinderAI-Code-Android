@@ -551,7 +551,7 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     _snack(
       isFollowUp
           ? 'Vox is still listening…'
-          : 'Vox is listening… speak in any Remi language',
+          : 'Vox is listening… speak in English or Hindi',
     );
     if (isFollowUp && mounted) {
       setState(() => _awaitingFollowUp = true);
