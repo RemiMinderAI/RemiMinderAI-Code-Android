@@ -48,11 +48,21 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   bool _isSavingRecording = false;
 
   @override
+  bool _didInit = false;
+
   void initState() {
     super.initState();
     // Establish this visit as the current visit context
     VisitContext().setCurrentVisit(widget.visitId);
-    _updateFormattedTime(); // Initialize timer display
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didInit) {
+      _didInit = true;
+      _updateFormattedTime();
+    }
   }
 
   @override

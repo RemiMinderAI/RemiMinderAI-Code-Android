@@ -24,8 +24,9 @@ def build_medical_summary_prompt_v2(
 
     prompt = f"""
 MANDATORY LANGUAGE INSTRUCTION:
-Your response MUST be entirely in {language_name}. Do NOT include any English words.
-All text must be written in {language_name}.
+Your ENTIRE response — including the summary, action items, medication names, diagnoses, and all JSON string values — MUST be written in {language_name}.
+Do NOT mix languages. Even if the transcript is in a different language, translate everything into {language_name}.
+The only exception is proper drug brand names (e.g. "Metoprolol") which may stay in their original form.
 
 You are a clinical action extraction engine for RemiMinderAI.
 

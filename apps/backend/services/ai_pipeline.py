@@ -81,17 +81,10 @@ async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: st
         if (os.getenv("ENFORCE_SUMMARY_LIMITS") or "").strip().lower() == "true":
             await enforce_summary_limit(user_id)
 
-        # Step A: Fetch user's language preferences
+        # Step A: Fetch user's language preferences (always fresh from DB)
         logger.info(f"🔍 [LANGUAGE] Fetching language preferences for user {user_id}")
         try:
-            cache_key = f"language_prefs:{user_id}"
-            cached = get(cache_key)
-            if cached is not None:
-                language_prefs = cached
-            else:
-                language_prefs = await get_user_language_preferences(user_id)
-                if language_prefs is not None:
-                    set(cache_key, language_prefs, 1800)
+            language_prefs = await get_user_language_preferences(user_id)
             visit_language = language_prefs.get("visit_language", "en") if language_prefs else "en"
             logger.info(f"🔍 [LANGUAGE] Retrieved preferences: {language_prefs}")
             logger.info(f"🔍 [LANGUAGE] Using visit_language='{visit_language}' for AI processing")
@@ -107,6 +100,17 @@ async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: st
             raise ValueError(f"No transcript text found for transcript_id {transcript_id}")
 
         logger.info(f"Retrieved transcript text (length: {len(raw_text)} chars)")
+
+        # Step B2: Auto-detect spoken language from transcript (Option C)
+        detected_language = None
+        try:
+            from services.ai.vertex_gemini_service import detect_transcript_language
+            detected_language = await detect_transcript_language(raw_text)
+            logger.info(f"🔍 [LANGUAGE] Detected transcript language: '{detected_language}', user preferred: '{visit_language}'")
+            if detected_language and detected_language != visit_language:
+                logger.info(f"🔍 [LANGUAGE] Transcript in '{detected_language}' but generating summary in user preferred '{visit_language}'")
+        except Exception as e:
+            logger.warning(f"🔍 [LANGUAGE] Auto-detect failed: {e}. Proceeding with user preferred '{visit_language}'")
 
         # Step C: Generate structured summary using Vertex Gemini
         logger.info(f"Generating AI structured summary for visit {visit_id} in language {visit_language}")

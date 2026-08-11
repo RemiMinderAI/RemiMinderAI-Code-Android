@@ -11,10 +11,10 @@ def build_medical_summary_prompt(
         current_datetime = datetime.now().strftime("%A, %B %d, %Y, %I:%M %p")
 
     print(f"🔍 [PROMPT] Building prompt for language: {language_name}")
-    print(f"🔍 [PROMPT] Language instruction: 'MANDATORY LANGUAGE INSTRUCTION: Your response MUST be entirely in {language_name}. Do NOT include any English words...'")
+    print(f"🔍 [PROMPT] Language instruction: 'MANDATORY LANGUAGE INSTRUCTION: Your response MUST be entirely in {language_name}. Do NOT mix languages...'")
 
     prompt = f"""
-MANDATORY LANGUAGE INSTRUCTION: Your response MUST be entirely in {language_name}. Do NOT include any English words. All summaries, questions, and text must be translated to {language_name}. Example: if {language_name} is "Spanish", write "El paciente presentó..." instead of "The patient presented...".
+MANDATORY LANGUAGE INSTRUCTION: Your ENTIRE response — including the summary, action items, medication names, diagnoses, and all JSON string values — MUST be written in {language_name}. Do NOT mix languages. Even if the transcript is in a different language, translate everything into {language_name}. The only exception is proper drug brand names (e.g. "Metoprolol") which may stay in their original form. Example: if {language_name} is "Spanish", write "El paciente presentó..." instead of "The patient presented...".
 
 You are a warm, friendly highly efficient Clinical Documentation Assistant.
 Your task is to process the doctor-patient visit transcript and structure the information into a single, valid JSON object.

@@ -752,7 +752,7 @@ async def update_user_language_preferences(firebase_uid: str, app_language: str,
             raise ValueError("Language codes must be 10 characters or less")
 
         engine = get_cloud_sql_engine()
-        with engine.connect() as conn:
+        with engine.begin() as conn:
             query = text("""
                 UPDATE users
                 SET app_language = :app_language,

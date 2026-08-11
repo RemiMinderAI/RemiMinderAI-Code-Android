@@ -1,3 +1,4 @@
+import asyncio
 """
 Vertex Gemini Service - Pure LLM adapter for medical visit summaries.
 
@@ -30,7 +31,12 @@ LANGUAGE_NAME_MAP = {
     "de": "German",
     "ar": "Arabic",
     "hi": "Hindi",
-    "zh": "Chinese"
+    "zh": "Chinese",
+    "bn": "Bengali",
+    "ta": "Tamil",
+    "gu": "Gujarati",
+    "pa": "Punjabi",
+    "pt": "Portuguese"
 }
 
 
@@ -120,6 +126,26 @@ def extract_json_from_llm_response(text: str) -> dict:
 # {transcript}
 #
 # Summary:"""
+
+
+async def detect_transcript_language(raw_text: str) -> str:
+    """Detect the spoken language of a transcript using Gemini. Returns language code (e.g. 'en', 'hi', 'bn')."""
+    try:
+        model = GenerativeModel("gemini-2.5-flash")
+        snippet = raw_text[:1500]
+        response = await asyncio.to_thread(
+            model.generate_content,
+            f"What language is this text written in? Reply with ONLY the ISO 639-1 two-letter code (e.g. en, hi, bn, es, ta, te). Text:\n\n{snippet}"
+        )
+        detected = response.text.strip().lower()[:5]
+        # Extract just the 2-letter code
+        for code in LANGUAGE_NAME_MAP:
+            if code in detected:
+                return code
+        return detected[:2]
+    except Exception as e:
+        logger.warning(f"Language detection failed: {e}")
+        return None
 
 
 async def generate_visit_summary(raw_text: str, language: str = "en") -> dict:
