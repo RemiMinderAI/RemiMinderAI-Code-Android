@@ -42,7 +42,7 @@ def generate_text(
     if not key:
         raise RuntimeError("GEMINI_API_KEY not set")
 
-    model = (model_name or os.getenv("MODEL_NAME") or "gemini-2.5-flash-lite").strip()
+    model = (model_name or os.getenv("MODEL_NAME") or "gemini-flash-latest").strip()
     client = get_gemini_client(key)
     return client.models.generate_content(
         model=model,

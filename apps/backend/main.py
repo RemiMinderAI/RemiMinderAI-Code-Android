@@ -25,6 +25,18 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 
+# Without this the root logger stays at its WARNING default and every
+# logger.info() in the application is discarded before it reaches Cloud Run —
+# including the RemiVox pipeline diagnostics, which made voice sessions look
+# silent when they were merely unlogged. Pipecat logs through loguru and was
+# unaffected, which is why its output appeared while ours did not.
+# LOG_LEVEL overrides this (WARNING to quieten, DEBUG when chasing a bug).
+logging.basicConfig(
+    level=(os.getenv("LOG_LEVEL") or "INFO").strip().upper(),
+    format="%(levelname)s | %(name)s | %(message)s",
+    stream=sys.stdout,
+)
+
 logger = logging.getLogger(__name__)
 
 # Explicitly load .env from backend directory

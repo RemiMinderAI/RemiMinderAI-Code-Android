@@ -14,6 +14,7 @@ from pipecat.frames.frames import (
     InputAudioRawFrame,
     OutputAudioRawFrame,
     StartFrame,
+    TTSStoppedFrame,
 )
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
@@ -184,9 +185,24 @@ class _WebSocketAudioOutputProcessor(FrameProcessor):
         super().__init__()
         self._websocket = websocket
         self._warned_sample_rate: int | None = None
+        self._chunks_sent = 0
+        self._bytes_sent = 0
 
     async def process_frame(self, frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
+
+        # Whether TTS audio actually reaches the socket was previously
+        # unobservable: nothing logged here, so "no audio on the client" could
+        # not be separated from "no audio left the server". Report the running
+        # totals per turn so the two are distinguishable from logs alone.
+        if isinstance(frame, TTSStoppedFrame):
+            logger.info(
+                "remivox TTS turn complete: %d chunk(s), %d bytes sent to client",
+                self._chunks_sent,
+                self._bytes_sent,
+            )
+            self._chunks_sent = 0
+            self._bytes_sent = 0
 
         if isinstance(frame, OutputAudioRawFrame):
             # Bytes are forwarded verbatim, so the client's assumed rate and the
@@ -208,8 +224,20 @@ class _WebSocketAudioOutputProcessor(FrameProcessor):
                 )
             try:
                 await self._websocket.send_bytes(frame.audio)
+                self._chunks_sent += 1
+                self._bytes_sent += len(frame.audio)
+                if self._chunks_sent == 1:
+                    logger.info(
+                        "remivox first TTS audio chunk sent (%d bytes @ %sHz)",
+                        len(frame.audio),
+                        frame_rate,
+                    )
             except (RuntimeError, WebSocketDisconnect):
-                logger.debug("remivox websocket closed before TTS audio send")
+                logger.warning(
+                    "remivox websocket closed before TTS audio send "
+                    "(after %d chunk(s))",
+                    self._chunks_sent,
+                )
                 return
 
         await self.push_frame(frame, direction)

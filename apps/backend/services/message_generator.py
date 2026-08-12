@@ -124,7 +124,7 @@ async def generate_reminder_message(
         if not api_key:
             return f"Error: GEMINI_API_KEY missing. Cannot generate message for '{title}'."
 
-        model_name = os.getenv("MODEL_NAME", "gemini-2.5-flash-lite")
+        model_name = os.getenv("MODEL_NAME", "gemini-flash-latest")
 
         # 3. Build Few-Shot Prompt
         prompt = await build_reminder_prompt(

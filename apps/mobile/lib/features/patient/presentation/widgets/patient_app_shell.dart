@@ -113,6 +113,8 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   bool _pipecatActive = false;
   bool _pipecatSpeaking = false;
   bool _pipecatPlaying = false;
+  final BytesBuilder _pipecatAudioBuffer = BytesBuilder();
+  Timer? _pipecatPlaybackDebounce;
   bool _pipecatWaiting = false;
   bool _handlingPipecatDisconnect = false;
   bool _awaitingFollowUp = false;
@@ -363,6 +365,9 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
         VoxConfig.speechEndDebounce,
         () {
           _pipecatSpeaking = false;
+    _pipecatPlaybackDebounce?.cancel();
+    _pipecatPlaybackDebounce = null;
+    _pipecatAudioBuffer.clear();
           if (_pipecatActive && !_pipecatPlaying && mounted) {
             setState(() {
               _pipecatWaiting = true;
@@ -378,32 +383,38 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     if (!_pipecatActive || chunk.isEmpty) return;
     _pipecatSilenceTimer?.cancel();
     _pipecatWaiting = false;
-    _pipecatQueuedAudioChunks++;
     if (mounted) {
       setState(() => _busy = false);
     }
     final generation = _pipecatPlaybackGeneration;
-    _pipecatPlaybackQueue = _pipecatPlaybackQueue.then((_) async {
-      try {
+    _pipecatAudioBuffer.add(chunk);
+    _pipecatPlaybackDebounce?.cancel();
+    _pipecatPlaybackDebounce = Timer(
+      const Duration(milliseconds: 300),
+      () {
         if (!_pipecatActive || generation != _pipecatPlaybackGeneration) {
+          _pipecatAudioBuffer.clear();
           return;
         }
-        await _playPipecatPcmChunk(chunk);
-      } finally {
-        _pipecatQueuedAudioChunks--;
-        if (_pipecatQueuedAudioChunks <= 0) {
-          _pipecatQueuedAudioChunks = 0;
-          _pipecatPlaying = false;
-          if (_pipecatActive) {
-            _pipecatWaiting = false;
-            if (mounted) {
-              setState(() => _busy = false);
+        final buffered = _pipecatAudioBuffer.takeBytes();
+        if (buffered.isEmpty) return;
+        _pipecatPlaybackQueue = _pipecatPlaybackQueue.then((_) async {
+          try {
+            _pipecatPlaying = true;
+            await _playPipecatPcmChunk(buffered);
+          } finally {
+            _pipecatPlaying = false;
+            if (_pipecatActive) {
+              _pipecatWaiting = false;
+              if (mounted) {
+                setState(() => _busy = false);
+              }
+              _resetPipecatTimeout();
             }
-            _resetPipecatTimeout();
           }
-        }
-      }
-    });
+        });
+      },
+    );
   }
 
   void _resetPipecatTimeout() {
