@@ -52,7 +52,7 @@ class _PatientAppShellState extends State<PatientAppShell> {
             child: widget.child,
           ),
 
-          if (widget.routes == null && widget.currentItem.index == 0)
+          if (false) // Vox disabled for store submission — re-enable post-review
             Positioned(
               right: 56,
               bottom: bottomInset + 102,
