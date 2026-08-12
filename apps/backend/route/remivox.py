@@ -41,6 +41,7 @@ from services.remivox.config import (
     REMIVOX_PING_INTERVAL_S,
     REMIVOX_PIPELINE,
     REMIVOX_STT_MODEL,
+    REMIVOX_STT_REDACT_PII,
     REMIVOX_TTS_MODEL,
     REMIVOX_TTS_SPEED,
     REMIVOX_TTS_VOICE,
@@ -182,11 +183,29 @@ class _WebSocketAudioOutputProcessor(FrameProcessor):
     def __init__(self, websocket: WebSocket):
         super().__init__()
         self._websocket = websocket
+        self._warned_sample_rate: int | None = None
 
     async def process_frame(self, frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
 
         if isinstance(frame, OutputAudioRawFrame):
+            # Bytes are forwarded verbatim, so the client's assumed rate and the
+            # frame's actual rate must agree. A mismatch is audible as pitch and
+            # speed distortion ("robotic" playback) with nothing in the logs, so
+            # surface it once per distinct rate rather than staying silent.
+            frame_rate = getattr(frame, "sample_rate", None)
+            if (
+                frame_rate is not None
+                and frame_rate != REMIVOX_OUTPUT_SAMPLE_RATE
+                and frame_rate != self._warned_sample_rate
+            ):
+                self._warned_sample_rate = frame_rate
+                logger.warning(
+                    "remivox TTS audio sample rate %s != expected %s; "
+                    "client playback will be pitch-shifted",
+                    frame_rate,
+                    REMIVOX_OUTPUT_SAMPLE_RATE,
+                )
             try:
                 await self._websocket.send_bytes(frame.audio)
             except (RuntimeError, WebSocketDisconnect):
@@ -346,6 +365,30 @@ def _simple_translate(text: str, source_language: str, target_language: str) -> 
     except Exception as exc:
         logger.warning("Translate failed: %s", exc)
         return text
+
+
+@router.get("/debug-tts")
+async def debug_tts():
+    """Test TTS WSS connectivity from Cloud Run."""
+    import asyncio, time
+    try:
+        import websockets
+        url = "wss://api.smallest.ai/waves/v1/tts/live"
+        api_key = (os.getenv("SMALLESTAI_API_KEY") or "").strip()
+        headers = {"Authorization": f"Bearer {api_key}", "X-Source": "pipecat"}
+        start = time.monotonic()
+        ws = await asyncio.wait_for(
+            websockets.connect(url, additional_headers=headers),
+            timeout=10
+        )
+        elapsed = round(time.monotonic() - start, 3)
+        state = str(ws.state)
+        await ws.close()
+        return {"status": "ok", "state": state, "connect_seconds": elapsed}
+    except asyncio.TimeoutError:
+        return {"status": "timeout", "error": "TTS WSS connect timed out after 10s"}
+    except Exception as e:
+        return {"status": "error", "error": f"{type(e).__name__}: {e}"}
 
 
 @router.get("/languages", response_model=RemiVoxLanguagesResponse)
@@ -577,12 +620,11 @@ def _build_remivox_pipecat_task(
     )
     stt = SmallestSTTService(
         api_key=api_key,
-        eou_timeout_ms=REMIVOX_EOU_TIMEOUT_MS,
         settings=SmallestSTTService.Settings(
             model=REMIVOX_STT_MODEL,
             language=language,
             endpointing=True,
-            redact_pii=True,
+            redact_pii=REMIVOX_STT_REDACT_PII,
             keywords=_format_smallest_keywords(keyword_boosts),
             extra={"eou_timeout_ms": REMIVOX_EOU_TIMEOUT_MS},
         ),
@@ -594,8 +636,16 @@ def _build_remivox_pipecat_task(
         keywords=keyword_boosts,
         session_stats=session_stats,
     )
+    # sample_rate is pinned rather than left to the StartFrame default. The
+    # output side of this pipeline is a bare FrameProcessor that forwards
+    # frame.audio to the socket verbatim — there is no transport doing
+    # resampling — so whatever rate the TTS emits is what Flutter plays. Pinning
+    # it keeps that contract explicit and matched to the client's 24kHz PCM.
+    # Verified against the live WSS API: 16000 and 24000 are accepted, 48000 is
+    # rejected with "Invalid sample rate".
     tts = SmallestTTSService(
         api_key=api_key,
+        sample_rate=REMIVOX_OUTPUT_SAMPLE_RATE,
         settings=SmallestTTSService.Settings(
             model=REMIVOX_TTS_MODEL,
             voice=REMIVOX_TTS_VOICE,
@@ -726,7 +776,7 @@ async def remivox_stream(
         )
         await runner.run(task)
     except WebSocketDisconnect:
-        pass
+        logger.info("remivox_stream: WebSocketDisconnect")
     except HTTPException as exc:
         _log_stream_event(
             "remivox_stream_error",
@@ -743,6 +793,7 @@ async def remivox_stream(
         except Exception:
             pass
     except Exception as exc:
+        logger.error(f"remivox_stream CRASH: {type(exc).__name__}: {exc}", exc_info=True)
         _log_stream_event(
             "remivox_stream_error",
             level=logging.ERROR,

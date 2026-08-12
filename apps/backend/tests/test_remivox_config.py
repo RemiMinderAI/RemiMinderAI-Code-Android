@@ -19,7 +19,12 @@ class RemiVoxConfigTests(unittest.TestCase):
                 self.assertEqual("meher", config.REMIVOX_TTS_VOICE)
                 self.assertEqual(0.85, config.REMIVOX_TTS_SPEED)
                 self.assertEqual(2000, config.REMIVOX_EOU_TIMEOUT_MS)
-                self.assertEqual("lightning_v3.1", config.REMIVOX_TTS_MODEL)
+                # lightning_v3.1_pro is the model that pairs with the "meher"
+                # voice on the WSS API; lightning_v3.1 only accepts "sophia".
+                self.assertEqual("lightning_v3.1_pro", config.REMIVOX_TTS_MODEL)
+                # PII redaction must stay off: Pulse redacts medication names
+                # ("pregabalin" -> "[CITY_1]"), which breaks the intent router.
+                self.assertFalse(config.REMIVOX_STT_REDACT_PII)
                 self.assertEqual(3.0, config.REMIVOX_KEYWORD_BOOST)
                 self.assertEqual(30, config.REMIVOX_PING_INTERVAL_S)
                 self.assertEqual(15, config.REMIVOX_SILENCE_TIMEOUT_S)
@@ -27,6 +32,44 @@ class RemiVoxConfigTests(unittest.TestCase):
                 self.assertEqual(16000, config.REMIVOX_INPUT_SAMPLE_RATE)
                 self.assertEqual(24000, config.REMIVOX_OUTPUT_SAMPLE_RATE)
                 self.assertEqual(200, config.REMIVOX_AUDIO_CHUNK_MS)
+        finally:
+            importlib.reload(remivox_config)
+
+    def test_tts_voice_is_corrected_to_match_model(self):
+        """A voice belonging to the other model is corrected, not sent.
+
+        Smallest's WSS API rejects a mismatched (model, voice) pair outright
+        with "Invalid Voice ID", failing every synthesis for the session, so an
+        inherited env like lightning_v3.1 + meher must resolve to a valid pair.
+        """
+        cases = [
+            # (env model, env voice, expected model, expected voice)
+            ("lightning_v3.1", "meher", "lightning_v3.1", "sophia"),
+            ("lightning_v3.1", "", "lightning_v3.1", "sophia"),
+            ("lightning_v3.1_pro", "sophia", "lightning_v3.1_pro", "meher"),
+            ("lightning_v3.1_pro", "meher", "lightning_v3.1_pro", "meher"),
+            # An unknown model keeps whatever voice was configured.
+            ("custom-model", "custom-voice", "custom-model", "custom-voice"),
+        ]
+        try:
+            for model, voice, want_model, want_voice in cases:
+                env = {"REMIVOX_TTS_MODEL": model}
+                if voice:
+                    env["REMIVOX_TTS_VOICE"] = voice
+                with self.subTest(model=model, voice=voice):
+                    with patch.dict(os.environ, env, clear=True):
+                        config = importlib.reload(remivox_config)
+                        self.assertEqual(want_model, config.REMIVOX_TTS_MODEL)
+                        self.assertEqual(want_voice, config.REMIVOX_TTS_VOICE)
+        finally:
+            importlib.reload(remivox_config)
+
+    def test_redact_pii_can_be_re_enabled(self):
+        try:
+            with patch.dict(os.environ, {"REMIVOX_STT_REDACT_PII": "true"}, clear=True):
+                self.assertTrue(importlib.reload(remivox_config).REMIVOX_STT_REDACT_PII)
+            with patch.dict(os.environ, {"REMIVOX_STT_REDACT_PII": "0"}, clear=True):
+                self.assertFalse(importlib.reload(remivox_config).REMIVOX_STT_REDACT_PII)
         finally:
             importlib.reload(remivox_config)
 
