@@ -93,7 +93,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
         SnackBar(
           content: Text(
             premium
-                ? 'Premium is active. Vox and Premium features are unlocked.'
+                ? 'Premium is active. All premium features are unlocked.'
                 : 'Purchase completed, but Premium is not active yet. Please try restore purchases.',
           ),
         ),
@@ -222,7 +222,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   ),
                   const Expanded(
                     child: Text(
-                      'RemiMinderAI Premium',
+                      'Upgrade to Pro',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 22,
@@ -242,8 +242,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      width: 88,
-                      height: 88,
+                      width: 120,
+                      height: 120,
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary,
                         shape: BoxShape.circle,
@@ -257,19 +257,22 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                         ],
                       ),
                       child: const Center(
-                        child: Text(
-                          'Vox',
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Pro',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 25,
+                            fontSize: 15,
                             fontWeight: FontWeight.w800,
+                          ),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'Your AI healthcare companion',
+                      'Your health, simplified',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: theme.colorScheme.primary,
@@ -278,7 +281,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Vox reads medication reminders aloud, explains doctor visit summaries in plain language, and helps caregivers stay connected.',
+                      'Your AI healthcare companion helps you manage medications, track doctor visits, and stay connected with caregivers.',
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: const Color(0xFF2D2D2D),
                         height: 1.35,
@@ -296,7 +299,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                         children: [
                           _buildBenefitItem('Unlimited doctor visit summaries', theme),
                           const SizedBox(height: 14),
-                          _buildBenefitItem('Vox voice companion', theme),
+                          _buildBenefitItem('Priority support', theme),
                           const SizedBox(height: 14),
                           _buildBenefitItem(
                             'Invite up to ${MonetizationLimits.premiumCaregiverLimit} caregivers',

@@ -40,11 +40,11 @@ extension UpgradePromptReasonCopy on UpgradePromptReason {
       case UpgradePromptReason.summaryLimit:
         return "You've used your free doctor visit summaries. Upgrade to RemiMinderAI Premium to continue organizing your healthcare.";
       case UpgradePromptReason.voxLocked:
-        return 'Your 14-day trial has ended. Subscribe to RemiMinderAI Premium to keep using all features, including Vox.';
+        return 'Your 14-day trial has ended. Subscribe to RemiMinderAI Premium to keep using all features, including all features.';
       case UpgradePromptReason.caregiverLimit:
         return 'Premium lets you invite more caregivers so your loved ones can stay connected to your care.';
       case UpgradePromptReason.trialExpired:
-        return 'Your 14-day trial has ended. Subscribe to RemiMinderAI Premium to keep using all features — summaries, caregivers, and Vox.';
+        return 'Your 14-day trial has ended. Subscribe to RemiMinderAI Premium to keep using all features — summaries, caregivers, and reminders.';
     }
   }
 }

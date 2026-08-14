@@ -24,7 +24,6 @@
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
 	<array>
-		<!-- App deep link -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -33,7 +32,6 @@
 				<string>com.remiminder.app</string>
 			</array>
 		</dict>
-		<!-- Google Sign-In -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -59,6 +57,27 @@
 	<string>This app needs speech recognition to transcribe healthcare conversations and consultations in real-time.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This app uses tracking to provide personalized experiences.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
