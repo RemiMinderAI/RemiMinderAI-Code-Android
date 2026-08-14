@@ -19,23 +19,28 @@ logger = logging.getLogger(__name__)
 
 async def get_user_uuid(firebase_uid: str) -> str:
     """
-    Validate Firebase UID exists in users table and return it.
+    Look up user by Firebase UID or internal UUID. Returns internal UUID.
     """
+    import re
     try:
         cache_key = f"user_uuid:{firebase_uid}"
 
         def _load_user_uuid() -> str:
             engine = get_cloud_sql_engine()
             with engine.connect() as conn:
-                query = text("""
-                    SELECT id FROM users WHERE firebase_uid = :firebase_uid
-                """)
+                # Check if input looks like a UUID
+                is_uuid = bool(re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', firebase_uid, re.I))
 
-                result = conn.execute(query, {"firebase_uid": firebase_uid})
+                if is_uuid:
+                    query = text("SELECT id FROM users WHERE id = CAST(:uid AS UUID)")
+                    result = conn.execute(query, {"uid": firebase_uid})
+                else:
+                    query = text("SELECT id FROM users WHERE firebase_uid = :firebase_uid")
+                    result = conn.execute(query, {"firebase_uid": firebase_uid})
+
                 row = result.fetchone()
-
                 if not row:
-                    raise HTTPException(status_code=404, detail=f"User not found for Firebase UID {firebase_uid}")
+                    raise HTTPException(status_code=404, detail=f"User not found: {firebase_uid}")
 
                 return str(row[0])
 
