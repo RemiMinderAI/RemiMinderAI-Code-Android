@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -584,5 +585,22 @@ class BackendApiService {
       debugPrint('Failed to fetch caregiver alerts: $e');
     }
     return [];
+  }
+
+  Future<bool> markAlertAsRead(String alertId) async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) return false;
+    final uid = firebase_auth.FirebaseAuth.instance.currentUser?.uid ?? '';
+    try {
+      final uri = Uri.parse('${Environment.apiBaseUrl}/api/caregivers/alerts/$alertId/read?caregiver_id=$uid');
+      final response = await http.patch(uri, headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      });
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Failed to mark alert as read: $e');
+      return false;
+    }
   }
 }

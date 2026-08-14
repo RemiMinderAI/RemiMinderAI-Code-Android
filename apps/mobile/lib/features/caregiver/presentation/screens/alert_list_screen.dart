@@ -707,16 +707,27 @@ class _AlertListScreenState extends State<AlertListScreen> {
     );
   }
 
-  void _markAsRead(String alertId) {
+  void _markAsRead(String alertId) async {
     setState(() {
       final index = _allAlerts.indexWhere((alert) => alert['id'] == alertId);
       if (index != -1) {
         _allAlerts[index]['isRead'] = true;
       }
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.alertMarkedAsRead)),
-    );
+    final success = await BackendApiService().markAlertAsRead(alertId);
+    if (!success && mounted) {
+      setState(() {
+        final index = _allAlerts.indexWhere((alert) => alert['id'] == alertId);
+        if (index != -1) {
+          _allAlerts[index]['isRead'] = false;
+        }
+      });
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.alertMarkedAsRead)),
+      );
+    }
   }
 
   void _toggleReadStatus(String alertId) {

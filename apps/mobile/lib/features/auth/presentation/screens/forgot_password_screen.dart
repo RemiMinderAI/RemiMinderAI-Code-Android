@@ -38,7 +38,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: _buildResetView(),
         ),
@@ -50,157 +50,122 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Form(
       key: _formKey,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top section with title and form
-          Expanded(
-            flex: 1,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title
-                const Text(
-                  'Forgot Password?',
-                  style: TextStyle(
-                    fontFamily:
-                        'Merriweather', // Consistent with other auth screens
-                    fontWeight: FontWeight.w700, // Bold weight
-                    fontSize: 32,
-                    color: Color(0xFF1A3A5C), // Dark teal for consistency
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Subtitle
-                const Text(
-                  'No worries! Enter your email and we\'ll send you reset instructions.',
-                  style: TextStyle(
-                    fontFamily:
-                        'Poppins', // Consistent sans-serif for body text
-                    fontWeight: FontWeight.w400, // Regular weight
-                    fontSize: 16, // Slightly smaller for better hierarchy
-                    color: Color(0xFF5A5A5A), // Consistent secondary color
-                    height: 1.4, // Better readability
-                  ),
-                ),
-
-                const SizedBox(height: 48),
-
-                // Email Field
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: !_isLoading,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'Enter your email address',
-                    prefixIcon: Icon(
-                      Icons.email_outlined,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value)) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 32),
-
-                // Send Reset Instructions Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _sendResetInstructions,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            'Send Reset Instructions',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Centered "Remember your password?" text
+          const SizedBox(height: 40),
           const Text(
-            'Remember your password?',
+            'Forgot Password?',
             style: TextStyle(
-              fontFamily: 'Poppins', // Consistent typography
-              fontWeight: FontWeight.w400, // Regular weight
-              fontSize: 14,
-              color: Color(0xFF5A5A5A), // Consistent secondary color
-              decoration: TextDecoration.underline,
+              fontFamily: 'Merriweather',
+              fontWeight: FontWeight.w700,
+              fontSize: 32,
+              color: Color(0xFF1A3A5C),
             ),
-            textAlign: TextAlign.center,
           ),
-
-          // Bottom section with Back to Login button
-          Expanded(
-            flex: 1,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Back to Login Button at bottom
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.go('/login'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      minimumSize: const Size(double.infinity, 56),
-                      tapTargetSize: MaterialTapTargetSize.padded,
-                      side: const BorderSide(
-                        color: Color(
-                            0xFF1A3A5C), // Consistent primary color for border
-                        width: 1.5,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
-                    child: const Text(
-                      'Back to Login',
-                      style: TextStyle(
-                        fontFamily: 'Poppins', // Consistent typography
-                        fontWeight: FontWeight.w600, // SemiBold for buttons
-                        fontSize: 16,
-                        color: Color(0xFF1A3A5C), // Consistent primary color
-                      ),
-                    ),
-                  ),
+          const SizedBox(height: 12),
+          const Text(
+            'No worries! Enter your email and we\'ll send you reset instructions.',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w400,
+              fontSize: 16,
+              color: Color(0xFF5A5A5A),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 48),
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              hintText: 'Enter your email address',
+              prefixIcon: Icon(
+                Icons.email_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your email';
+              }
+              if (!value.contains('@') || !value.contains('.')) {
+                return 'Please enter a valid email';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _sendResetInstructions,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
                 ),
-
-                const SizedBox(height: 16),
-              ],
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Send Reset Instructions',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
+          const SizedBox(height: 32),
+          Center(
+            child: Text(
+              'Remember your password?',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w400,
+                fontSize: 14,
+                color: Color(0xFF5A5A5A),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => context.go('/login'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                minimumSize: const Size(double.infinity, 56),
+                side: const BorderSide(
+                  color: Color(0xFF1A3A5C),
+                  width: 1.5,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+              ),
+              child: const Text(
+                'Back to Login',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  color: Color(0xFF1A3A5C),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -213,24 +178,21 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       });
 
       try {
-        // Send password reset email via Firebase Auth
         await firebase_auth.FirebaseAuth.instance.sendPasswordResetEmail(
           email: _emailController.text.trim(),
         );
 
-        // Always show generic success message for security
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
                 'If an account exists for this email, we\'ve sent you password reset instructions.',
               ),
-              backgroundColor: const Color(0xFF1A3A5C),
+              backgroundColor: Color(0xFF1A3A5C),
             ),
           );
         }
 
-        // Keep user on screen after showing success message
         setState(() {
           _isLoading = false;
         });
@@ -239,7 +201,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           _isLoading = false;
         });
 
-        // Show error message to user
         String errorMessage =
             'Failed to send reset email. Please check the email and try again.';
 
@@ -249,25 +210,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               errorMessage = 'Please enter a valid email address.';
               break;
             case 'operation-not-allowed':
-              errorMessage =
-                  'Password reset is not available for this account.';
+              errorMessage = 'Password reset is not available for this account.';
               break;
             case 'too-many-requests':
               errorMessage = 'Too many requests. Please try again later.';
               break;
             case 'network-request-failed':
-              errorMessage =
-                  'Network error. Please check your internet connection.';
+              errorMessage = 'Network error. Please check your internet connection.';
               break;
             default:
-              // For security, don't reveal if account exists or what auth provider it uses
               errorMessage =
                   'Failed to send reset email. Please check the email and try again.';
           }
-        } else if (e.toString().contains('network') ||
-            e.toString().contains('connection')) {
-          errorMessage =
-              'Network error. Please check your internet connection.';
         }
 
         if (mounted) {
