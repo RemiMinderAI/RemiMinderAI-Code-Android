@@ -536,7 +536,11 @@ async def caregiver_alert_exists_for_context(
 async def create_recurring_reminder(original_reminder: dict) -> Optional[Dict[str, Any]]:
     """Create a new reminder for recurring schedule (used by scheduler)."""
     # Parse original scheduled time
-    original_time = datetime.fromisoformat(original_reminder["scheduled_time"].replace("Z", "+00:00"))
+    raw_time = original_reminder["scheduled_time"]
+    if isinstance(raw_time, datetime):
+        original_time = raw_time
+    else:
+        original_time = datetime.fromisoformat(str(raw_time).replace("Z", "+00:00"))
     
     # Calculate next scheduled time based on recurrence
     if original_reminder["recurrence"] == "daily":

@@ -460,7 +460,15 @@ async def mark_complete(
     Mark a reminder as completed.
     """
     try:
-        reminder = await complete_reminder(reminder_id, user_id, action)
+        from services.db_service import get_user_uuid
+        internal_id = await get_user_uuid(user_id)
+        logger.info(f"mark_complete: reminder_id={reminder_id} type={type(reminder_id)}, user_id={user_id}, internal_id={internal_id} type={type(internal_id)}")
+        import traceback as tb
+        try:
+            reminder = await complete_reminder(reminder_id, internal_id, action)
+        except Exception as inner:
+            logger.error(f"mark_complete inner error: {inner}\n{''.join(tb.format_exc())}")
+            raise
         
         if not reminder:
             raise HTTPException(
@@ -491,7 +499,9 @@ async def snooze_reminder_post(
     Snooze a reminder. The snooze count is incremented, and the scheduled time is pushed forward.
     """
     try:
-        reminder = await snooze_reminder(reminder_id, user_id, snooze_minutes)
+        from services.db_service import get_user_uuid
+        internal_id = await get_user_uuid(user_id)
+        reminder = await snooze_reminder(reminder_id, internal_id, snooze_minutes)
         
         if not reminder:
             raise HTTPException(

@@ -466,3 +466,115 @@ def synthesize_lightning(
         extra={"fallback_status": fallback_status},
     )
     return result
+
+
+DEEPGRAM_PROVIDER = "deepgram"
+
+
+def _deepgram_api_key() -> str:
+    return os.getenv("DEEPGRAM_API_KEY", "").strip()
+
+
+def _deepgram_model(language: str) -> str:
+    """Pick best Deepgram model. Medical for English, Nova-3 otherwise."""
+    if language.startswith("en") or language == "multi":
+        return os.getenv("DEEPGRAM_STT_MODEL", "nova-3-medical")
+    return "nova-3"
+
+
+def transcribe_deepgram(
+    audio_b64: str,
+    *,
+    language: str = "en",
+    content_type: str = "audio/wav",
+    preferred_language_fallback: str = DEFAULT_REMIVOX_LANGUAGE,
+) -> SttResult:
+    """Transcribe with Deepgram Nova-3 / Nova-3 Medical."""
+    started = time.perf_counter()
+    api_key = _deepgram_api_key()
+    if not api_key:
+        raise VoiceConfigError("Deepgram API key not configured.")
+
+    try:
+        audio_bytes = base64.b64decode(audio_b64)
+    except Exception as exc:
+        raise VoiceTranscriptionError("Invalid audio_base64.") from exc
+
+    lang_param = (language or "en").strip().lower()
+    if lang_param == "multi":
+        lang_param = "en"
+        model = _deepgram_model("en")
+        dg_params = f"model={model}&language={lang_param}&detect_language=true&smart_format=true&punctuate=true"
+    else:
+        lang_param = normalize_language_code(lang_param)
+        model = _deepgram_model(lang_param)
+        dg_params = f"model={model}&language={lang_param}&smart_format=true&punctuate=true"
+
+    # Add keyterm prompting for common medications
+    keywords = os.getenv("DEEPGRAM_KEYWORDS", "")
+    if keywords:
+        for kw in keywords.replace(":", ",").split(","):
+            kw = kw.strip()
+            if kw:
+                dg_params += f"&keyterm={kw}"
+
+    url = f"https://api.deepgram.com/v1/listen?{dg_params}"
+    headers = {
+        "Authorization": f"Token {api_key}",
+        "Content-Type": content_type or "audio/wav",
+    }
+
+    try:
+        response = requests.post(url, headers=headers, data=audio_bytes, timeout=45)
+    except Exception as exc:
+        latency_ms = (time.perf_counter() - started) * 1000.0
+        log_voice_operation(
+            provider=DEEPGRAM_PROVIDER, operation="stt",
+            input_language=lang_param, latency_ms=latency_ms,
+            success=False, error=str(exc),
+        )
+        raise VoiceTranscriptionError(f"Deepgram request failed: {exc}") from exc
+
+    if response.status_code >= 400:
+        latency_ms = (time.perf_counter() - started) * 1000.0
+        err = f"HTTP {response.status_code}: {response.text[:200]}"
+        log_voice_operation(
+            provider=DEEPGRAM_PROVIDER, operation="stt",
+            input_language=lang_param, latency_ms=latency_ms,
+            success=False, error=err,
+        )
+        raise VoiceTranscriptionError(err)
+
+    data = response.json()
+    channels = data.get("results", {}).get("channels", [{}])
+    alt = channels[0].get("alternatives", [{}])[0] if channels else {}
+    text = alt.get("transcript", "").strip()
+    detected = channels[0].get("detected_language", lang_param) if channels else lang_param
+    detected = normalize_language_code(str(detected))
+
+    if not text:
+        latency_ms = (time.perf_counter() - started) * 1000.0
+        log_voice_operation(
+            provider=DEEPGRAM_PROVIDER, operation="stt",
+            input_language=lang_param, latency_ms=latency_ms,
+            success=False, error="no_speech",
+        )
+        raise VoiceTranscriptionError("No speech detected.")
+
+    latency_ms = (time.perf_counter() - started) * 1000.0
+    result = SttResult(
+        transcript=text,
+        detected_language=detected,
+        provider=DEEPGRAM_PROVIDER,
+        requested_language=lang_param,
+        latency_ms=latency_ms,
+        success=True,
+        metadata={"model": model},
+    )
+    log_voice_operation(
+        provider=DEEPGRAM_PROVIDER, operation="stt",
+        input_language=lang_param, detected_language=detected,
+        output_language=detected, latency_ms=latency_ms,
+        success=True, extra={"model": model, "transcript_len": len(text)},
+    )
+    return result

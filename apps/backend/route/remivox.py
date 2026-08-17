@@ -55,6 +55,7 @@ from services.remivox.languages import (
     resolve_session_language,
 )
 from services.remivox.voice import (
+    transcribe_deepgram,
     VoiceConfigError,
     VoiceSynthesisError,
     VoiceTranscriptionError,
@@ -337,18 +338,27 @@ def _pulse_transcribe(
     preferred_language_fallback: str = DEFAULT_REMIVOX_LANGUAGE,
 ) -> tuple[str, str]:
     """
-    Compatibility wrapper → Voice Layer Pulse STT.
+    Compatibility wrapper → Voice Layer STT (Pulse or Deepgram).
 
-    Use language='multi' to auto-detect spoken language.
+    Routes based on REMIVOX_STT_PROVIDER env var (pulse|deepgram).
     Returns (transcript, detected_or_requested_language_code).
     """
+    provider = os.getenv("REMIVOX_STT_PROVIDER", "pulse").strip().lower()
     try:
-        result = transcribe_pulse(
-            audio_b64,
-            language=language,
-            content_type=content_type,
-            preferred_language_fallback=preferred_language_fallback,
-        )
+        if provider == "deepgram":
+            result = transcribe_deepgram(
+                audio_b64,
+                language=language,
+                content_type=content_type,
+                preferred_language_fallback=preferred_language_fallback,
+            )
+        else:
+            result = transcribe_pulse(
+                audio_b64,
+                language=language,
+                content_type=content_type,
+                preferred_language_fallback=preferred_language_fallback,
+            )
         return result.transcript, result.detected_language
     except VoiceConfigError as exc:
         raise HTTPException(
