@@ -2,27 +2,28 @@
 
 **Status:** Stage E — legacy care path retired from production routes  
 **Source of truth branch:** `feature/android-v1.4.0-full-port`  
-**Working branch:** `cursor/remivox-v2-stage-e-96fc`
+**Working branch:** `cursor/remivox-raw-transcript-pipeline-c9a4` (from Stage E)
 
 ## Principles
 
 1. **Backend-controlled, deterministic care assistant** for medication/reminder workflows.
-2. **Keep SmallestAI:** Pulse (STT) + Lightning (TTS).
+2. **Keep SmallestAI:** Pulse (STT) + Lightning (TTS). **Pipecat is not used.**
 3. **Hydra is optional conversational only** — never the decision maker for protected care actions.
 4. **Do not merge Hydra into the care pipeline** — voice / care / conversation stay separate.
-5. **Do not merge to `main`** until Stage E review + QA on `feature/android-v1.4.0-full-port`.
+5. **Do not merge to `main`** until review + QA on `feature/android-v1.4.0-full-port`.
+6. **Never redact the care transcript before intent/entity extraction.** Logs may omit PHI; Pulse text must still contain names like Metoprolol.
 
 ## Final production pipeline
 
 ```
-Audio / text
-  → Smallest Pulse STT
-  → Language Detection (preserve locale)
-  → translate → EN (router keyed on English)
-  → Intent Router          (structured IntentResult)
-  → Action Executor        (reminder_service / DB)
-  → Response Builder       (session language; conditional disclaimer)
-  → translate ← user language
+Pulse STT
+  → RAW / UNREDACTED TRANSCRIPT
+  → Intent + entity extraction   (raw first; optional EN assist for phrases only)
+  → Validate care-critical fields
+  → Action Executor
+  → Reminder / care action
+  → Response Builder
+  → translate ← user language (reply only)
   → Smallest Lightning TTS
 ```
 
@@ -45,10 +46,12 @@ Hydra       = optional conversation layer
 | Module | Layer | Status |
 |--------|-------|--------|
 | `voice.py` | Voice (Pulse / Lightning) | Live |
+| `transcript.py` | Raw unredacted STT passthrough | Live |
 | `languages.py` | Locales + session language | Live |
 | `intents/models.py` | Intent contracts | Live |
 | `intents/router.py` | Intent Router | Live |
-| `intents/extractors.py` | Entity extraction | Live |
+| `intents/extractors.py` | Entity extraction (on raw transcript) | Live |
+| `intents/validate.py` | Care-critical field gate | Live |
 | `actions/executor.py` | Action Layer | Live → reminder_service |
 | `actions/types.py` | ActionResult | Live |
 | `response/builder.py` | Response Layer | Live |
@@ -64,9 +67,12 @@ Hydra       = optional conversation layer
 
 ```
 enforce_remivox_access
-  → Pulse STT (if audio_base64)
+  → Pulse STT (if audio_base64)  # raw / unredacted transcript
   → resolve_session_language
-  → run_care_turn(...)   # never handle_prompt
+  → run_care_turn(raw transcript, optional EN routing assist)
+       → extract intents/entities
+       → validate care-critical fields
+       → Action Executor → reminder_service
   → Lightning TTS
 ```
 

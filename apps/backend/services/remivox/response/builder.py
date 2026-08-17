@@ -38,6 +38,7 @@ _SLOT_PROMPTS = {
     "frequency": "How often — every day, weekly, or just once?",
     "reminder": "Which reminder did you mean?",
     "confirmation": "Just to be sure — should I go ahead?",
+    "unredacted_transcript": "I didn't catch that clearly. Please say the reminder again.",
 }
 
 
@@ -109,6 +110,12 @@ def _text_for(
         if med:
             return f"Almost there for {med}. " + " ".join(parts)
         return " ".join(parts) or "Could you share a bit more detail?"
+
+    if key == "redacted_transcript":
+        return (
+            "I didn't catch that clearly enough to set a reminder. "
+            "Please say the medicine name and time again."
+        )
 
     if key == "cancelled":
         return "Okay — I cancelled that. What else can I help with?"

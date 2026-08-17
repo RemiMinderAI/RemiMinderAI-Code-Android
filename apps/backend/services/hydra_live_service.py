@@ -1,4 +1,9 @@
-"""Hydra S2S live session proxy for RemiVox (API key stays server-side)."""
+"""Hydra S2S live session proxy for RemiVox (API key stays server-side).
+
+This is conversational only — not Pipecat, and not the care pipeline.
+Reminder mutations go through Pulse STT → raw transcript → Intent Router →
+validation → Action Executor (see remivox.pipeline.run_care_turn).
+"""
 
 from __future__ import annotations
 

@@ -1,9 +1,11 @@
 """
 RemiVox v2 — backend-controlled, deterministic care assistant package.
 
-Production care path (Stage E):
-  route/remivox.py → remivox.pipeline.run_care_turn
-  → Intent Router → Action Executor → Reminder Service → Response Builder
+Production care path (Pulse STT, not Pipecat / not Hydra):
+  Pulse STT → RAW unredacted transcript
+  → Intent + entity extraction
+  → Validate care-critical fields
+  → Action Executor → Reminder / care action
 
 Hydra remains conversational only (never merged into the care pipeline).
 Legacy handle_prompt lives under remivox.legacy for rollback only.

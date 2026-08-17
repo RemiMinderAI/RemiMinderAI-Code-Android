@@ -341,22 +341,22 @@ async def _remivox_response(
     sid = (session_id or firebase_uid or "default").strip() or "default"
 
     if intent_prompt:
-        # Intent Router is English-keyed; translate non-English speech → English for routing.
-        english_prompt = intent_prompt
+        # English assist is for phrase matching only. Extraction uses Pulse/raw text.
+        routing_text = None
         if lang != "en":
-            english_prompt = _simple_translate(intent_prompt, lang, "en")
+            routing_text = _simple_translate(intent_prompt, lang, "en")
 
-        # Stage C: Intent Router → Action Executor → Response Builder
         result = await run_care_turn(
             user_uuid=user_uuid,
-            text=english_prompt,
+            text=intent_prompt,
             language=lang,
             detected_language=spoken_lang if audio_base64 else lang,
             reminders=reminders,
             summaries=summaries,
             timezone_name=timezone_name or "UTC",
             session_id=sid,
-            transcript=transcript or intent_prompt,
+            transcript=intent_prompt,
+            routing_text=routing_text,
         )
         text = result["text"]
         action = result.get("action")
