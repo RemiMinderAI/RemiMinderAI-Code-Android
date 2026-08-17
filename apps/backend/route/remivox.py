@@ -42,7 +42,6 @@ from services.remivox.config import (
     REMIVOX_PING_INTERVAL_S,
     REMIVOX_PIPELINE,
     REMIVOX_STT_MODEL,
-    REMIVOX_STT_REDACT_PII,
     REMIVOX_TTS_MODEL,
     REMIVOX_TTS_SPEED,
     REMIVOX_TTS_VOICE,
@@ -652,7 +651,9 @@ def _build_remivox_pipecat_task(
             model=REMIVOX_STT_MODEL,
             language=language,
             endpointing=True,
-            redact_pii=REMIVOX_STT_REDACT_PII,
+            # Care extraction needs drug names. Pulse PII mode turns
+            # "Metoprolol" into "[COMPANYNAME_1]" and must stay off.
+            redact_pii=False,
             keywords=_format_smallest_keywords(keyword_boosts),
             extra={"eou_timeout_ms": REMIVOX_EOU_TIMEOUT_MS},
         ),
@@ -914,26 +915,25 @@ async def _remivox_response(
     sid = (session_id or firebase_uid or "default").strip() or "default"
 
     if intent_prompt:
-        # Intent Router is English-keyed; translate non-English speech → English for routing.
-        english_prompt = intent_prompt
+        routing_text = None
         if lang != DEFAULT_REMIVOX_LANGUAGE:
-            english_prompt = _simple_translate(
+            routing_text = _simple_translate(
                 intent_prompt,
                 lang,
                 DEFAULT_REMIVOX_LANGUAGE,
             )
 
-        # Stage C: Intent Router → Action Executor → Response Builder
         result = await run_care_turn(
             user_uuid=user_uuid,
-            text=english_prompt,
+            text=intent_prompt,
             language=lang,
             detected_language=spoken_lang if audio_base64 else lang,
             reminders=reminders,
             summaries=summaries,
             timezone_name=timezone_name or "UTC",
             session_id=sid,
-            transcript=transcript or intent_prompt,
+            transcript=intent_prompt,
+            routing_text=routing_text,
         )
         text = result["text"]
         action = result.get("action")

@@ -32,12 +32,11 @@ REMIVOX_PIPELINE = (os.getenv("REMIVOX_PIPELINE") or "legacy").strip().lower()
 
 REMIVOX_STT_MODEL = (os.getenv("REMIVOX_STT_MODEL") or "pulse").strip()
 
-# PII redaction is disabled by default for RemiVox. Pulse redacts medication
-# names as if they were personal data ("pregabalin" -> "[CITY_1]", "Metoprolol"
-# -> "[COMPANYNAME_1]"), which destroys the transcript the intent router reads
-# and produces reminders literally named "[COMPANYNAME_1]". PII is handled at
-# the application layer instead.
-REMIVOX_STT_REDACT_PII = _env_bool("REMIVOX_STT_REDACT_PII", False)
+# Care STT never redacts. Pulse treats medication names as PII
+# ("Metoprolol" -> "[COMPANYNAME_1]"), which breaks the intent router.
+# Env REMIVOX_STT_REDACT_PII is recorded for audit but ignored at the STT call.
+REMIVOX_STT_REDACT_PII_REQUESTED = _env_bool("REMIVOX_STT_REDACT_PII", False)
+REMIVOX_STT_REDACT_PII = False
 
 # Smallest's WSS TTS validates the (model, voice) pair and rejects mismatches
 # with "Invalid Voice ID". Verified against wss://api.smallest.ai/waves/v1/tts/live:

@@ -64,12 +64,16 @@ class RemiVoxConfigTests(unittest.TestCase):
         finally:
             importlib.reload(remivox_config)
 
-    def test_redact_pii_can_be_re_enabled(self):
+    def test_redact_pii_cannot_enable_care_stt_masking(self):
         try:
             with patch.dict(os.environ, {"REMIVOX_STT_REDACT_PII": "true"}, clear=True):
-                self.assertTrue(importlib.reload(remivox_config).REMIVOX_STT_REDACT_PII)
+                config = importlib.reload(remivox_config)
+                self.assertTrue(config.REMIVOX_STT_REDACT_PII_REQUESTED)
+                self.assertFalse(config.REMIVOX_STT_REDACT_PII)
             with patch.dict(os.environ, {"REMIVOX_STT_REDACT_PII": "0"}, clear=True):
-                self.assertFalse(importlib.reload(remivox_config).REMIVOX_STT_REDACT_PII)
+                config = importlib.reload(remivox_config)
+                self.assertFalse(config.REMIVOX_STT_REDACT_PII)
+                self.assertFalse(config.REMIVOX_STT_REDACT_PII_REQUESTED)
         finally:
             importlib.reload(remivox_config)
 

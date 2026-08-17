@@ -18,6 +18,7 @@ from services.remivox.config import REMIVOX_TRANSCRIPT_MERGE_MS
 from services.remivox.languages import DEFAULT_REMIVOX_LANGUAGE
 from services.remivox.observability import logging
 from services.remivox.pipeline import run_care_turn
+from services.remivox.transcript import preserve_raw_transcript
 
 
 logger = logging.getLogger("remivox.observability")
@@ -100,8 +101,11 @@ class RemiVoxProcessor(FrameProcessor):
             await self.push_frame(frame, direction)
             return
 
-        transcript = (frame.text or "").strip()
-        logger.info(f"🎤 PIPECAT_PROCESSOR: received transcript fragment='{transcript}'")
+        transcript = preserve_raw_transcript(frame.text)
+        logger.info(
+            "PIPECAT_PROCESSOR: received transcript fragment_len=%s",
+            len(transcript),
+        )
         if not transcript:
             return
 
@@ -174,8 +178,9 @@ class RemiVoxProcessor(FrameProcessor):
                     int(self.session_stats.get("turns_count", 0)) + 1
                 )
             logger.info(
-                f"🎤 PIPECAT_PROCESSOR: care turn over {fragments} fragment(s): "
-                f"'{transcript[:80]}'"
+                "PIPECAT_PROCESSOR: care turn over %s fragment(s) text_len=%s",
+                fragments,
+                len(transcript),
             )
 
             response_text, intent_type = await self._run_care_turn(
@@ -229,14 +234,14 @@ class RemiVoxProcessor(FrameProcessor):
             )
             result = await run_care_turn(
                 user_uuid=user_uuid,
-                text=transcript,
+                text=preserve_raw_transcript(transcript),
                 language=detected_language or DEFAULT_REMIVOX_LANGUAGE,
                 detected_language=detected_language,
                 reminders=reminders,
                 summaries=summaries,
                 timezone_name=self.timezone,
                 session_id=self.session_id,
-                transcript=transcript,
+                transcript=preserve_raw_transcript(transcript),
             )
             response_text = (result.get("text") or "").strip()
             intent_type = str(result.get("intent") or "UNKNOWN")
