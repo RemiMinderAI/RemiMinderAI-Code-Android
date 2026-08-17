@@ -52,7 +52,7 @@ class _PatientAppShellState extends State<PatientAppShell> {
             child: widget.child,
           ),
 
-          if (false) // Vox disabled for store submission — re-enable post-review
+          if (kDebugMode)
             Positioned(
               right: 56,
               bottom: bottomInset + 102,
