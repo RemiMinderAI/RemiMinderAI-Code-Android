@@ -127,7 +127,8 @@ def _create_missing(entities: dict[str, Any]) -> list[str]:
     if not entities.get("time"):
         missing.append("time")
     if not entities.get("frequency"):
-        missing.append("frequency")
+        # Default to daily — most medication reminders are daily
+        entities["frequency"] = "daily"
     return missing
 
 

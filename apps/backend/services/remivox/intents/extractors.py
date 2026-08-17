@@ -61,8 +61,72 @@ _WEEKLY_PHRASES = ("weekly", "every week", "once a week")
 _TWICE_PHRASES = ("twice", "two times", "twice a day", "two times a day")
 
 
+_TENS_AS_HOUR = {
+    "twenty": "2", "thirty": "3", "forty": "4", "fifty": "5",
+    "sixty": "6", "seventy": "7", "eighty": "8", "ninety": "9",
+}
+
+_SPOKEN_MINS = {
+    "ten": "10", "eleven": "11", "twelve": "12", "thirteen": "13",
+    "fourteen": "14", "fifteen": "15", "sixteen": "16", "seventeen": "17",
+    "eighteen": "18", "nineteen": "19", "twenty": "20", "thirty": "30",
+    "forty": "40", "forty five": "45", "fifty": "50",
+}
+
+# Compound minutes: "twenty five" -> "25", "thirty seven" -> "37"
+_TENS_MINS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50}
+_ONES = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+    "six": 6, "seven": 7, "eight": 8, "nine": 9,
+    "fice": 5, "nive": 9, "fiv": 5,  # common Pulse mishears
+}
+
+_TENS_PAT = "|".join(_TENS_AS_HOUR.keys())
+_MINS_PAT = "|".join(sorted(_SPOKEN_MINS.keys(), key=len, reverse=True))
+_STT_COMPOUND_RE = re.compile(
+    rf"\b({_TENS_PAT})\s+({_MINS_PAT})\b", re.IGNORECASE,
+)
+_STT_BARE_TENS_RE = re.compile(
+    rf"\b({_TENS_PAT})\s*(?=a\.?m\.?|p\.?m\.?|am|pm|in\s+the|o.?clock|\b(?:morning|evening|night)\b)",
+    re.IGNORECASE,
+)
+
+
+_ONES_PAT = "one|two|three|four|five|six|seven|eight|nine|fice|nive|fiv"
+_TENS_MINS_PAT = "twenty|thirty|forty|fifty"
+
+# "eight twenty five pm" -> "8:25 pm" (single-digit hour + compound minutes)
+_STT_HOUR_COMPOUND_MIN_RE = re.compile(
+    rf"\b({_ONES_PAT}|\d{{1,2}})\s+({_TENS_MINS_PAT})(?:\s*[-\s]?\s*({_ONES_PAT}))?\s*(?=(a\.?m\.?|p\.?m\.?|am|pm|in\s+the|morning|evening|night|$))",
+    re.IGNORECASE,
+)
+
+
+def _fix_stt_compound_times(text: str) -> str:
+    """Fix Pulse STT artifacts: 'eighty thirty pm' -> '8:30 pm', 'eight twenty five pm' -> '8:25 pm'."""
+    def _repl(m):
+        h = _TENS_AS_HOUR[m.group(1).lower()]
+        mn = _SPOKEN_MINS[m.group(2).lower()]
+        return f"{h}:{mn}"
+    result = _STT_COMPOUND_RE.sub(_repl, text)
+    def _repl_bare(m):
+        return _TENS_AS_HOUR[m.group(1).lower()]
+    result = _STT_BARE_TENS_RE.sub(_repl_bare, result)
+
+    # Handle "eight twenty five pm" pattern
+    def _repl_hour_compound(m):
+        h_raw = m.group(1).lower()
+        h = _WORD_TO_NUM.get(h_raw) or _ONES.get(h_raw) or h_raw
+        tens = _TENS_MINS[m.group(2).lower()]
+        ones = _ONES.get((m.group(3) or "").lower(), 0)
+        mn = tens + ones
+        return f"{h}:{mn:02d} "
+    result = _STT_HOUR_COMPOUND_MIN_RE.sub(_repl_hour_compound, result)
+    return result
+
+
 def normalize_number_words(text: str) -> str:
-    result = text
+    result = _fix_stt_compound_times(text)
     for word, digit in _WORD_TO_NUM.items():
         result = re.sub(r"\b" + word + r"\b", digit, result, flags=re.IGNORECASE)
     return result
