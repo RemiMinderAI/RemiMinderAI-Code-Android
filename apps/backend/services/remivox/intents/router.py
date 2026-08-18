@@ -483,7 +483,11 @@ def route_intent(
 
     if any(
         w in lower
-        for w in ("appointment", "appt", "next visit", "follow-up", "follow up", "followup")
+        for w in (
+            "appointment", "appt", "next visit", "follow-up", "follow up",
+            "followup", "doctor appointment", "doctor visit", "schedule visit",
+            "book appointment", "next doctor", "see the doctor",
+        )
     ):
         return IntentResult(
             intent=VoxIntent.READ_APPOINTMENTS,
@@ -496,7 +500,13 @@ def route_intent(
 
     if any(
         w in lower
-        for w in ("last doctor", "last visit", "summary", "doctor visit", "notes", "read my last")
+        for w in (
+            "last doctor", "last visit", "summary", "doctor visit", "notes",
+            "read my last", "visit summary", "read summary", "read me the",
+            "what did the doctor", "what happened at", "doctor said",
+            "last appointment", "previous visit", "show summary",
+            "tell me about my visit", "my last summary",
+        )
     ):
         return IntentResult(
             intent=VoxIntent.READ_DOCTOR_SUMMARY,
