@@ -29,7 +29,7 @@ class BrandLogo extends StatelessWidget {
           color: beige,
           colorBlendMode: BlendMode.multiply,
           errorBuilder: (context, error, stackTrace) => Icon(
-            Icons.medical_services,
+            Icons.favorite,
             size: size * 0.55,
             color: AppTheme.primaryColor,
           ),

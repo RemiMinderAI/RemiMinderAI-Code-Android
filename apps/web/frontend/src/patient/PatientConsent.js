@@ -37,7 +37,7 @@ const PatientConsent = () => {
           <div className={styles.iconWrapper}>
             <FaShieldAlt className={styles.iconMain} />
           </div>
-          <h1 className={styles.title}>Patient Consent Agreement</h1>
+          <h1 className={styles.title}>MyCare Consent Agreement</h1>
           <p className={styles.subtitle}>Please review the following information carefully</p>
         </div>
         
@@ -49,8 +49,8 @@ const PatientConsent = () => {
                 <FaLock className={styles.blueIcon} />
                 </div>
                 <div className={styles.textWrapper}>
-                  <h4 className={styles.keyHeading}>HIPAA Compliance</h4>
-                  <p className={styles.keyText}>Your health information is protected under HIPAA regulations and stored with end-to-end encryption.</p>
+                  <h4 className={styles.keyHeading}>Privacy</h4>
+                  <p className={styles.keyText}>Your care information is stored with encryption and access controls.</p>
                 </div>
             </div>
 
@@ -60,7 +60,7 @@ const PatientConsent = () => {
                 </div>
                 <div className={styles.textWrapper}>
                   <h4 className={styles.keyHeading}>Data Usage</h4>
-                  <p className={styles.keyText}>Your visit recordings and summaries are used solely for your healthcare management. You can delete your data at any time.</p>
+                  <p className={styles.keyText}>Your visit recordings and summaries are used solely for your caregiving organization. You can delete your data at any time.</p>
                 </div>
             </div>
 
@@ -70,7 +70,7 @@ const PatientConsent = () => {
                 </div>
                 <div className={styles.textWrapper}>
                   <h3 className={styles.keyHeading}>Your Rights</h3>
-                  <p className={styles.keyText}>You have the right to access, modify, or delete your health information. You control who can access your data.</p>
+                  <p className={styles.keyText}>You have the right to access, modify, or delete your care information. You control who can access your data.</p>
                 </div>
             </div>
             </div>
@@ -81,22 +81,21 @@ const PatientConsent = () => {
             <div className={styles.agreementScroll}>
               <h5>1. Introduction</h5>
               <p>
-                This agreement outlines the terms and conditions for using RemiMinder’s telehealth platform. By accepting
+                This agreement outlines the terms and conditions for using RemiMinder’s caregiving organizer. By accepting
                 these terms, you acknowledge that you have read, understood, and agree to be bound by this agreement.
               </p>
 
-              <h5>2. HIPAA Authorization</h5>
+              <h5>2. Privacy</h5>
               <p>
-                HealthConnect is committed to protecting your health information in accordance with the Health Insurance Portability
-                and Accountability Act (HIPAA). We implement appropriate safeguards to protect your protected health information (PHI)
+                RemiMinder is committed to protecting your care information. We implement appropriate safeguards to protect it
                 from unauthorized access, use, or disclosure.
               </p>
 
               <h5>3. Data Collection and Use</h5>
-              <p>We collect and process health information you provide, including visit recordings, voice data, and health summaries. This information is used to:</p>
+              <p>We collect and process care information you provide, including visit recordings, voice data, and visit summaries. This information is used to:</p>
               <ul>
                 <li>Generate AI-powered visit summaries</li>
-                <li>Maintain your health records</li>
+                <li>Maintain your care records</li>
                 <li>Facilitate communication with caregivers you authorize</li>
                 <li>Improve our services while maintaining anonymization</li>
               </ul>
@@ -107,7 +106,7 @@ const PatientConsent = () => {
                 regular security audits, and compliance monitoring to ensure data safety.
               </p>
 
-              <h5>5. Patient Responsibilities</h5>
+              <h5>5. MyCare User Responsibilities</h5>
               <p>
                 You are responsible for maintaining the confidentiality of your account, managing caregiver access,
                 and ensuring the accuracy of information you provide.
@@ -121,13 +120,13 @@ const PatientConsent = () => {
 
               <h5>7. Limitation of Liability</h5>
               <p>
-                RemiMinder is designed for health tracking and coordination. It is not intended to replace professional medical advice, diagnosis, or treatment.
-                Always seek the advice of your physician or other qualified health provider.
+                RemiMinder is a personal caregiving organizer. It is not a substitute for advice from your care team.
+                AI-generated notes are informational only.
               </p>
 
               <h5>8. Prohibited Use</h5>
               <p>
-                This platform is not intended for collecting personally identifiable information (PII) beyond what is necessary for healthcare coordination,
+                This platform is not intended for collecting personally identifiable information (PII) beyond what is necessary for caregiving coordination,
                 nor for securing highly sensitive data requiring additional safeguards.
               </p>
 
@@ -153,7 +152,7 @@ const PatientConsent = () => {
             />
             <label htmlFor="consent">
               I have read and agree to the terms outlined above. I understand my rights and responsibilities,
-              including how my health information will be used and protected under HIPAA regulations.
+              including how my care information will be used and protected.
             </label>
           </div>
 

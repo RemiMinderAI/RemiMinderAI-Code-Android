@@ -73,7 +73,7 @@ class _CaregiverAlertCreateScreenState
           items: const [
             DropdownMenuItem(value: 'medication', child: Text('Medication')),
             DropdownMenuItem(value: 'appointment', child: Text('Appointment')),
-            DropdownMenuItem(value: 'emergency', child: Text('Emergency')),
+            DropdownMenuItem(value: 'emergency', child: Text('Urgent')),
             DropdownMenuItem(value: 'general', child: Text('General')),
           ],
         ),

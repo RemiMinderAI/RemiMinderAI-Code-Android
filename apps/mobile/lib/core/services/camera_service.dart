@@ -92,7 +92,7 @@ class CameraService {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Select Image Source'),
-          content: const Text('Choose how you want to add the medical image.'),
+          content: const Text('Choose how you want to add the document photo.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),

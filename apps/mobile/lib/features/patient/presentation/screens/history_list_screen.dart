@@ -157,7 +157,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
                   tabs: const [
                     Tab(text: 'ALL'),
                     Tab(text: 'SCANNED DOCS'),
-                    Tab(text: 'LAB RESULTS'),
+                    Tab(text: 'DOCUMENTS'),
                   ],
                 ),
 
@@ -275,7 +275,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Scanned prescriptions and documents will appear here',
+            'Scanned medication labels and documents will appear here',
             style: TextStyle(
               color: Colors.grey[500],
               fontSize: 12,
@@ -300,7 +300,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'No lab results yet',
+            'No documents yet',
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 16,
@@ -308,7 +308,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Lab results and test reports will appear here',
+            'Records and documents will appear here',
             style: TextStyle(
               color: Colors.grey[500],
               fontSize: 12,

@@ -613,7 +613,7 @@ class _RemindersScreenState extends State<RemindersScreen>
       case 'appointment':
         return Icons.calendar_today;
       case 'measurement':
-        return Icons.monitor_heart;
+        return Icons.show_chart;
       default:
         return Icons.notifications;
     }

@@ -473,7 +473,7 @@ class _OverviewScreenState extends State<OverviewScreen>
         SnackBar(
           content: Text(
             _isLabResultsTab
-                ? 'Select at least one lab result to delete'
+                ? 'Select at least one document to delete'
                 : 'Select at least one scanned document to delete',
           ),
         ),
@@ -483,7 +483,7 @@ class _OverviewScreenState extends State<OverviewScreen>
 
     final count = _selectedScanKeys.length;
     final isSingular = count == 1;
-    final itemLabel = _isLabResultsTab ? 'lab result' : 'scanned document';
+    final itemLabel = _isLabResultsTab ? 'document' : 'scanned document';
 
     showDialog(
       context: context,

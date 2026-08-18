@@ -586,7 +586,7 @@ class NotificationService {
             ? notificationBody.trim()
             : (dosage != null && dosage.trim().isNotEmpty
                 ? dosage.trim()
-                : 'Take your medication as prescribed');
+                : 'Time for your medication reminder');
         return (title: "💊 It's time for your medication", body: body);
     }
   }

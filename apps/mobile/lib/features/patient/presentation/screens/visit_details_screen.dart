@@ -637,6 +637,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
 
   static const _nextToDoPlaceholderPhrases = {
     'no clinical decisions mentioned in the conversation',
+    'informational only, not a substitute for advice from your care team',
     'no follow-up actions mentioned in the conversation',
   };
 
@@ -693,7 +694,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         (lower.contains('lab') ||
             lower.contains('blood') ||
             lower.contains('panel'))) {
-      return 'Lab results while fasting';
+      return 'Fasting notes';
     }
     return item;
   }

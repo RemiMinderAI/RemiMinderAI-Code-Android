@@ -58,7 +58,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get navProfile => 'પ્રોફાઇલ';
 
   @override
-  String get navPatients => 'દર્દીઓ';
+  String get navPatients => 'હું જેમને સહારો આપું છું';
 
   @override
   String get goodMorning => 'શુભ સવાર';
@@ -145,7 +145,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get inviteCaregiverSubtitle =>
-      'તમારી સ્વાસ્થ્ય માહિતીની ઍક્સેસ શેર કરો';
+      'તમારી સંભાળની માહિતીની ઍક્સેસ શેર કરો';
 
   @override
   String get invitationPending => 'આમંત્રણ બાકી છે';
@@ -267,7 +267,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get tabSummaries => 'સારાંશ';
 
   @override
-  String get tabLabResults => 'લેબ પરિણામો';
+  String get tabLabResults => 'દસ્તાવેજો';
 
   @override
   String get tabScannedDocs => 'સ્કેન કરેલ દસ્તાવેજ';
@@ -288,7 +288,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get shareLabel => 'શેર કરો';
 
   @override
-  String get doctorVisit => 'ડૉક્ટરની મુલાકાત';
+  String get doctorVisit => 'સંભાળ મુલાકાત';
 
   @override
   String timeToday(String time) {
@@ -385,7 +385,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get accountType => 'એકાઉન્ટ પ્રકાર';
 
   @override
-  String get patientRole => 'દર્દી';
+  String get patientRole => 'MyCare';
 
   @override
   String get caregiverRole => 'સંભાળ રાખનાર';
@@ -417,11 +417,11 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get patientRoleCardDescription =>
-      'તમારી દવાઓ, અપોઇન્ટમેન્ટ્સ અને આરોગ્ય રેકોર્ડ્સ મેનેજ કરો';
+      'તમારી દવાઓ, મુલાકાતો અને સંભાળ રેકોર્ડ્સ મેનેજ કરો';
 
   @override
   String get caregiverRoleCardDescription =>
-      'પરિવારના સભ્યો અથવા દર્દીઓની દવાઓ અને સંભાળ મેનેજ કરવામાં મદદ કરો';
+      'પરિવાર અથવા પ્રિયજનોની દવાઓ અને સંભાળ મેનેજ કરવામાં મદદ કરો';
 
   @override
   String get continueButton => 'ચાલુ રાખો';
@@ -582,14 +582,14 @@ class AppLocalizationsGu extends AppLocalizations {
   String get exportMyData => 'મારો ડેટા નિકાસ કરો';
 
   @override
-  String get deleteAllMedicalRecords => 'મારા તમામ મેડિકલ રેકોર્ડ્સ કાઢી નાખો';
+  String get deleteAllMedicalRecords => 'મારા બધા સંભાળ રેકોર્ડ્સ કાઢી નાખો';
 
   @override
-  String get deleteMedicalRecordsTitle => 'તબીબી રેકોર્ડ્સ કાઢી નાખો';
+  String get deleteMedicalRecordsTitle => 'સંભાળ રેકોર્ડ્સ કાઢી નાખો';
 
   @override
   String get deleteMedicalRecordsMessage =>
-      'આ તમારા તમામ મેડિકલ રેકોર્ડ્સને કાયમ માટે કાઢી નાખશે. આ ક્રિયા પૂર્વવત્ કરી શકાતી નથી.';
+      'આ તમારા બધા સંભાળ રેકોર્ડ્સ કાયમી રીતે કાઢી નાખશે. આ પાછું ફેરવી શકાતું નથી.';
 
   @override
   String get deleteRecords => 'રેકોર્ડ્સ કાઢી નાખો';
@@ -611,14 +611,14 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get termsOfServiceBody =>
-      'RemiMinder માટે સેવાની શરતો\n\n1. શરતોની સ્વીકૃતિ\nRemiMinder નો ઉપયોગ કરીને, તમે આ શરતો સાથે સંમત થાઓ છો.\n\n2. સેવાનો ઉપયોગ\nRemiMinder આરોગ્યસંભાળ અને દવા રીમાઇન્ડર્સનું સંચાલન કરવામાં મદદ કરવા માટે રચાયેલ છે.\n\n3. ગોપનીયતા\nતમારી ગોપનીયતા અમારા માટે મહત્વપૂર્ણ છે. તમામ આરોગ્ય ડેટા સુરક્ષિત રીતે હેન્ડલ કરવામાં આવે છે.\n\nસેવાની સંપૂર્ણ શરતો માટે, કૃપા કરીને અમારી વેબસાઇટની મુલાકાત લો.';
+      'RemiMinder સેવાની શરતો\n\n1. શરતોની સ્વીકૃતિ\nRemiMinder વાપરીને તમે આ શરતો સાથે સંમત થાઓ છો.\n\n2. સેવાનો ઉપયોગ\nRemiMinder સંભાળની દિનચર્યા અને રિમાઇન્ડર્સ મેનેજ કરવામાં મદદ કરે છે.\n\n3. ગોપનીયતા\nતમારી ગોપનીયતા મહત્વની છે. બધી સંભાળની માહિતી સુરક્ષિત રીતે સંભાળવામાં આવે છે.\n\nસંપૂર્ણ શરતો માટે અમારી વેબસાઇટ જુઓ.';
 
   @override
   String get privacyPolicy => 'ગોપનીયતા નીતિ';
 
   @override
   String get privacyPolicyBody =>
-      'RemiMinder માટે ગોપનીયતા નીતિ\n\n1. માહિતી અમે એકત્રિત કરીએ છીએ\nઅમે અમારી સેવાને બહેતર બનાવવા માટે તમે પ્રદાન કરો છો તે માહિતી એકત્રિત કરીએ છીએ અને ડેટાનો ઉપયોગ કરીએ છીએ.\n\n2. અમે માહિતીનો ઉપયોગ કેવી રીતે કરીએ છીએ\nમાહિતીનો ઉપયોગ હેલ્થકેર મેનેજમેન્ટ સેવાઓ પ્રદાન કરવા માટે થાય છે.\n\n3. માહિતી શેરિંગ\nઅમે તમારી અંગત માહિતી વેચતા નથી.\n\nસંપૂર્ણ ગોપનીયતા નીતિ માટે, કૃપા કરીને અમારી વેબસાઇટની મુલાકાત લો.';
+      'RemiMinder ગોપનીયતા નીતિ\n\n1. અમે એકત્રિત કરીએ છીએ તે માહિતી\nતમે આપો છો તે માહિતી અને ઉપયોગ ડેટા અમે એકત્રિત કરીએ છીએ.\n\n2. માહિતીનો ઉપયોગ\nમાહિતી સંભાળ અને રિમાઇન્ડર સેવાઓ માટે વપરાય છે.\n\n3. માહિતી શેર કરવી\nઅમે તમારી વ્યક્તિગત માહિતી વેચતા નથી.\n\nસંપૂર્ણ નીતિ માટે અમારી વેબસાઇટ જુઓ.';
 
   @override
   String get close => 'બંધ કરો';
@@ -756,7 +756,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get reminderTitleLabel => 'શીર્ષક';
 
   @override
-  String get dosageOptional => 'ડોઝ (વૈકલ્પિક)';
+  String get dosageOptional => 'જથ્થો (વૈકલ્પિક)';
 
   @override
   String get dosageHint => 'દા.ત. દિવસમાં એકવાર 10 મિલિગ્રામ';
@@ -944,7 +944,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get sectionInvitations => 'આમંત્રણો';
 
   @override
-  String get summaryPatients => 'દર્દીઓ';
+  String get summaryPatients => 'હું જેમને સહારો આપું છું';
 
   @override
   String get summaryAlerts => 'ચેતવણીઓ';
@@ -974,7 +974,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get viewInvitations => 'આમંત્રણો જુઓ';
 
   @override
-  String get defaultPatient => 'દર્દી';
+  String get defaultPatient => 'MyCare વપરાશકર્તા';
 
   @override
   String get defaultCaregiver => 'સંભાળ રાખનાર';
@@ -993,7 +993,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String caregiverPatientTime(String name, String time) {
-    return 'દર્દી:$name • $time';
+    return '$name • $time';
   }
 
   @override
@@ -1030,7 +1030,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get allPatientActivitiesSmooth =>
-      'દર્દીઓની તમામ પ્રવૃતિઓ સરળતાથી ચાલી રહી છે';
+      'બધી સંભાળ પ્રવૃત્તિઓ સરળતાથી ચાલી રહી છે';
 
   @override
   String get tryAdjustingFilter =>
@@ -1054,13 +1054,13 @@ class AppLocalizationsGu extends AppLocalizations {
   String get markAllAlertsRead => 'Mark all read';
 
   @override
-  String get myPatientsTitle => 'મારા દર્દીઓ';
+  String get myPatientsTitle => 'હું જેમને સહારો આપું છું';
 
   @override
-  String get patientsConnectedSubtitle => 'તમારી સાથે જોડાયેલા દર્દીઓ';
+  String get patientsConnectedSubtitle => 'તમારી સાથે જોડાયેલા MyCare વપરાશકર્તાઓ';
 
   @override
-  String get myPatientsSection => 'મારા દર્દીઓ';
+  String get myPatientsSection => 'હું જેમને સહારો આપું છું';
 
   @override
   String connectedCount(int count) {
@@ -1068,17 +1068,17 @@ class AppLocalizationsGu extends AppLocalizations {
   }
 
   @override
-  String get searchPatientsHint => 'દર્દીઓને શોધો...';
+  String get searchPatientsHint => 'હું જેમને સહારો આપું છું તેમને શોધો...';
 
   @override
-  String get noPatientsMatchSearch => 'કોઈ દર્દી તમારી શોધ સાથે મેળ ખાતા નથી.';
+  String get noPatientsMatchSearch => 'તમારી શોધ સાથે કોઈ મેળ ખાતા નથી.';
 
   @override
-  String get noPatientsConnectedYet => 'હજુ સુધી કોઈ દર્દી જોડાયેલા નથી';
+  String get noPatientsConnectedYet => 'હજુ સુધી કોઈ જોડાયેલા નથી';
 
   @override
   String get acceptInvitationToSeePatient =>
-      'અહીં દર્દીને જોવા માટેનું આમંત્રણ સ્વીકારો.';
+      'અહીં MyCare વપરાશકર્તા જોવા આમંત્રણ સ્વીકારો.';
 
   @override
   String get badgeNew => 'નવી';
@@ -1111,7 +1111,7 @@ class AppLocalizationsGu extends AppLocalizations {
   }
 
   @override
-  String get primaryCondition => 'પ્રાથમિક સ્થિતિ';
+  String get primaryCondition => 'મુખ્ય સંભાળ જરૂરિયાતો';
 
   @override
   String get lastSynced => 'છેલ્લે સમન્વયિત';
@@ -1126,14 +1126,14 @@ class AppLocalizationsGu extends AppLocalizations {
   String get currentMedications => 'વર્તમાન દવાઓ';
 
   @override
-  String get viewCarePlan => 'સંભાળ યોજના જુઓ';
+  String get viewCarePlan => 'સંભાળની દિનચર્યા જુઓ';
 
   @override
   String get remindersButton => 'રીમાઇન્ડર્સ';
 
   @override
   String get caregiverCareTeamSubtitle =>
-      'કુટુંબ અથવા તબીબી સ્ટાફને આમંત્રિત કરો';
+      'પરિવાર અથવા સંભાળ ટીમને આમંત્રણ આપો';
 
   @override
   String get invitationsReceived => 'આમંત્રણો મળ્યા';
@@ -1144,7 +1144,7 @@ class AppLocalizationsGu extends AppLocalizations {
   }
 
   @override
-  String get patientOverviewTitle => 'દર્દીની ઝાંખી';
+  String get patientOverviewTitle => 'સંભાળ ઝાંખી';
 
   @override
   String get patientOverviewTabVisits => 'મુલાકાતો';
@@ -1159,7 +1159,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get patientOverviewNoReminders => 'કોઈ રીમાઇન્ડર ઉપલબ્ધ નથી';
 
   @override
-  String get patientOverviewMissingPatientId => 'દર્દીની માહિતી ખૂટે છે';
+  String get patientOverviewMissingPatientId => 'પ્રોફાઇલ માહિતી ખૂટે છે';
 
   @override
   String get patientOverviewLastVisit => 'છેલ્લી મુલાકાત';
@@ -1293,7 +1293,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get relationshipFamilyMember => 'કુટુંબ સભ્ય';
 
   @override
-  String get relationshipHealthcareProfessional => 'આરોગ્ય વ્યાવસાયિક';
+  String get relationshipHealthcareProfessional => 'સંભાળ ટીમ સભ્ય';
 
   @override
   String get relationshipCaregiver => 'સંભાળ રાખનાર';
@@ -1315,7 +1315,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get visitActionAudioSubtitle =>
-      'સ્વચાલિત સારાંશ માટે તમારી ડૉક્ટરની મુલાકાત રેકોર્ડ કરો';
+      'સ્વચાલિત સારાંશ માટે તમારી મુલાકાત રેકોર્ડ કરો';
 
   @override
   String get visitActionCaptureTitle => 'કેપ્ચર અને સ્કેન';
@@ -1337,7 +1337,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get relationshipLabel => 'સંબંધ';
 
   @override
-  String get relationshipHint => 'દા.ત., પુત્ર, પુત્રી, મિત્ર, નર્સ';
+  String get relationshipHint => 'દા.ત., પુત્ર, પુત્રી, મિત્ર, સંભાળકર્તા';
 
   @override
   String get sendInvite => 'આમંત્રણ મોકલો';
@@ -1358,11 +1358,11 @@ class AppLocalizationsGu extends AppLocalizations {
   String get viewSummary => 'સારાંશ જુઓ';
 
   @override
-  String get noLabResultsYet => 'હજી સુધી કોઈ લેબ પરિણામો નથી';
+  String get noLabResultsYet => 'હજુ કોઈ દસ્તાવેજો નથી';
 
   @override
   String get labResultsScanHint =>
-      'પરિણામો અહીં જોવા કેપ્ચર અને સ્કેનથી લેબ રિપોર્ટ સ્કેન કરો.';
+      'અહીં જોવા કેપ્ચર અને સ્કેનથી દસ્તાવેજ સ્કેન કરો.';
 
   @override
   String get captureAndScan => 'કેપ્ચર અને સ્કેન';
@@ -1498,7 +1498,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get aiSummaryDisclaimer =>
-      'AI-જનિત સારાંશ. વ્યાવસાયિક તબીબી સલાહનું વિકલ્પ નથી.';
+      'AI-તૈયાર સારાંશ. તમારી સંભાળ ટીમની સલાહનો વિકલ્પ નથી.';
 
   @override
   String get recordingMicrophoneConsent =>
@@ -1510,7 +1510,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get cameraScanAiConsent =>
-      'હું આ દસ્તાવેજ સ્કેન અને સંબંધિત આરોગ્ય માહિતી કાઢવા AI પ્રક્રિયા માટે સંમત છું.';
+      'હું આ દસ્તાવેજ સ્કેન કરી સંબંધિત સંભાળ માહિતી કાઢવા AI પ્રક્રિયા માટે સંમત છું.';
 
   @override
   String get authLegalPrefix => 'ચાલુ રાખીને, તમે અમારી ';
@@ -1535,7 +1535,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get dataExportEmailBody =>
-      'મારા RemiMinder એકાઉન્ટ સાથે જોડાયેલો બધો વ્યક્તિગત અને આરોગ્ય ડેટા નિકાસ કરો.';
+      'મારા RemiMinder એકાઉન્ટ સાથે સંકળાયેલી બધી વ્યક્તિગત અને સંભાળ માહિતી નિકાસ કરો.';
 
   @override
   String get dataExportRequestSent =>
@@ -1543,15 +1543,15 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get deleteRecordsEmailSubject =>
-      'RemiMinder તબીબી રેકોર્ડ કાઢી નાખવાની વિનંતી';
+      'RemiMinder સંભાળ રેકોર્ડ કાઢી નાખવાની વિનંતી';
 
   @override
   String get deleteRecordsEmailBody =>
-      'મારા RemiMinder એકાઉન્ટ સાથે જોડાયેલા બધા તબીબી રેકોર્ડ કાયમ માટે કાઢી નાખો.';
+      'મારા RemiMinder એકાઉન્ટ સાથે સંકળાયેલા બધા સંભાળ રેકોર્ડ્સ કાયમી રીતે કાઢી નાખો.';
 
   @override
   String get deleteRecordsRequestSent =>
-      'રેકોર્ડ કાઢી નાખવાની વિનંતી મોકલવા privacy@remiminder.ai માટે તમારું ઈમેલ એપ ખોલવામાં આવ્યું.';
+      'સંભાળ રેકોર્ડ કાઢી નાખવાની વિનંતી મોકલવા privacy@remiminder.ai માટે તમારું ઈમેલ એપ ખોલવામાં આવ્યું.';
 
   @override
   String get caregiverSyncRetry =>

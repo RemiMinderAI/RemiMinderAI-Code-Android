@@ -254,7 +254,7 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
             tabs: [
               Tab(
                 text: l10n.patientOverviewTabVisits,
-                icon: const Icon(Icons.medical_services),
+                icon: const Icon(Icons.event),
               ),
               Tab(
                 text: l10n.patientOverviewTabReminders,
@@ -378,7 +378,7 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
                 color: primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.medical_services, color: primary),
+              child: Icon(Icons.event, color: primary),
             ),
             title: Text(
               visitTitle,
@@ -627,7 +627,7 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
       case 'appointment':
         return Icons.calendar_today;
       case 'measurement':
-        return Icons.monitor_heart;
+        return Icons.show_chart;
       default:
         return Icons.notifications;
     }

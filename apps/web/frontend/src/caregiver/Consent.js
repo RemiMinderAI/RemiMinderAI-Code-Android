@@ -47,8 +47,8 @@ const Consent = () => {
                 <FaLock className={styles.blueIcon} />
                 </div>
                 <div className={styles.textWrapper}>
-                  <h4 className={styles.keyHeading}>HIPAA Compliance</h4>
-                  <p className={styles.keyText}>Your access to patient data complies with HIPAA regulations. All shared information is encrypted and access-controlled.</p>
+                  <h4 className={styles.keyHeading}>Privacy</h4>
+                  <p className={styles.keyText}>Your access to MyCare user data is encrypted and access-controlled.</p>
                 </div>
             </div>
 
@@ -58,7 +58,7 @@ const Consent = () => {
                 </div>
                 <div className={styles.textWrapper}>
                   <h4 className={styles.keyHeading}>Data Usage</h4>
-                  <p className={styles.keyText}>Information you view or record as a caregiver is used only for patient care and coordination purposes.</p>
+                  <p className={styles.keyText}>Information you view or record as a caregiver is used only for caregiving coordination purposes.</p>
                 </div>
             </div>
 
@@ -68,7 +68,7 @@ const Consent = () => {
                 </div>
                 <div className={styles.textWrapper}>
                   <h3 className={styles.keyHeading}>Your Responsibilities</h3>
-                  <p className={styles.keyText}>You must maintain confidentiality and comply with all HIPAA privacy and security standards when handling patient data.</p>
+                  <p className={styles.keyText}>You must maintain confidentiality and use shared care information only to support the people who invited you.</p>
                 </div>
             </div>
           </div>
@@ -79,37 +79,37 @@ const Consent = () => {
             <div className={styles.agreementScroll}>
               <h5>1. Introduction</h5>
               <p>
-                This agreement outlines the terms for caregivers using RemiMinder’s telehealth platform. By accepting, you acknowledge and agree to these terms.
+                This agreement outlines the terms for caregivers using RemiMinder’s caregiving organizer. By accepting, you acknowledge and agree to these terms.
               </p>
 
-              <h5>2. HIPAA Compliance</h5>
+              <h5>2. Privacy</h5>
               <p>
-                You must ensure all health information accessed through this platform remains confidential and secure in accordance with HIPAA regulations.
+                You must ensure all care information accessed through this platform remains confidential and secure.
               </p>
 
               <h5>3. Authorized Access</h5>
               <p>
-                Caregivers are granted access only to patients who have explicitly authorized sharing of their health information.
+                Caregivers are granted access only to MyCare users who have explicitly authorized sharing of their care information.
               </p>
 
               <h5>4. Data Handling</h5>
               <p>
-                You may only access, record, or share patient data as necessary to assist with their healthcare coordination. Unauthorized disclosure is prohibited.
+                You may only access, record, or share care information as necessary to assist with caregiving coordination. Unauthorized disclosure is prohibited.
               </p>
 
               <h5>5. Confidentiality</h5>
               <p>
-                You agree to protect all health-related information, maintain confidentiality, and prevent unauthorized viewing, copying, or distribution.
+                You agree to protect all care information, maintain confidentiality, and prevent unauthorized viewing, copying, or distribution.
               </p>
 
               <h5>6. Liability and Limitations</h5>
               <p>
-                RemiMinder provides caregiver access as a communication tool. It is not a substitute for professional medical systems or clinical judgment.
+                RemiMinder provides caregiver access as a communication tool. It is not a substitute for advice from a care team.
               </p>
 
               <h5>7. Data Retention and Termination</h5>
               <p>
-                Upon termination of your caregiver access or patient relationship, all associated data will be deleted or access revoked.
+                Upon termination of your caregiver access or MyCare relationship, all associated data will be deleted or access revoked.
               </p>
 
               <h5>8. Amendments</h5>

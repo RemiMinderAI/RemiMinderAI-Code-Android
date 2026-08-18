@@ -155,7 +155,7 @@ class _VoxScreenState extends State<VoxScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Vox reads your reminders and visit summaries aloud. It does not replace medical advice.',
+                      'Vox reads your reminders and visit summaries aloud. It does not replace advice from your care team.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: const Color(0xFF2D2D2D),
                         height: 1.35,

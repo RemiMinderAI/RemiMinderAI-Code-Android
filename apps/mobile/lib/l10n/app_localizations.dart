@@ -207,7 +207,7 @@ abstract class AppLocalizations {
   /// No description provided for @navPatients.
   ///
   /// In en, this message translates to:
-  /// **'Patients'**
+  /// **'People I Support'**
   String get navPatients;
 
   /// No description provided for @goodMorning.
@@ -369,7 +369,7 @@ abstract class AppLocalizations {
   /// No description provided for @inviteCaregiverSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Share access to your health information'**
+  /// **'Share access to your care information'**
   String get inviteCaregiverSubtitle;
 
   /// No description provided for @invitationPending.
@@ -603,7 +603,7 @@ abstract class AppLocalizations {
   /// No description provided for @tabLabResults.
   ///
   /// In en, this message translates to:
-  /// **'LAB RESULTS'**
+  /// **'DOCUMENTS'**
   String get tabLabResults;
 
   /// No description provided for @tabScannedDocs.
@@ -645,7 +645,7 @@ abstract class AppLocalizations {
   /// No description provided for @doctorVisit.
   ///
   /// In en, this message translates to:
-  /// **'Doctor Visit'**
+  /// **'Care Visit'**
   String get doctorVisit;
 
   /// No description provided for @timeToday.
@@ -819,7 +819,7 @@ abstract class AppLocalizations {
   /// No description provided for @patientRole.
   ///
   /// In en, this message translates to:
-  /// **'Patient'**
+  /// **'MyCare'**
   String get patientRole;
 
   /// No description provided for @caregiverRole.
@@ -879,13 +879,13 @@ abstract class AppLocalizations {
   /// No description provided for @patientRoleCardDescription.
   ///
   /// In en, this message translates to:
-  /// **'Manage your own medications, appointments, and health records'**
+  /// **'Manage your own medications, appointments, and care records'**
   String get patientRoleCardDescription;
 
   /// No description provided for @caregiverRoleCardDescription.
   ///
   /// In en, this message translates to:
-  /// **'Help manage medications and care for family members or patients'**
+  /// **'Help manage medications and care for family members or loved ones'**
   String get caregiverRoleCardDescription;
 
   /// No description provided for @continueButton.
@@ -1179,19 +1179,19 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAllMedicalRecords.
   ///
   /// In en, this message translates to:
-  /// **'Delete all my medical records'**
+  /// **'Delete all my care records'**
   String get deleteAllMedicalRecords;
 
   /// No description provided for @deleteMedicalRecordsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Delete Medical Records'**
+  /// **'Delete Care Records'**
   String get deleteMedicalRecordsTitle;
 
   /// No description provided for @deleteMedicalRecordsMessage.
   ///
   /// In en, this message translates to:
-  /// **'This will permanently delete all your medical records. This action cannot be undone.'**
+  /// **'This will permanently delete all your care records. This action cannot be undone.'**
   String get deleteMedicalRecordsMessage;
 
   /// No description provided for @deleteRecords.
@@ -1233,7 +1233,18 @@ abstract class AppLocalizations {
   /// No description provided for @termsOfServiceBody.
   ///
   /// In en, this message translates to:
-  /// **'Terms of Service for RemiMinder\n\n1. Acceptance of Terms\nBy using RemiMinder, you agree to these terms.\n\n2. Use of Service\nRemiMinder is designed to help manage healthcare and medication reminders.\n\n3. Privacy\nYour privacy is important to us. All health data is handled securely.\n\nFor the complete Terms of Service, please visit our website.'**
+  /// **'Terms of Service for RemiMinder
+
+1. Acceptance of Terms
+By using RemiMinder, you agree to these terms.
+
+2. Use of Service
+RemiMinder is designed to help manage care routines and reminders.
+
+3. Privacy
+Your privacy is important to us. All care information is handled securely.
+
+For the complete Terms of Service, please visit our website.'**
   String get termsOfServiceBody;
 
   /// No description provided for @privacyPolicy.
@@ -1245,7 +1256,18 @@ abstract class AppLocalizations {
   /// No description provided for @privacyPolicyBody.
   ///
   /// In en, this message translates to:
-  /// **'Privacy Policy for RemiMinder\n\n1. Information We Collect\nWe collect information you provide and usage data to improve our service.\n\n2. How We Use Information\nInformation is used to provide healthcare management services.\n\n3. Information Sharing\nWe do not sell your personal information.\n\nFor the complete Privacy Policy, please visit our website.'**
+  /// **'Privacy Policy for RemiMinder
+
+1. Information We Collect
+We collect information you provide and usage data to improve our service.
+
+2. How We Use Information
+Information is used to provide caregiving and reminder services.
+
+3. Information Sharing
+We do not sell your personal information.
+
+For the complete Privacy Policy, please visit our website.'**
   String get privacyPolicyBody;
 
   /// No description provided for @close.
@@ -1497,7 +1519,7 @@ abstract class AppLocalizations {
   /// No description provided for @dosageOptional.
   ///
   /// In en, this message translates to:
-  /// **'Dosage (optional)'**
+  /// **'Amount (optional)'**
   String get dosageOptional;
 
   /// No description provided for @dosageHint.
@@ -1815,7 +1837,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryPatients.
   ///
   /// In en, this message translates to:
-  /// **'Patients'**
+  /// **'People I Support'**
   String get summaryPatients;
 
   /// No description provided for @summaryAlerts.
@@ -1869,7 +1891,7 @@ abstract class AppLocalizations {
   /// No description provided for @defaultPatient.
   ///
   /// In en, this message translates to:
-  /// **'Patient'**
+  /// **'MyCare User'**
   String get defaultPatient;
 
   /// No description provided for @defaultCaregiver.
@@ -1905,7 +1927,7 @@ abstract class AppLocalizations {
   /// No description provided for @caregiverPatientTime.
   ///
   /// In en, this message translates to:
-  /// **'Patient: {name} • {time}'**
+  /// **'{name} • {time}'**
   String caregiverPatientTime(String name, String time);
 
   /// No description provided for @timeDaysAgo.
@@ -1971,7 +1993,7 @@ abstract class AppLocalizations {
   /// No description provided for @allPatientActivitiesSmooth.
   ///
   /// In en, this message translates to:
-  /// **'All patient activities are running smoothly'**
+  /// **'All care activities are running smoothly'**
   String get allPatientActivitiesSmooth;
 
   /// No description provided for @tryAdjustingFilter.
@@ -2013,19 +2035,19 @@ abstract class AppLocalizations {
   /// No description provided for @myPatientsTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Patients'**
+  /// **'People I Support'**
   String get myPatientsTitle;
 
   /// No description provided for @patientsConnectedSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Patients connected to you'**
+  /// **'MyCare users connected to you'**
   String get patientsConnectedSubtitle;
 
   /// No description provided for @myPatientsSection.
   ///
   /// In en, this message translates to:
-  /// **'My patients'**
+  /// **'People I Support'**
   String get myPatientsSection;
 
   /// No description provided for @connectedCount.
@@ -2037,25 +2059,25 @@ abstract class AppLocalizations {
   /// No description provided for @searchPatientsHint.
   ///
   /// In en, this message translates to:
-  /// **'Search patients...'**
+  /// **'Search people I support...'**
   String get searchPatientsHint;
 
   /// No description provided for @noPatientsMatchSearch.
   ///
   /// In en, this message translates to:
-  /// **'No patients match your search.'**
+  /// **'No people match your search.'**
   String get noPatientsMatchSearch;
 
   /// No description provided for @noPatientsConnectedYet.
   ///
   /// In en, this message translates to:
-  /// **'No patients connected yet'**
+  /// **'No one connected yet'**
   String get noPatientsConnectedYet;
 
   /// No description provided for @acceptInvitationToSeePatient.
   ///
   /// In en, this message translates to:
-  /// **'Accept an invitation to see a patient here.'**
+  /// **'Accept an invitation to see a MyCare user here.'**
   String get acceptInvitationToSeePatient;
 
   /// No description provided for @badgeNew.
@@ -2103,7 +2125,7 @@ abstract class AppLocalizations {
   /// No description provided for @primaryCondition.
   ///
   /// In en, this message translates to:
-  /// **'Primary condition'**
+  /// **'Primary care needs'**
   String get primaryCondition;
 
   /// No description provided for @lastSynced.
@@ -2133,7 +2155,7 @@ abstract class AppLocalizations {
   /// No description provided for @viewCarePlan.
   ///
   /// In en, this message translates to:
-  /// **'View care plan'**
+  /// **'View care routine'**
   String get viewCarePlan;
 
   /// No description provided for @remindersButton.
@@ -2145,7 +2167,7 @@ abstract class AppLocalizations {
   /// No description provided for @caregiverCareTeamSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Invite family or medical staff'**
+  /// **'Invite family or care team'**
   String get caregiverCareTeamSubtitle;
 
   /// No description provided for @invitationsReceived.
@@ -2163,7 +2185,7 @@ abstract class AppLocalizations {
   /// No description provided for @patientOverviewTitle.
   ///
   /// In en, this message translates to:
-  /// **'Patient Overview'**
+  /// **'Care Overview'**
   String get patientOverviewTitle;
 
   /// No description provided for @patientOverviewTabVisits.
@@ -2193,7 +2215,7 @@ abstract class AppLocalizations {
   /// No description provided for @patientOverviewMissingPatientId.
   ///
   /// In en, this message translates to:
-  /// **'Missing patient information'**
+  /// **'Missing profile information'**
   String get patientOverviewMissingPatientId;
 
   /// No description provided for @patientOverviewLastVisit.
@@ -2445,7 +2467,7 @@ abstract class AppLocalizations {
   /// No description provided for @relationshipHealthcareProfessional.
   ///
   /// In en, this message translates to:
-  /// **'Healthcare Professional'**
+  /// **'Care team member'**
   String get relationshipHealthcareProfessional;
 
   /// No description provided for @relationshipCaregiver.
@@ -2487,7 +2509,7 @@ abstract class AppLocalizations {
   /// No description provided for @visitActionAudioSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Record your doctor visit for automatic summary'**
+  /// **'Record your appointment for an automatic summary'**
   String get visitActionAudioSubtitle;
 
   /// No description provided for @visitActionCaptureTitle.
@@ -2529,7 +2551,7 @@ abstract class AppLocalizations {
   /// No description provided for @relationshipHint.
   ///
   /// In en, this message translates to:
-  /// **'e.g., Son, Daughter, Friend, Nurse'**
+  /// **'e.g., Son, Daughter, Friend, Caregiver'**
   String get relationshipHint;
 
   /// No description provided for @sendInvite.
@@ -2571,13 +2593,13 @@ abstract class AppLocalizations {
   /// No description provided for @noLabResultsYet.
   ///
   /// In en, this message translates to:
-  /// **'No lab results yet'**
+  /// **'No documents yet'**
   String get noLabResultsYet;
 
   /// No description provided for @labResultsScanHint.
   ///
   /// In en, this message translates to:
-  /// **'Scan a lab report using Capture & Scan to see results here.'**
+  /// **'Scan a document using Capture & Scan to see results here.'**
   String get labResultsScanHint;
 
   /// No description provided for @captureAndScan.
@@ -2799,7 +2821,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSummaryDisclaimer.
   ///
   /// In en, this message translates to:
-  /// **'AI-generated summary. Not a substitute for professional medical advice.'**
+  /// **'AI-generated summary. Not a substitute for advice from your care team.'**
   String get aiSummaryDisclaimer;
 
   /// No description provided for @recordingMicrophoneConsent.
@@ -2817,7 +2839,7 @@ abstract class AppLocalizations {
   /// No description provided for @cameraScanAiConsent.
   ///
   /// In en, this message translates to:
-  /// **'I consent to this document being scanned and processed by AI to extract relevant health information.'**
+  /// **'I consent to this document being scanned and processed by AI to extract relevant care information.'**
   String get cameraScanAiConsent;
 
   /// No description provided for @authLegalPrefix.
@@ -2859,7 +2881,7 @@ abstract class AppLocalizations {
   /// No description provided for @dataExportEmailBody.
   ///
   /// In en, this message translates to:
-  /// **'Please export all personal and health data associated with my RemiMinder account.'**
+  /// **'Please export all personal and care information associated with my RemiMinder account.'**
   String get dataExportEmailBody;
 
   /// No description provided for @dataExportRequestSent.
@@ -2871,19 +2893,19 @@ abstract class AppLocalizations {
   /// No description provided for @deleteRecordsEmailSubject.
   ///
   /// In en, this message translates to:
-  /// **'RemiMinder medical records deletion request'**
+  /// **'RemiMinder care records deletion request'**
   String get deleteRecordsEmailSubject;
 
   /// No description provided for @deleteRecordsEmailBody.
   ///
   /// In en, this message translates to:
-  /// **'Please permanently delete all medical records associated with my RemiMinder account.'**
+  /// **'Please permanently delete all care records associated with my RemiMinder account.'**
   String get deleteRecordsEmailBody;
 
   /// No description provided for @deleteRecordsRequestSent.
   ///
   /// In en, this message translates to:
-  /// **'Your email app was opened to send a medical records deletion request to privacy@remiminder.ai.'**
+  /// **'Your email app was opened to send a care records deletion request to privacy@remiminder.ai.'**
   String get deleteRecordsRequestSent;
 
   /// No description provided for @caregiverSyncRetry.

@@ -17,7 +17,7 @@ class PermissionsService {
         context,
         title: 'Camera Permission Required',
         message:
-            'Camera access is needed to scan pill bottles, lab reports, and other medical documents. Please enable camera permission in settings.',
+            'Camera access is needed to scan pill bottles, lab reports, and other care documents. Please enable camera permission in settings.',
         permission: Permission.camera,
       );
     }
@@ -45,7 +45,7 @@ class PermissionsService {
         context,
         title: 'Microphone Permission Required',
         message:
-            'Microphone access is needed to record healthcare conversations and consultations. Permission was previously denied. Please go to Settings > RemiMinder > Microphone to enable it.',
+            'Microphone access is needed to record care conversations. Permission was previously denied. Please go to Settings > RemiMinder > Microphone to enable it.',
         permission: Permission.microphone,
       );
     } else if (status.isDenied || !status.isGranted) {
@@ -56,7 +56,7 @@ class PermissionsService {
         context,
         title: 'Microphone Permission Required',
         message:
-            'Microphone access is needed to record healthcare conversations and consultations. Please enable microphone permission in settings.',
+            'Microphone access is needed to record care conversations. Please enable microphone permission in settings.',
         permission: Permission.microphone,
       );
     }
@@ -79,8 +79,8 @@ class PermissionsService {
             ? 'Camera Permission Required'
             : 'Microphone Permission Required';
         final message = entry.key == Permission.camera
-            ? 'Camera access is needed to scan pill bottles, lab reports, and other medical documents.'
-            : 'Microphone access is needed to record healthcare conversations and consultations.';
+            ? 'Camera access is needed to scan pill bottles, lab reports, and other care documents.'
+            : 'Microphone access is needed to record care conversations.';
 
         await _showPermissionDialog(
           context,

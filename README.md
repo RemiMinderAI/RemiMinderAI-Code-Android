@@ -1,6 +1,6 @@
-# RemiMinder - AI Healthcare Companion
+# RemiMinder - AI Caregiving Companion
 
-RemiMinder is an AI-powered healthcare app that helps patients manage medications and allows caregivers to monitor loved ones through intelligent visit recording and smart reminders.
+RemiMinder is an AI-powered caregiving app that helps MyCare users manage medications and allows caregivers to monitor loved ones through intelligent visit recording and smart reminders.
 
 ## Current Status
 
@@ -68,18 +68,18 @@ MediMinder/
 
 ## Key Features
 
-### For Patients
-- **Audio Visit Recording**: Record doctor-patient conversations with AI transcription
+### For MyCare Users
+- **Audio Visit Recording**: Record care conversations with AI transcription
 - **Smart Medication Reminders**: Intelligent scheduling with snooze and skip options
-- **RemiScan**: AI-powered scanner for prescriptions, pill bottles, and lab reports - extracts data, generates summaries, and creates smart reminders
-- **Health Dashboard**: Track visits, medications, and adherence patterns
-- **Visit Summaries**: AI-generated plain-language summaries of medical visits
+- **RemiScan**: AI-powered scanner for medication labels, pill bottles, and documents - extracts data, generates summaries, and creates smart reminders
+- **Care Dashboard**: Track visits, medications, and adherence patterns
+- **Visit Summaries**: AI-generated plain-language summaries of care visits
 
 ### For Caregivers
-- **Multi-Patient Monitoring**: Manage multiple patients with real-time alerts
+- **Multi-user monitoring**: Manage multiple MyCare users with real-time alerts
 - **Adherence Tracking**: Monitor medication compliance and receive alerts
-- **Visit Access**: View patient visit recordings and AI-generated summaries
-- **Emergency Connections**: Quick access to healthcare providers
+- **Visit Access**: View visit recordings and AI-generated summaries
+- **Urgent contacts**: Quick access to the care team
 
 ### AI-Powered Features
 - **Intelligent Reminders**: AI extracts and creates medication/appointment reminders

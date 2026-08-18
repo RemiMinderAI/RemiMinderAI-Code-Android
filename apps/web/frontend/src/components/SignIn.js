@@ -273,7 +273,7 @@ export default function SignIn() {
                   <FaUser className={styles.icon} />
                 </div>
                 <div>
-                  <h1>Patient</h1>
+                  <h1>MyCare</h1>
                   <p>Record and track my own visits</p>
                 </div>
               </button>
@@ -290,7 +290,7 @@ export default function SignIn() {
                 </div>
                 <div>
                   <h1>Caregiver</h1>
-                  <p>Monitor and manage patient records</p>
+                  <p>Monitor and manage care records</p>
                 </div>
               </button>
             </div>
@@ -316,7 +316,7 @@ export default function SignIn() {
       <main className={styles.main}>
         <div className={styles.card}>
           <h1 className={styles.title}>
-            {role === "patient" ? "Patient Sign In" : "Caregiver Sign In"}
+            {role === "patient" ? "MyCare Sign In" : "Caregiver Sign In"}
           </h1>
           <p className={styles.subtitle}>Choose your preferred sign-in method</p>
 

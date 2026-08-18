@@ -15,7 +15,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   final List<Map<String, dynamic>> _emergencyContacts = [
     {
       'id': '1',
-      'name': 'Emergency Services',
+      'name': 'Urgent Services',
       'phone': '911',
       'type': 'emergency',
       'priority': 1,
@@ -51,7 +51,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   ];
 
   String _medicalAlertInfo =
-      'Cardiac patient, allergic to penicillin, takes daily medications';
+      'Cardiac care note, allergic to penicillin, takes daily medications';
 
   final List<String> _contactTypes = ['family', 'medical', 'friend', 'other'];
 
@@ -70,7 +70,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
           onPressed: () => context.go('/patient/home'),
         ),
         title: const Text(
-          'Emergency Contacts',
+          'Urgent Contacts',
           style: TextStyle(
             fontWeight: FontWeight.w600,
           ),
@@ -107,7 +107,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(
-                      Icons.emergency,
+                      Icons.notifications_active,
                       size: 32,
                       color: Colors.white,
                     ),
@@ -115,7 +115,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                     Column(
                       children: [
                         const Text(
-                          'EMERGENCY SOS',
+                          'URGENT SOS',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -123,7 +123,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                           ),
                         ),
                         Text(
-                          'Call all emergency contacts',
+                          'Call all urgent contacts',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.white.withOpacity(0.9),
@@ -151,7 +151,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
               child: Row(
                 children: [
                   const Icon(
-                    Icons.medical_information,
+                    Icons.info,
                     color: Colors.red,
                     size: 24,
                   ),
@@ -161,7 +161,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Medical Alert Information',
+                          'Care notes',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -358,11 +358,11 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   IconData _getTypeIcon(String type) {
     switch (type) {
       case 'emergency':
-        return Icons.emergency;
+        return Icons.notifications_active;
       case 'family':
         return Icons.family_restroom;
       case 'medical':
-        return Icons.medical_services;
+        return Icons.people;
       case 'friend':
         return Icons.people;
       default:
@@ -377,19 +377,19 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         title: const Row(
           children: [
             Icon(
-              Icons.emergency,
+              Icons.notifications_active,
               color: Colors.red,
               size: 28,
             ),
             SizedBox(width: 8),
-            Text('Emergency SOS'),
+            Text('Urgent SOS'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'This will call ALL emergency contacts simultaneously. Are you sure?',
+              'This will call ALL urgent contacts simultaneously. Are you sure?',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -400,7 +400,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
-                'Emergency contacts will be called in priority order',
+                'Urgent contacts will be called in priority order',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.red,
@@ -424,7 +424,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Call Emergency Contacts'),
+            child: const Text('Call Urgent Contacts'),
           ),
         ],
       ),
@@ -436,7 +436,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     // This would call contacts in priority order
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Emergency SOS activated! Calling all contacts...'),
+        content: Text('Urgent SOS activated! Calling all contacts...'),
         backgroundColor: Colors.red,
       ),
     );
@@ -477,7 +477,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 8),
-              const Text('Add Emergency Contact'),
+              const Text('Add Urgent Contact'),
             ],
           ),
           content: SingleChildScrollView(
@@ -567,7 +567,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Edit Emergency Contact'),
+          title: const Text('Edit Urgent Contact'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -646,7 +646,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Medical Alert Information'),
+        title: const Text('Care notes'),
         content: TextField(
           controller: controller,
           maxLines: 4,
@@ -663,7 +663,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
             onPressed: () {
               setState(() {
                 _medicalAlertInfo = controller.text.trim().isEmpty
-                    ? 'No medical alerts recorded'
+                    ? 'No care notes recorded'
                     : controller.text.trim();
               });
               Navigator.of(context).pop();
@@ -681,7 +681,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Delete Contact'),
         content: Text(
-            'Are you sure you want to remove ${contact['name']} from emergency contacts?'),
+            'Are you sure you want to remove ${contact['name']} from urgent contacts?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -722,7 +722,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$name added to emergency contacts')),
+      SnackBar(content: Text('$name added to urgent contacts')),
     );
   }
 }

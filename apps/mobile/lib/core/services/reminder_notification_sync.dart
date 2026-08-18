@@ -74,7 +74,7 @@ class ReminderNotificationSync {
         if (st == 'completed' || st == 'skipped' || st == 'missed') continue;
 
         final patientName =
-            (r['_patient_name'] as String?)?.trim() ?? 'Patient';
+            (r['_patient_name'] as String?)?.trim() ?? 'MyCare User';
         final title = (r['title'] as String?)?.trim() ?? 'Reminder';
         final notifId = 'caregiver_$reminderId';
 

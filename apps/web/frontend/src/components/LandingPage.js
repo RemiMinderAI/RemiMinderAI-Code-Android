@@ -28,13 +28,13 @@ const LandingPage = () => {
       icon: <Mic className={styles.stepIcon} />,
       title: "Record & Capture",
       description:
-        "Easily record doctor visits and medical conversations with one tap. Your AI companion listens and captures every important detail.",
+        "Easily record appointments and care conversations with one tap. Your AI companion listens and captures every important detail.",
     },
     {
       icon: <FileText className={styles.stepIcon} />,
       title: "Summarize & Organize",
       description:
-        "Get clear, structured summaries of your visits. All your health information organized in one secure place.",
+        "Get clear, structured summaries of your visits. All your care information organized in one secure place.",
     },
     {
       icon: <Bell className={styles.stepIcon} />,
@@ -46,7 +46,7 @@ const LandingPage = () => {
       icon: <Shield className={styles.stepIcon} />,
       title: "Privacy First",
       description:
-        "Your health data is encrypted and secure. Built with privacy at the core, you're always in control.",
+        "Your care information is encrypted and secure. Built with privacy at the core, you're always in control.",
     },
   ];
 
@@ -55,15 +55,15 @@ const LandingPage = () => {
       icon: Heart,
       title: "Peace of Mind",
       description:
-        "Know that every important detail from your healthcare visits is captured and organized, giving you confidence in your care decisions.",
+        "Know that every important detail from your care visits is captured and organized, giving you confidence in your care decisions.",
       stat: "95%",
       statLabel: "feel more in control",
     },
     {
       icon: Brain,
-      title: "Better Health Outcomes",
+      title: "Better Care Coordination",
       description:
-        "With clear summaries and reminders, you're more likely to follow treatment plans and catch important health changes early.",
+        "With clear summaries and reminders, you're more likely to stay on your care routine and notice important changes early.",
       stat: "3x",
       statLabel: "better medication adherence",
     },
@@ -71,7 +71,7 @@ const LandingPage = () => {
       icon: Clock,
       title: "Time Saved",
       description:
-        "Stop trying to remember what the doctor said or searching for that note. Everything you need is right at your fingertips.",
+        "Stop trying to remember what was said in a visit or searching for that note. Everything you need is right at your fingertips.",
       stat: "10hrs",
       statLabel: "saved per month",
     },
@@ -104,16 +104,16 @@ const LandingPage = () => {
       {/* Hero Section */}
       <main className={styles.heroSection}>
         <div className={styles.leftPanel}>
-          <div className={styles.aiTag}>✨ AI-Powered Healthcare Companion</div>
+          <div className={styles.aiTag}>✨ AI-Powered Caregiving Companion</div>
           <h1 className={styles.title}>
-            Your healthcare,
+            Your caregiving,
             <br />
             <span className={styles.highlightRemembered}>remembered</span> and{' '}
             <span className={styles.highlightReimagined}>reimagined</span>
           </h1>
           <p className={styles.description}>
-            Never miss a detail from your doctor visits. RemiMinder records
-            conversations, creates clear summaries, and keeps your health
+            Never miss a detail from your visits. RemiMinder records
+            conversations, creates clear summaries, and keeps your care
             journey organized—so you can focus on what matters most.
           </p>
 
@@ -170,7 +170,7 @@ const LandingPage = () => {
           <h2>
             How <span className={styles.gradientText}>RemiMinder</span> Works
           </h2>
-          <p>Four simple steps to transform how you manage your healthcare journey.</p>
+          <p>Four simple steps to transform how you manage your caregiving journey.</p>
         </div>
 
         <div className={styles.hiwImageWrapper}>
@@ -199,7 +199,7 @@ const LandingPage = () => {
             Built for <span className={styles.gradientText}>everyone</span> who cares<br />about health
           </h2>
           <p>
-            From patients navigating complex conditions to families supporting loved ones.
+            From MyCare users organizing daily routines to families supporting loved ones.
           </p>
         </div>
 
@@ -208,14 +208,14 @@ const LandingPage = () => {
             <div className={styles.personaImageWrapper}>
               <img
                 src={elderlyImage}
-                alt="For Seniors and Patients"
+                alt="For Seniors and MyCare users"
                 className={styles.personaImage}
               />
             </div>
             <div className={styles.personaContent}>
-              <h3>For Seniors & Patients</h3>
+              <h3>For Seniors & MyCare Users</h3>
               <p>
-                Stay on top of your health with clear visit summaries, medication reminders, and easy access to your medical history.
+                Stay on top of your care with clear visit summaries, medication reminders, and easy access to your care records.
               </p>
             </div>
           </div>
@@ -231,7 +231,7 @@ const LandingPage = () => {
             <div className={styles.personaContent}>
               <h3>For Families & Caregivers</h3>
               <p>
-                Support your loved ones with shared health insights, appointment tracking, and real-time updates on their care journey.
+                Support your loved ones with shared care insights, appointment tracking, and real-time updates on their care journey.
               </p>
             </div>
           </div>
@@ -247,7 +247,7 @@ const LandingPage = () => {
               Real impact on <span className={styles.gradientText}>real lives</span>
             </h2>
             <p>
-              More than just features — RemiMinder transforms how you experience healthcare.
+              More than just features — RemiMinder transforms how you experience caregiving.
             </p>
           </div>
 
@@ -282,7 +282,7 @@ const LandingPage = () => {
           <div className={styles.ctaHeader}>
             <h2>
               Ready to transform your{" "}
-              <span className={styles.gradientText}>healthcare experience?</span>
+              <span className={styles.gradientText}>caregiving experience?</span>
             </h2>
             <p>
               Join thousands of families already using RemiMinder. Choose your
@@ -302,8 +302,8 @@ const LandingPage = () => {
                     <User size={24} />
                   </div>
                   <div className={styles.userContent}>
-                    <h3>I'm a Patient</h3>
-                    <p>Record your doctor visits, track your health journey, and never forget important details.</p>
+                    <h3>I'm a MyCare User</h3>
+                    <p>Record your visits, track your care journey, and never forget important details.</p>
                     <span className={styles.ctaLink}>
                       Get Started <ArrowRight size={16} />
                     </span>
@@ -351,7 +351,7 @@ const LandingPage = () => {
           </div>
 
           <div className={styles.trustSection}>
-            <p>Trusted by healthcare professionals and families worldwide</p>
+            <p>Trusted by families and caregivers worldwide</p>
             <div className={styles.trustBadges}>
               <div className={styles.statusDot}></div>
               <span>HIPAA Compliant • SOC 2 Certified • End-to-End Encrypted</span>
@@ -370,7 +370,7 @@ const LandingPage = () => {
                 <span className={styles.brandName}>RemiMinderAI</span>
               </div>
               <p className={styles.footerText}>
-                Your healthcare, remembered and reimagined
+                Your caregiving, remembered and reimagined
               </p>
             </div>
 

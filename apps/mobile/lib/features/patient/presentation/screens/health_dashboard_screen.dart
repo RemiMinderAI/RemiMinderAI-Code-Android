@@ -106,7 +106,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
 
               // Blood Pressure Chart
               _buildMetricChart(
-                'Blood Pressure',
+                'Personal Notes',
                 Icons.favorite,
                 Colors.red,
                 _buildBloodPressureChart(),
@@ -180,7 +180,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             children: [
               Expanded(
                 child: _buildKeyMetricItem(
-                  'Blood Pressure',
+                  'Personal Notes',
                   '126/81',
                   'mmHg',
                   Icons.favorite,
@@ -220,10 +220,10 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               const SizedBox(width: 16),
               Expanded(
                 child: _buildKeyMetricItem(
-                  'Heart Rate',
+                  'Personal Notes',
                   '72',
                   'bpm',
-                  Icons.monitor_heart,
+                  Icons.show_chart,
                   Colors.purple,
                   'Resting average',
                   false,
@@ -564,8 +564,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
           ),
           const SizedBox(height: 16),
           _buildInsightItem(
-            'Blood Pressure Trend',
-            'Your systolic pressure has been stable with a slight downward trend. Keep up the good work!',
+            'Personal notes',
+            'Your notes have been stable this week. Keep up the good work!',
             Icons.trending_down,
             Colors.green,
           ),
@@ -667,7 +667,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
           ),
           const SizedBox(height: 16),
           _buildMeasurementItem(
-            'Blood Pressure',
+            'Personal Notes',
             '126/81 mmHg',
             'Today, 8:30 AM',
             Icons.favorite,
@@ -683,10 +683,10 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
           ),
           const Divider(height: 16),
           _buildMeasurementItem(
-            'Heart Rate',
+            'Personal Notes',
             '72 bpm',
             'Yesterday, 8:15 AM',
-            Icons.monitor_heart,
+            Icons.show_chart,
             Colors.purple,
           ),
           const SizedBox(height: 16),

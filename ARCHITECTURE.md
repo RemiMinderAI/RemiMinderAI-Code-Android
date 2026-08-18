@@ -2,7 +2,7 @@
 
 ## Overview
 
-RemiMinder Phase 2 is a mobile-first healthcare companion that connects patients and caregivers through AI-powered visit recording and intelligent medication management.
+RemiMinder Phase 2 is a mobile-first caregiving companion that connects MyCare users and caregivers through AI-powered visit recording and intelligent medication management.
 
 ## System Components
 
@@ -15,9 +15,9 @@ RemiMinder Phase 2 is a mobile-first healthcare companion that connects patients
 - **Core Features**:
   - Audio visit recording with AI transcription
   - Smart medication reminders with snooze/skip
-  - RemiScan: AI-powered scanner for prescriptions, pill bottles, and lab reports
-  - Patient dashboard with health tracking
-  - Caregiver multi-patient monitoring
+  - RemiScan: AI-powered scanner for medication labels, pill bottles, and documents
+  - MyCare dashboard with care tracking
+  - Caregiver multi-user monitoring
   - Offline-first capabilities with sync
 
 ### Backend (FastAPI + GCP)
@@ -44,39 +44,39 @@ Firebase Auth   Cloud Storage   Real-time Sync
 
 ## Key Capabilities
 
-### Patient Experience
-- **Audio Visit Recording**: Record doctor-patient conversations with high-quality audio
+### MyCare Experience
+- **Audio Visit Recording**: Record care conversations with high-quality audio
 - **AI Transcription**: Automatic conversion to text with intelligent summarization
 - **Smart Medication Reminders**: Intelligent scheduling with snooze and skip options
-- **RemiScan**: AI-powered scanning of prescriptions, pill bottles, and lab reports
-- **Health Dashboard**: Comprehensive view of medications, visits, and adherence
+- **RemiScan**: AI-powered scanning of medication labels, pill bottles, and documents
+- **Care Dashboard**: Comprehensive view of medications, visits, and adherence
 - **Visit History**: Archive of past visits with summaries and recordings
 
 ### Caregiver Experience
-- **Multi-Patient Monitoring**: Manage multiple patients with real-time oversight
+- **Multi-user monitoring**: Manage multiple MyCare users with real-time oversight
 - **Adherence Alerts**: Receive notifications for missed medications or issues
-- **Visit Access**: View patient visit recordings and AI-generated summaries
-- **Emergency Connections**: Quick access to healthcare providers
-- **Progress Tracking**: Monitor medication compliance and health trends
+- **Visit Access**: View visit recordings and AI-generated summaries
+- **Urgent contacts**: Quick access to the care team
+- **Progress Tracking**: Monitor medication compliance and care trends
 
 ### AI-Powered Features
 - **Intelligent Transcription**: Google Gemini-powered visit audio processing
 - **Smart Reminder Generation**: AI extracts time-based tasks from conversations and scanned documents
-- **RemiScan AI Analysis**: AI processes scanned prescriptions, pill bottles, and lab reports for insights
+- **RemiScan AI Analysis**: AI processes scanned medication labels, pill bottles, and documents for insights
 - **Natural Language Processing**: Friendly, jargon-free communication
 - **Adherence Analytics**: Pattern recognition in medication compliance
-- **Personalized Messaging**: AI-generated reminder texts, visit summaries, and health insights
-- **Medical Content Analysis**: AI identifies trends, abnormalities, and health indicators from scans
+- **Personalized Messaging**: AI-generated reminder texts, visit summaries, and care insights
+- **Care content analysis**: AI identifies trends and important indicators from scans
 
 ### RemiScan Capabilities (AI-Powered)
-- **Multi-Document Scanning**: Prescriptions, pill bottles, and lab reports
+- **Multi-Document Scanning**: Medication labels, pill bottles, and documents
 - **OCR + AI Processing**: Google ML Kit extracts text + AI analyzes content for insights
-- **Intelligent Data Extraction**: Identifies medicine name, dosage, frequency, timing, and medical parameters
-- **Smart Summaries**: AI generates plain-language summaries of lab results and prescriptions
+- **Intelligent Data Extraction**: Identifies medicine name, amount, frequency, timing, and care parameters
+- **Smart Summaries**: AI generates plain-language summaries of documents and medication labels
 - **Automated Reminders**: Creates medication and follow-up reminders based on scanned content
-- **Content Analysis**: AI identifies trends, abnormalities, and important health indicators
-- **Auto-Cleaning & Validation**: Removes noise, handles blurry scans, validates medical data
-- **Pre-Filled Health Plans**: Creates ready-to-confirm medication and care schedules
+- **Content Analysis**: AI identifies trends and important care indicators
+- **Auto-Cleaning & Validation**: Removes noise, handles blurry scans, validates care data
+- **Pre-Filled Care Routines**: Creates ready-to-confirm medication and care schedules
 
 ### User Experience Features
 - **Intuitive UI**: Clean, accessible interface for all ages
@@ -86,7 +86,7 @@ Firebase Auth   Cloud Storage   Real-time Sync
 - **Background Processing**: Notifications and sync work continuously
 
 ### Integration Features
-- Healthcare provider connections and data sharing capabilities
+- Care team connections and data sharing capabilities
 
 ## Technology Choices
 

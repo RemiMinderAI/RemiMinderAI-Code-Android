@@ -230,7 +230,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'Your AI healthcare companion',
+                      'Your AI care companion',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: theme.colorScheme.primary,
@@ -239,7 +239,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Vox reads medication reminders aloud, explains doctor visit summaries in plain language, and helps caregivers stay connected.',
+                      'Vox reads medication reminders aloud, explains visit summaries in plain language, and helps caregivers stay connected.',
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: const Color(0xFF2D2D2D),
                         height: 1.35,
@@ -255,7 +255,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildBenefitItem('Unlimited doctor visit summaries', theme),
+                          _buildBenefitItem('Unlimited visit summaries', theme),
                           const SizedBox(height: 14),
                           _buildBenefitItem('Vox voice companion', theme),
                           const SizedBox(height: 14),

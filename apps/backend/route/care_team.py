@@ -232,7 +232,7 @@ async def invite_care_team_member(
         patient_label = (
             (current_user.get("name") or "").strip()
             or (current_user.get("email") or "").strip()
-            or "Your patient"
+            or "Someone you support"
         )
 
         email_ok = False
@@ -486,7 +486,7 @@ async def resend_pending_care_team_invitation(
         patient_label = (
             (current_user.get("name") or "").strip()
             or (current_user.get("email") or "").strip()
-            or "Your patient"
+            or "Someone you support"
         )
 
         email_ok = False

@@ -72,7 +72,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               ),
               _buildNotificationToggle(
                 'Appointment Reminders',
-                'Reminders for upcoming doctor visits and tests',
+                'Reminders for upcoming appointments and tests',
                 _appointmentReminders,
                 (value) => setState(() => _appointmentReminders = value),
                 Icons.calendar_today,
@@ -80,7 +80,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               ),
               _buildNotificationToggle(
                 'Health Tips',
-                'Daily tips for managing your health conditions',
+                'Daily tips for managing your care needs',
                 _healthTips,
                 (value) => setState(() => _healthTips = value),
                 Icons.health_and_safety,
@@ -95,17 +95,17 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 Colors.orange,
               ),
               _buildNotificationToggle(
-                'Emergency Alerts',
-                'Critical health alerts and emergency notifications',
+                'Urgent Alerts',
+                'Time-sensitive care alerts and urgent notifications',
                 _emergencyAlerts,
                 (value) => setState(() => _emergencyAlerts = value),
-                Icons.emergency,
+                Icons.notifications_active,
                 Colors.red,
                 enabled: false, // Always enabled for safety
               ),
               _buildNotificationToggle(
                 'Daily Summary',
-                'Evening summary of your day\'s health activities',
+                'Evening summary of your day\'s care activities',
                 _dailySummary,
                 (value) => setState(() => _dailySummary = value),
                 Icons.summarize,

@@ -123,7 +123,7 @@ const PatientProfileSetup = () => {
       {/* Main */}
       <main className={styles.main}>
         <h1 className={styles.title}>Complete your profile</h1>
-        <p className={styles.subtitle}>Help us personalize your healthcare experience</p>
+        <p className={styles.subtitle}>Help us personalize your caregiving experience</p>
 
         <div className={styles.card}>
           {/* Profile Photo Upload */}
@@ -211,7 +211,7 @@ const PatientProfileSetup = () => {
               <label htmlFor="notes">Health Notes (Optional)</label>
               <textarea
                 id="notes"
-                placeholder="Any allergies, conditions, or important health information..."
+                placeholder="Any allergies, conditions, or important care information..."
                 rows="4"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}

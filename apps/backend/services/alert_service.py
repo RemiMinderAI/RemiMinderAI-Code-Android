@@ -95,7 +95,7 @@ async def send_skip_alert_to_caregivers(
             logger.error(f"Patient {user_id} not found for caregiver alert")
             return
 
-        patient_name = patient.get('full_name', 'Your patient')
+        patient_name = patient.get('full_name', 'Someone you support')
 
         reminder = await get_reminder(reminder_id, user_id)
         if not reminder:
@@ -131,7 +131,7 @@ async def send_skip_alert_to_caregivers(
                 alert_type=alert_type,
                 message=alert_message,
             )
-            await _push_fcm_to_caregiver(caregiver_id, f"Patient Alert", alert_message, alert_type)
+            await _push_fcm_to_caregiver(caregiver_id, f"Care Alert", alert_message, alert_type)
             await send_caregiver_alert_email(
                 to_email=caregiver_email,
                 patient_name=patient_name,
@@ -171,7 +171,7 @@ async def notify_caregiver_new_visit_symptoms(
         patient = await get_patient_info(user_id)
         if not patient:
             return
-        patient_name = patient.get("full_name") or "Your patient"
+        patient_name = patient.get("full_name") or "Someone you support"
 
         caregivers = await list_patient_caregivers_for_alerts(user_id)
         if not caregivers:
@@ -234,7 +234,7 @@ async def notify_caregivers_new_visit_recorded(
         patient = await get_patient_info(user_id)
         if not patient:
             return
-        patient_name = patient.get("full_name") or "Your patient"
+        patient_name = patient.get("full_name") or "Someone you support"
 
         caregivers = await list_patient_caregivers_for_alerts(user_id)
         if not caregivers:
@@ -299,7 +299,7 @@ async def notify_caregivers_reminder_created(
         patient = await get_patient_info(user_id)
         if not patient:
             return
-        patient_name = patient.get("full_name") or "Your patient"
+        patient_name = patient.get("full_name") or "Someone you support"
         title = (reminder_title or "A reminder").strip() or "A reminder"
         caregivers = await list_patient_caregivers_for_alerts(user_id)
         if not caregivers:
@@ -320,7 +320,7 @@ async def notify_caregivers_reminder_created(
             )
             if not row:
                 continue
-            await _push_fcm_to_caregiver(caregiver_id, "New Patient Reminder", alert_message, "reminder_created")
+            await _push_fcm_to_caregiver(caregiver_id, "New Reminder", alert_message, "reminder_created")
             await send_caregiver_alert_email(
                 to_email=caregiver_email,
                 patient_name=patient_name,
@@ -349,7 +349,7 @@ async def notify_caregivers_patient_reminder_updated(
         patient = await get_patient_info(user_id)
         if not patient:
             return
-        patient_name = patient.get("full_name") or "Your patient"
+        patient_name = patient.get("full_name") or "Someone you support"
         title = (reminder_title or "A reminder").strip() or "A reminder"
         day_key = date.today().isoformat()
         caregivers = await list_patient_caregivers_for_alerts(user_id)
@@ -377,7 +377,7 @@ async def notify_caregivers_patient_reminder_updated(
             )
             if not row:
                 continue
-            await _push_fcm_to_caregiver(caregiver_id, "Patient Reminder Updated", alert_message, "reminder_updated")
+            await _push_fcm_to_caregiver(caregiver_id, "Reminder Updated", alert_message, "reminder_updated")
             await send_caregiver_alert_email(
                 to_email=caregiver_email,
                 patient_name=patient_name,
@@ -412,7 +412,7 @@ async def process_missed_reminder_caregiver_alerts() -> int:
             ctx = f"missed:{rid}"
 
             patient = await get_patient_info(pid)
-            patient_name = (patient or {}).get("full_name") or "Your patient"
+            patient_name = (patient or {}).get("full_name") or "Someone you support"
             title = (r.get("title") or "A reminder").strip() or "A reminder"
             alert_message = (
                 f"{patient_name} missed the scheduled reminder '{title}'. "
@@ -440,7 +440,7 @@ async def process_missed_reminder_caregiver_alerts() -> int:
                 )
                 if not row:
                     continue
-                await _push_fcm_to_caregiver(caregiver_id, "Patient Missed Reminder", alert_message, "reminder_missed")
+                await _push_fcm_to_caregiver(caregiver_id, "Missed Reminder", alert_message, "reminder_missed")
                 await send_caregiver_alert_email(
                     to_email=cg["email"],
                     patient_name=patient_name,

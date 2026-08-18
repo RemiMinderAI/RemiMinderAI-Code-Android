@@ -7,9 +7,9 @@ Use this checklist when submitting **RemiMinder** (`com.remiminderai.app`). Alig
 | Field | Value |
 |-------|--------|
 | Privacy policy URL | `https://remiminderai.com/privacy` |
-| Category | Health & Fitness |
+| Category | Lifestyle |
 | Target audience | Adults (not designed for children under 13) |
-| Medical disclaimer in description | Yes — not a substitute for professional medical advice |
+| Caregiving disclaimer in description | Yes — informational only; not a substitute for advice from your care team |
 
 ## Data safety form
 
@@ -20,8 +20,8 @@ Use this checklist when submitting **RemiMinder** (`com.remiminderai.app`). Alig
 | Name | Yes | No* | Required (account) | Account management |
 | Email address | Yes | No* | Required (account) | Account management, support |
 | Phone number | Optional | No* | Optional | Account profile |
-| Health info (meds, visits, summaries) | Yes | Yes** | Core feature | App functionality |
-| Photos (prescriptions, labs) | Yes | No* | Optional (user-initiated scan) | App functionality |
+| Care info (meds, visits, summaries) | Yes | Yes** | Core feature | App functionality |
+| Photos (medication labels, documents) | Yes | No* | Optional (user-initiated scan) | App functionality |
 | Audio (visit recordings) | Yes | Yes*** | Optional (user-initiated) | Transcription / summaries |
 | Device or other IDs (FCM token) | Yes | Firebase only | Required for push | Push notifications |
 | App interactions / crash logs | No | — | — | Not collected in mobile app |
@@ -48,8 +48,8 @@ Use this checklist when submitting **RemiMinder** (`com.remiminderai.app`). Alig
 
 | Permission | Declare? | Justification |
 |------------|----------|---------------|
-| `CAMERA` | Yes | Scan prescriptions and lab documents with user consent |
-| `RECORD_AUDIO` | Yes | Record healthcare visits with inline consent |
+| `CAMERA` | Yes | Scan medication labels and documents with user consent |
+| `RECORD_AUDIO` | Yes | Record care visits with inline consent |
 | `POST_NOTIFICATIONS` | Yes | Medication and care reminders |
 | `SCHEDULE_EXACT_ALARM` | Yes | Timely medication reminders when app is closed |
 | `INTERNET` | Yes | Sync with RemiMinder API and Firebase |
@@ -62,11 +62,11 @@ Use this checklist when submitting **RemiMinder** (`com.remiminderai.app`). Alig
 - User benefit: reliable alerts for time-sensitive medications
 - Runtime permission requested when enabling reminders / on first launch (consider moving to contextual prompt in a future release)
 
-## Health apps
+## Caregiving apps
 
-- App provides health-related features but is **not** a regulated medical device
+- App provides caregiving features and is informational only
 - In-app AI disclaimer localized via `aiSummaryDisclaimer` string
-- No claims of diagnosis, cure, or FDA clearance in store listing
+- Store listing should not claim regulated-device status
 
 ## Account deletion
 

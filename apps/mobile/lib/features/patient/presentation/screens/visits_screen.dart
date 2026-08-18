@@ -158,7 +158,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
               final visitId = data['id'] as String? ?? docs[index].id;
               final doctor = (data['doctorName'] as String?)?.trim().isNotEmpty == true
                   ? data['doctorName'] as String
-                  : 'Doctor Visit';
+                  : 'Care Visit';
               final type = (data['specialty'] as String?)?.trim().isNotEmpty == true
                   ? data['specialty'] as String
                   : 'General visit';
@@ -226,7 +226,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              hasRecording ? Icons.mic : Icons.medical_services,
+              hasRecording ? Icons.mic : Icons.event,
               color: Theme.of(context).colorScheme.primary,
               size: 24,
             ),
@@ -316,7 +316,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
             'Dr. Sarah Johnson',
             'Cardiology Checkup',
             'Tomorrow, 2:30 PM',
-            'City Medical Center',
+            'Community Center',
           ),
           const SizedBox(height: 16),
           _buildAppointmentItem(

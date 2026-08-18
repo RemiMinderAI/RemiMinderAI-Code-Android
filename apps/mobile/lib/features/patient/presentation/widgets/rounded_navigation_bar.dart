@@ -95,7 +95,7 @@ class _RoundedNavigationBarState extends State<RoundedNavigationBar> {
                     child: Row(
                       children: [
                         Icon(
-                          Icons.medical_services,
+                          Icons.people,
                           color:
                               Theme.of(sheetContext).colorScheme.primary,
                           size: compactLayout ? 24 : 28,

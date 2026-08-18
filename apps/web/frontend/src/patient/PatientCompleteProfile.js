@@ -75,7 +75,7 @@ const PatientCompleteProfile = () => {
             margin: '8px 0 0 0',
             lineHeight: '1.4'
           }}>
-            Help us personalize your healthcare experience
+            Help us personalize your caregiving experience
           </p>
         </div>
 
@@ -341,7 +341,7 @@ const PatientCompleteProfile = () => {
                 name="healthNotes"
                 value={formData.healthNotes}
                 onChange={handleInputChange}
-                placeholder="Any allergies, conditions, or important health information..."
+                placeholder="Any allergies, conditions, or important care information..."
                 style={{
                   width: '100%',
                   height: '100px',

@@ -86,7 +86,7 @@ export default function PatientInvitation({ onBack }) {
                 </button>
                 <div className={styles.headerText}>
                     <h2>Invite Caregiver</h2>
-                    <p className={styles.subtitle}>Share your health information with someone you trust</p>
+                    <p className={styles.subtitle}>Share your care information with someone you trust</p>
                 </div>
             </div>
         </div>
@@ -103,7 +103,7 @@ export default function PatientInvitation({ onBack }) {
               <div className={styles.infoBox}>
                 <p>
                   Your caregiver will receive an email with instructions to
-                  create their account and access your health information.
+                  create their account and access your care information.
                   You can manage their access anytime from your settings.
                 </p>
               </div>
@@ -135,7 +135,7 @@ export default function PatientInvitation({ onBack }) {
                 </button>
                 <div className={styles.headerText}>
                     <h2>Invite Caregiver</h2>
-                    <p className={styles.subtitle}>Share your health information with someone you trust</p>
+                    <p className={styles.subtitle}>Share your care information with someone you trust</p>
                 </div>
             </div>
         </div>
@@ -181,7 +181,7 @@ export default function PatientInvitation({ onBack }) {
           <label>Personal Message (Optional)</label>
           <textarea
             rows="4"
-            placeholder="I'd like to share my health information with you..."
+            placeholder="I'd like to share my care information with you..."
             value={personalMessage}
             onChange={(e) => setPersonalMessage(e.target.value)}
           />

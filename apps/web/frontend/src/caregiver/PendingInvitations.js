@@ -233,7 +233,7 @@ const PendingInvitations = () => {
           <div>
             <p className={styles.infoTitle}>About Patient Invitations</p>
             <p className={styles.infoText}>
-              Patients invite caregivers to access their health information. By accepting, you'll have read-only access to their visit summaries, appointments, and health notes.
+              MyCare users invite caregivers to access their care information. By accepting, you'll have read-only access to their visit summaries, appointments, and care notes.
             </p>
           </div>
         </div>

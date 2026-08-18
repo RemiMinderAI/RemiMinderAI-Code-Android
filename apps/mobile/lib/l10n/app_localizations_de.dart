@@ -59,7 +59,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get navProfile => 'Profil';
 
   @override
-  String get navPatients => 'Patienten';
+  String get navPatients => 'Menschen, die ich unterstütze';
 
   @override
   String get goodMorning => 'Guten Morgen';
@@ -147,7 +147,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inviteCaregiverSubtitle =>
-      'Zugriff auf Ihre Gesundheitsinformationen teilen';
+      'Zugriff auf Ihre Pflegeinformationen teilen';
 
   @override
   String get invitationPending => 'Einladung ausstehend';
@@ -269,7 +269,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tabSummaries => 'ZUSAMMENFASSUNGEN';
 
   @override
-  String get tabLabResults => 'LABOR';
+  String get tabLabResults => 'DOKUMENTE';
 
   @override
   String get tabScannedDocs => 'GESCANNT';
@@ -292,7 +292,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shareLabel => 'Teilen';
 
   @override
-  String get doctorVisit => 'Arztbesuch';
+  String get doctorVisit => 'Pflegetermin';
 
   @override
   String timeToday(String time) {
@@ -391,7 +391,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get accountType => 'Kontotyp';
 
   @override
-  String get patientRole => 'Patient';
+  String get patientRole => 'MyCare';
 
   @override
   String get caregiverRole => 'Betreuer';
@@ -422,11 +422,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get patientRoleCardDescription =>
-      'Verwalten Sie Medikamente, Termine und Gesundheitsdaten';
+      'Verwalten Sie Ihre Medikamente, Termine und Pflegedaten';
 
   @override
   String get caregiverRoleCardDescription =>
-      'Helfen Sie bei Medikamenten und Pflege für Familie oder Patienten';
+      'Helfen Sie bei Medikamenten und Pflege für Familie oder Angehörige';
 
   @override
   String get continueButton => 'Weiter';
@@ -591,14 +591,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get deleteAllMedicalRecords =>
-      'Alle meine medizinischen Aufzeichnungen löschen';
+      'Alle meine Pflegedaten löschen';
 
   @override
-  String get deleteMedicalRecordsTitle => 'Medizinische Aufzeichnungen löschen';
+  String get deleteMedicalRecordsTitle => 'Pflegedaten löschen';
 
   @override
   String get deleteMedicalRecordsMessage =>
-      'Dadurch werden alle Ihre medizinischen Aufzeichnungen dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.';
+      'Dadurch werden alle Ihre Pflegedaten dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.';
 
   @override
   String get deleteRecords => 'Aufzeichnungen löschen';
@@ -620,14 +620,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get termsOfServiceBody =>
-      'Nutzungsbedingungen für RemiMinder\n\n1. Annahme der Bedingungen\nDurch die Nutzung von RemiMinder stimmen Sie diesen Bedingungen zu.\n\n2. Nutzung des Dienstes\nRemiMinder hilft bei der Verwaltung von Gesundheitsversorgung und Medikamentenerinnerungen.\n\n3. Datenschutz\nIhre Privatsphäre ist uns wichtig. Alle Gesundheitsdaten werden sicher behandelt.\n\nDie vollständigen Bedingungen finden Sie auf unserer Website.';
+      'Nutzungsbedingungen für RemiMinder\n\n1. Annahme der Bedingungen\nDurch die Nutzung von RemiMinder stimmen Sie diesen Bedingungen zu.\n\n2. Nutzung des Dienstes\nRemiMinder hilft bei der Verwaltung von Pflegeroutinen und Erinnerungen.\n\n3. Datenschutz\nIhre Privatsphäre ist uns wichtig. Alle Pflegeinformationen werden sicher behandelt.\n\nDie vollständigen Bedingungen finden Sie auf unserer Website.';
 
   @override
   String get privacyPolicy => 'Datenschutzrichtlinie';
 
   @override
   String get privacyPolicyBody =>
-      'Datenschutzrichtlinie für RemiMinder\n\n1. Gesammelte Informationen\nWir erfassen von Ihnen bereitgestellte Informationen und Nutzungsdaten zur Verbesserung des Dienstes.\n\n2. Verwendung der Informationen\nInformationen werden zur Bereitstellung von Gesundheitsdiensten verwendet.\n\n3. Weitergabe von Informationen\nWir verkaufen Ihre persönlichen Daten nicht.\n\nDie vollständige Richtlinie finden Sie auf unserer Website.';
+      'Datenschutzrichtlinie für RemiMinder\n\n1. Welche Informationen wir erfassen\nWir erfassen von Ihnen bereitgestellte Informationen und Nutzungsdaten, um den Dienst zu verbessern.\n\n2. Wie wir Informationen nutzen\nInformationen werden für Pflege- und Erinnerungsdienste verwendet.\n\n3. Weitergabe von Informationen\nWir verkaufen Ihre personenbezogenen Daten nicht.\n\nDie vollständige Richtlinie finden Sie auf unserer Website.';
 
   @override
   String get close => 'Schließen';
@@ -763,7 +763,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reminderTitleLabel => 'Titel';
 
   @override
-  String get dosageOptional => 'Dosierung (optional)';
+  String get dosageOptional => 'Menge (optional)';
 
   @override
   String get dosageHint => 'z.B. 10 mg einmal täglich';
@@ -949,7 +949,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sectionInvitations => 'Einladungen';
 
   @override
-  String get summaryPatients => 'Patienten';
+  String get summaryPatients => 'Menschen, die ich unterstütze';
 
   @override
   String get summaryAlerts => 'Warnungen';
@@ -979,7 +979,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get viewInvitations => 'Einladungen anzeigen';
 
   @override
-  String get defaultPatient => 'Patient';
+  String get defaultPatient => 'MyCare-Nutzer';
 
   @override
   String get defaultCaregiver => 'Pflegekraft';
@@ -998,7 +998,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String caregiverPatientTime(String name, String time) {
-    return 'Patient: $name • $time';
+    return '$name • $time';
   }
 
   @override
@@ -1035,7 +1035,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get allPatientActivitiesSmooth =>
-      'Alle Patientenaktivitäten laufen reibungslos';
+      'Alle Pflegeaktivitäten laufen reibungslos';
 
   @override
   String get tryAdjustingFilter =>
@@ -1059,13 +1059,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get markAllAlertsRead => 'Mark all read';
 
   @override
-  String get myPatientsTitle => 'Meine Patienten';
+  String get myPatientsTitle => 'Menschen, die ich unterstütze';
 
   @override
-  String get patientsConnectedSubtitle => 'Mit Ihnen verbundene Patienten';
+  String get patientsConnectedSubtitle => 'Mit Ihnen verbundene MyCare-Nutzer';
 
   @override
-  String get myPatientsSection => 'Meine Patienten';
+  String get myPatientsSection => 'Menschen, die ich unterstütze';
 
   @override
   String connectedCount(int count) {
@@ -1073,18 +1073,18 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get searchPatientsHint => 'Patienten suchen...';
+  String get searchPatientsHint => 'Menschen suchen, die ich unterstütze...';
 
   @override
   String get noPatientsMatchSearch =>
-      'Keine Patienten entsprechen Ihrer Suche.';
+      'Keine Personen entsprechen Ihrer Suche.';
 
   @override
-  String get noPatientsConnectedYet => 'Noch keine Patienten verbunden';
+  String get noPatientsConnectedYet => 'Noch niemand verbunden';
 
   @override
   String get acceptInvitationToSeePatient =>
-      'Nehmen Sie eine Einladung an, um hier einen Patienten zu sehen.';
+      'Nehmen Sie eine Einladung an, um hier einen MyCare-Nutzer zu sehen.';
 
   @override
   String get badgeNew => 'Neu';
@@ -1117,7 +1117,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get primaryCondition => 'Hauptdiagnose';
+  String get primaryCondition => 'Wichtigste Pflegebedürfnisse';
 
   @override
   String get lastSynced => 'Zuletzt synchronisiert';
@@ -1132,14 +1132,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get currentMedications => 'Aktuelle Medikamente';
 
   @override
-  String get viewCarePlan => 'Pflegeplan anzeigen';
+  String get viewCarePlan => 'Pflegeroutine anzeigen';
 
   @override
   String get remindersButton => 'Erinnerungen';
 
   @override
   String get caregiverCareTeamSubtitle =>
-      'Familie oder medizinisches Personal einladen';
+      'Familie oder Pflegeteam einladen';
 
   @override
   String get invitationsReceived => 'Erhaltene Einladungen';
@@ -1150,7 +1150,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get patientOverviewTitle => 'Patientenübersicht';
+  String get patientOverviewTitle => 'Pflegeübersicht';
 
   @override
   String get patientOverviewTabVisits => 'Besuche';
@@ -1165,7 +1165,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get patientOverviewNoReminders => 'Keine Erinnerungen verfügbar';
 
   @override
-  String get patientOverviewMissingPatientId => 'Patienteninformationen fehlen';
+  String get patientOverviewMissingPatientId => 'Profilinformationen fehlen';
 
   @override
   String get patientOverviewLastVisit => 'Letzter Besuch';
@@ -1301,7 +1301,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get relationshipFamilyMember => 'Familienmitglied';
 
   @override
-  String get relationshipHealthcareProfessional => 'Medizinisches Fachpersonal';
+  String get relationshipHealthcareProfessional => 'Mitglied des Pflegeteams';
 
   @override
   String get relationshipCaregiver => 'Betreuer/in';
@@ -1323,7 +1323,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get visitActionAudioSubtitle =>
-      'Nehmen Sie Ihren Arztbesuch für eine automatische Zusammenfassung auf';
+      'Nehmen Sie Ihren Termin für eine automatische Zusammenfassung auf';
 
   @override
   String get visitActionCaptureTitle => 'Erfassen und scannen';
@@ -1346,7 +1346,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get relationshipHint =>
-      'z. B. Sohn, Tochter, Freund, Krankenschwester';
+      'z. B. Sohn, Tochter, Freund, Pflegeperson';
 
   @override
   String get sendInvite => 'Einladung senden';
@@ -1367,11 +1367,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get viewSummary => 'Zusammenfassung anzeigen';
 
   @override
-  String get noLabResultsYet => 'Noch keine Laborergebnisse';
+  String get noLabResultsYet => 'Noch keine Dokumente';
 
   @override
   String get labResultsScanHint =>
-      'Scannen Sie einen Laborbericht mit Erfassen und scannen, um die Ergebnisse hier zu sehen.';
+      'Scannen Sie ein Dokument mit Erfassen und scannen, um es hier zu sehen.';
 
   @override
   String get captureAndScan => 'Erfassen und scannen';
@@ -1513,7 +1513,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get aiSummaryDisclaimer =>
-      'KI-generierte Zusammenfassung. Kein Ersatz für professionelle medizinische Beratung.';
+      'KI-generierte Zusammenfassung. Kein Ersatz für den Rat Ihres Pflegeteams.';
 
   @override
   String get recordingMicrophoneConsent =>
@@ -1525,7 +1525,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get cameraScanAiConsent =>
-      'Ich willige ein, dass dieses Dokument gescannt und von KI verarbeitet wird, um relevante Gesundheitsinformationen zu extrahieren.';
+      'Ich stimme zu, dass dieses Dokument gescannt und von KI verarbeitet wird, um relevante Pflegeinformationen zu extrahieren.';
 
   @override
   String get authLegalPrefix => 'Wenn Sie fortfahren, stimmen Sie unseren ';
@@ -1551,7 +1551,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dataExportEmailBody =>
-      'Bitte exportieren Sie alle persönlichen und Gesundheitsdaten, die mit meinem RemiMinder-Konto verknüpft sind.';
+      'Bitte exportieren Sie alle persönlichen Informationen und Pflegeinformationen zu meinem RemiMinder-Konto.';
 
   @override
   String get dataExportRequestSent =>
@@ -1559,15 +1559,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get deleteRecordsEmailSubject =>
-      'RemiMinder Anfrage zur Löschung medizinischer Aufzeichnungen';
+      'RemiMinder-Anfrage zur Löschung von Pflegedaten';
 
   @override
   String get deleteRecordsEmailBody =>
-      'Bitte löschen Sie dauerhaft alle medizinischen Aufzeichnungen, die mit meinem RemiMinder-Konto verknüpft sind.';
+      'Bitte löschen Sie dauerhaft alle Pflegedaten zu meinem RemiMinder-Konto.';
 
   @override
   String get deleteRecordsRequestSent =>
-      'Ihre E-Mail-App wurde geöffnet, um eine Löschanfrage an privacy@remiminder.ai zu senden.';
+      'Ihre E-Mail-App wurde geöffnet, um eine Löschanfrage für Pflegedaten an privacy@remiminder.ai zu senden.';
 
   @override
   String get caregiverSyncRetry =>

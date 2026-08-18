@@ -219,8 +219,8 @@ class _CameraScreenState extends State<CameraScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildCompactModeButton(ScanMode.prescription, 'Rx'),
-                _buildCompactModeButton(ScanMode.labReport, 'Lab'),
+                _buildCompactModeButton(ScanMode.prescription, 'Label'),
+                _buildCompactModeButton(ScanMode.labReport, 'Document'),
                 _buildCompactModeButton(ScanMode.medication, 'Med'),
               ],
             ),
@@ -559,22 +559,22 @@ class _CameraScreenState extends State<CameraScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildResultSection('Prescription Details', [
+        _buildResultSection('Medication Info', [
           _buildResultItem('Medication', 'Lisinopril'),
-          _buildResultItem('Dosage', '10mg'),
+          _buildResultItem('Amount', '10mg'),
           _buildResultItem('Frequency', 'Once daily'),
           _buildResultItem('Quantity', '90 tablets'),
           _buildResultItem('Refills', '3 remaining'),
         ]),
         const SizedBox(height: 24),
-        _buildResultSection('Prescriber Information', [
-          _buildResultItem('Doctor', 'Dr. Sarah Johnson'),
+        _buildResultSection('Care team', [
+          _buildResultItem('Care team', 'Dr. Sarah Johnson'),
           _buildResultItem('License', 'MD123456'),
           _buildResultItem('Date', 'Dec 12, 2024'),
         ]),
         const SizedBox(height: 24),
         _buildResultSection('Pharmacy Information', [
-          _buildResultItem('Pharmacy', 'City Medical Pharmacy'),
+          _buildResultItem('Pharmacy', 'Neighborhood Pharmacy'),
           _buildResultItem('Phone', '(555) 123-4567'),
           _buildResultItem('Address', '123 Main St, City, ST 12345'),
         ]),
@@ -586,13 +586,13 @@ class _CameraScreenState extends State<CameraScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildResultSection('Patient Information', [
+        _buildResultSection('Personal info', [
           _buildResultItem('Name', 'John Doe'),
           _buildResultItem('DOB', '01/15/1985'),
           _buildResultItem('ID', 'P123456789'),
         ]),
         const SizedBox(height: 24),
-        _buildResultSection('Test Results', [
+        _buildResultSection('Records', [
           _buildResultItem('Cholesterol (Total)', '185 mg/dL', 'Normal: <200'),
           _buildResultItem('HDL Cholesterol', '45 mg/dL', 'Normal: >40'),
           _buildResultItem('LDL Cholesterol', '120 mg/dL', 'Normal: <130'),
@@ -600,7 +600,7 @@ class _CameraScreenState extends State<CameraScreen>
         ]),
         const SizedBox(height: 24),
         _buildResultSection('Lab Information', [
-          _buildResultItem('Lab', 'City Medical Labs'),
+          _buildResultItem('Lab', 'Community Lab'),
           _buildResultItem('Report Date', 'Dec 10, 2024'),
           _buildResultItem('Collected', 'Dec 9, 2024'),
         ]),
@@ -621,12 +621,12 @@ class _CameraScreenState extends State<CameraScreen>
         const SizedBox(height: 24),
         _buildResultSection('Usage Instructions', [
           _buildResultItem('Directions', 'Take one tablet by mouth once daily'),
-          _buildResultItem('Purpose', 'Blood pressure management'),
+          _buildResultItem('Purpose', 'As written on the label'),
           _buildResultItem('Storage', 'Store at room temperature'),
         ]),
         const SizedBox(height: 24),
         _buildResultSection('Additional Information', [
-          _buildResultItem('Manufacturer', 'Generic Pharmaceuticals'),
+          _buildResultItem('Manufacturer', 'Generic'),
           _buildResultItem('Lot Number', 'LP2024001'),
           _buildResultItem('Expiration', '06/2026'),
         ]),
@@ -930,9 +930,9 @@ class _CameraScreenState extends State<CameraScreen>
   String _getResultTitle() {
     switch (_selectedMode) {
       case ScanMode.prescription:
-        return 'Prescription scanned successfully';
+        return 'Medication label scanned successfully';
       case ScanMode.labReport:
-        return 'Lab report processed successfully';
+        return 'Document processed successfully';
       case ScanMode.medication:
         return 'Medication information extracted';
     }

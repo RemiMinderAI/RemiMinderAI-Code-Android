@@ -59,7 +59,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navProfile => 'Profil';
 
   @override
-  String get navPatients => 'Patients';
+  String get navPatients => 'Personnes que je soutiens';
 
   @override
   String get goodMorning => 'Bonjour';
@@ -146,7 +146,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inviteCaregiverSubtitle =>
-      'Partager l\'accès à vos informations de santé';
+      'Partager l\'accès à vos informations de soin';
 
   @override
   String get invitationPending => 'Invitation en attente';
@@ -269,7 +269,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tabSummaries => 'RÉSUMÉS';
 
   @override
-  String get tabLabResults => 'LABORATOIRE';
+  String get tabLabResults => 'DOCUMENTS';
 
   @override
   String get tabScannedDocs => 'NUMÉRISÉS';
@@ -291,7 +291,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shareLabel => 'Partager';
 
   @override
-  String get doctorVisit => 'Visite médicale';
+  String get doctorVisit => 'Visite de soin';
 
   @override
   String timeToday(String time) {
@@ -386,7 +386,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get accountType => 'Type de compte';
 
   @override
-  String get patientRole => 'Patient';
+  String get patientRole => 'MyCare';
 
   @override
   String get caregiverRole => 'Aidant';
@@ -418,11 +418,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get patientRoleCardDescription =>
-      'Gérez vos médicaments, rendez-vous et dossiers de santé';
+      'Gérez vos médicaments, rendez-vous et dossiers de soin';
 
   @override
   String get caregiverRoleCardDescription =>
-      'Aidez à gérer les médicaments et les soins de vos proches ou patients';
+      'Aidez à gérer les médicaments et le soin de la famille ou des proches';
 
   @override
   String get continueButton => 'Continuer';
@@ -587,14 +587,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportMyData => 'Exporter mes données';
 
   @override
-  String get deleteAllMedicalRecords => 'Supprimer tous mes dossiers médicaux';
+  String get deleteAllMedicalRecords => 'Supprimer tous mes dossiers de soin';
 
   @override
-  String get deleteMedicalRecordsTitle => 'Supprimer les dossiers médicaux';
+  String get deleteMedicalRecordsTitle => 'Supprimer les dossiers de soin';
 
   @override
   String get deleteMedicalRecordsMessage =>
-      'Cela supprimera définitivement tous vos dossiers médicaux. Cette action est irréversible.';
+      'Cela supprimera définitivement tous vos dossiers de soin. Cette action est irréversible.';
 
   @override
   String get deleteRecords => 'Supprimer les dossiers';
@@ -616,14 +616,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get termsOfServiceBody =>
-      'Conditions d\'utilisation de RemiMinder\n\n1. Acceptation des conditions\nEn utilisant RemiMinder, vous acceptez ces conditions.\n\n2. Utilisation du service\nRemiMinder est conçu pour aider à gérer les soins de santé et les rappels de médicaments.\n\n3. Confidentialité\nVotre vie privée est importante. Toutes les données de santé sont traitées de manière sécurisée.\n\nPour les conditions complètes, visitez notre site web.';
+      'Conditions d\'utilisation de RemiMinder\n\n1. Acceptation des conditions\nEn utilisant RemiMinder, vous acceptez ces conditions.\n\n2. Utilisation du service\nRemiMinder est conçu pour aider à gérer les routines de soin et les rappels.\n\n3. Confidentialité\nVotre vie privée est importante. Toutes les informations de soin sont traitées de manière sécurisée.\n\nPour les conditions complètes, visitez notre site.';
 
   @override
   String get privacyPolicy => 'Politique de confidentialité';
 
   @override
   String get privacyPolicyBody =>
-      'Politique de confidentialité de RemiMinder\n\n1. Informations collectées\nNous collectons les informations que vous fournissez et les données d\'utilisation pour améliorer le service.\n\n2. Utilisation des informations\nLes informations sont utilisées pour fournir des services de gestion de santé.\n\n3. Partage des informations\nNous ne vendons pas vos informations personnelles.\n\nPour la politique complète, visitez notre site web.';
+      'Politique de confidentialité de RemiMinder\n\n1. Informations collectées\nNous collectons les informations que vous fournissez et des données d\'utilisation pour améliorer le service.\n\n2. Utilisation des informations\nLes informations servent à fournir des services d\'accompagnement et de rappels.\n\n3. Partage des informations\nNous ne vendons pas vos informations personnelles.\n\nPour la politique complète, visitez notre site.';
 
   @override
   String get close => 'Fermer';
@@ -758,7 +758,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reminderTitleLabel => 'Titre';
 
   @override
-  String get dosageOptional => 'Dosage (optionnel)';
+  String get dosageOptional => 'Quantité (optionnel)';
 
   @override
   String get dosageHint => 'ex. 10 mg une fois par jour';
@@ -943,7 +943,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sectionInvitations => 'Invitations';
 
   @override
-  String get summaryPatients => 'Patients';
+  String get summaryPatients => 'Personnes que je soutiens';
 
   @override
   String get summaryAlerts => 'Alertes';
@@ -973,7 +973,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewInvitations => 'Voir les invitations';
 
   @override
-  String get defaultPatient => 'Patient';
+  String get defaultPatient => 'Utilisateur MyCare';
 
   @override
   String get defaultCaregiver => 'Aidant';
@@ -992,7 +992,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String caregiverPatientTime(String name, String time) {
-    return 'Patient : $name • $time';
+    return '$name • $time';
   }
 
   @override
@@ -1029,7 +1029,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get allPatientActivitiesSmooth =>
-      'Toutes les activités des patients se déroulent bien';
+      'Toutes les activités de soin se déroulent bien';
 
   @override
   String get tryAdjustingFilter =>
@@ -1053,13 +1053,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get markAllAlertsRead => 'Mark all read';
 
   @override
-  String get myPatientsTitle => 'Mes patients';
+  String get myPatientsTitle => 'Personnes que je soutiens';
 
   @override
-  String get patientsConnectedSubtitle => 'Patients connectés à vous';
+  String get patientsConnectedSubtitle => 'Utilisateurs MyCare connectés à vous';
 
   @override
-  String get myPatientsSection => 'Mes patients';
+  String get myPatientsSection => 'Personnes que je soutiens';
 
   @override
   String connectedCount(int count) {
@@ -1067,18 +1067,18 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get searchPatientsHint => 'Rechercher des patients...';
+  String get searchPatientsHint => 'Rechercher les personnes que je soutiens...';
 
   @override
   String get noPatientsMatchSearch =>
-      'Aucun patient ne correspond à votre recherche.';
+      'Aucune personne ne correspond à votre recherche.';
 
   @override
-  String get noPatientsConnectedYet => 'Aucun patient connecté pour le moment';
+  String get noPatientsConnectedYet => 'Personne n\'est encore connecté';
 
   @override
   String get acceptInvitationToSeePatient =>
-      'Acceptez une invitation pour voir un patient ici.';
+      'Acceptez une invitation pour voir un utilisateur MyCare ici.';
 
   @override
   String get badgeNew => 'Nouveau';
@@ -1111,7 +1111,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get primaryCondition => 'Condition principale';
+  String get primaryCondition => 'Besoins de soin principaux';
 
   @override
   String get lastSynced => 'Dernière synchro';
@@ -1126,14 +1126,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get currentMedications => 'Médicaments actuels';
 
   @override
-  String get viewCarePlan => 'Voir le plan de soins';
+  String get viewCarePlan => 'Voir la routine de soin';
 
   @override
   String get remindersButton => 'Rappels';
 
   @override
   String get caregiverCareTeamSubtitle =>
-      'Invitez la famille ou le personnel médical';
+      'Inviter la famille ou l\'équipe de soin';
 
   @override
   String get invitationsReceived => 'Invitations reçues';
@@ -1144,7 +1144,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get patientOverviewTitle => 'Aperçu du patient';
+  String get patientOverviewTitle => 'Aperçu du soin';
 
   @override
   String get patientOverviewTabVisits => 'Visites';
@@ -1160,7 +1160,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get patientOverviewMissingPatientId =>
-      'Informations patient manquantes';
+      'Informations de profil manquantes';
 
   @override
   String get patientOverviewLastVisit => 'Dernière visite';
@@ -1295,7 +1295,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get relationshipFamilyMember => 'Membre de la famille';
 
   @override
-  String get relationshipHealthcareProfessional => 'Professionnel de santé';
+  String get relationshipHealthcareProfessional => 'Membre de l\'équipe de soin';
 
   @override
   String get relationshipCaregiver => 'Aidant';
@@ -1317,7 +1317,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get visitActionAudioSubtitle =>
-      'Enregistrez votre visite médicale pour un résumé automatique';
+      'Enregistrez votre rendez-vous pour un résumé automatique';
 
   @override
   String get visitActionCaptureTitle => 'Capturer et numériser';
@@ -1339,7 +1339,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get relationshipLabel => 'Relation';
 
   @override
-  String get relationshipHint => 'ex. : Fils, Fille, Ami, Infirmière';
+  String get relationshipHint => 'ex. : Fils, Fille, Ami, Aidant';
 
   @override
   String get sendInvite => 'Envoyer l\'invitation';
@@ -1360,11 +1360,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewSummary => 'Voir le résumé';
 
   @override
-  String get noLabResultsYet => 'Pas encore de résultats de laboratoire';
+  String get noLabResultsYet => 'Pas encore de documents';
 
   @override
   String get labResultsScanHint =>
-      'Numérisez un rapport de laboratoire avec Capturer et numériser pour voir les résultats ici.';
+      'Numérisez un document avec Capturer et numériser pour le voir ici.';
 
   @override
   String get captureAndScan => 'Capturer et numériser';
@@ -1505,7 +1505,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get aiSummaryDisclaimer =>
-      'Résumé généré par IA. Ne remplace pas un avis médical professionnel.';
+      'Résumé généré par l\'IA. Ne remplace pas les conseils de votre équipe de soin.';
 
   @override
   String get recordingMicrophoneConsent =>
@@ -1517,7 +1517,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get cameraScanAiConsent =>
-      'Je consens à ce que ce document soit numérisé et traité par l\'IA pour extraire les informations de santé pertinentes.';
+      'Je consens à ce que ce document soit numérisé et traité par l\'IA pour extraire des informations de soin pertinentes.';
 
   @override
   String get authLegalPrefix => 'En continuant, vous acceptez nos ';
@@ -1544,7 +1544,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get dataExportEmailBody =>
-      'Veuillez exporter toutes les données personnelles et de santé associées à mon compte RemiMinder.';
+      'Veuillez exporter toutes les informations personnelles et de soin associées à mon compte RemiMinder.';
 
   @override
   String get dataExportRequestSent =>
@@ -1552,15 +1552,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get deleteRecordsEmailSubject =>
-      'Demande de suppression des dossiers médicaux RemiMinder';
+      'Demande de suppression des dossiers de soin RemiMinder';
 
   @override
   String get deleteRecordsEmailBody =>
-      'Veuillez supprimer définitivement tous les dossiers médicaux associés à mon compte RemiMinder.';
+      'Veuillez supprimer définitivement tous les dossiers de soin associés à mon compte RemiMinder.';
 
   @override
   String get deleteRecordsRequestSent =>
-      'Votre application de messagerie a été ouverte pour envoyer une demande de suppression à privacy@remiminder.ai.';
+      'Votre application de messagerie a été ouverte pour envoyer une demande de suppression des dossiers de soin à privacy@remiminder.ai.';
 
   @override
   String get caregiverSyncRetry =>

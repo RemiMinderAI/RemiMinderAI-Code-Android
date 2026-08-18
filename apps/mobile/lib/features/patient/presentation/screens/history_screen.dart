@@ -112,7 +112,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                 .go('/patient/visit-details?visitId=visit-recording-001'),
           ),
           _buildHistoryItem(
-            'Prescription Scanned',
+            'Medication label scanned',
             'Lisinopril 10mg - Dr. Johnson',
             '3 days ago',
             Icons.receipt,
@@ -121,8 +121,8 @@ class _HistoryScreenState extends State<HistoryScreen>
                 '/patient/scan/${VisitContext().getCurrentVisitId() ?? VisitContext().startNewVisit()}'),
           ),
           _buildHistoryItem(
-            'Lab Results',
-            'Blood Work - City Medical Labs',
+            'Documents',
+            'Blood Work Review',
             '1 week ago',
             Icons.science,
             Colors.purple,
@@ -171,7 +171,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             () => context.go('/patient/visit-details?visitId=mock-visit-001'),
           ),
           _buildHistoryItem(
-            'Telehealth Call',
+            'Video call',
             'Dr. Emily Chen - Follow-up',
             '2 weeks ago',
             Icons.video_call,
@@ -189,7 +189,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         padding: const EdgeInsets.all(20),
         children: [
           _buildHistoryItem(
-            'Prescription',
+            'Medication label',
             'Lisinopril 10mg - Dr. Johnson',
             '3 days ago',
             Icons.receipt,
@@ -198,7 +198,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                 '/patient/scan/${VisitContext().getCurrentVisitId() ?? VisitContext().startNewVisit()}'),
           ),
           _buildHistoryItem(
-            'Lab Results',
+            'Documents',
             'Complete Blood Count',
             '1 week ago',
             Icons.science,

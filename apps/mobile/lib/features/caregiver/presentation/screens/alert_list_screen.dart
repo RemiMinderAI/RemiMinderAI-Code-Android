@@ -63,7 +63,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
       'id': raw['id']?.toString() ?? '',
       'type': alertType.toString(),
       'message': raw['message']?.toString() ?? raw['description']?.toString() ?? '',
-      'patient': raw['patient_name'] ?? raw['patientName'] ?? 'Patient',
+      'patient': raw['patient_name'] ?? raw['patientName'] ?? 'MyCare user',
       'patientId': patientId.toString(),
       'timestamp': timestamp,
       'priority': raw['priority'] ?? 'medium',
@@ -102,7 +102,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
     {
       'id': '3',
       'type': 'measurement',
-      'message': 'Mike Chen blood pressure reading is overdue - due yesterday',
+      'message': 'Mike Chen reading is overdue - due yesterday',
       'patient': 'Mike Chen',
       'patientId': '3',
       'timestamp': DateTime.now().subtract(const Duration(hours: 26)),
@@ -128,7 +128,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
       'id': '5',
       'type': 'visit',
       'message':
-          'David Brown completed doctor visit - review summary available',
+          'David Brown completed visit - review summary available',
       'patient': 'David Brown',
       'patientId': '5',
       'timestamp': DateTime.now().subtract(const Duration(hours: 1)),
@@ -141,7 +141,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
       'id': '6',
       'type': 'emergency',
       'message':
-          'Robert Johnson reported chest discomfort - emergency contact notified',
+          'Robert Johnson reported chest discomfort - urgent contact notified',
       'patient': 'Robert Johnson',
       'patientId': '3',
       'timestamp': DateTime.now().subtract(const Duration(minutes: 30)),
@@ -153,7 +153,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
     {
       'id': '7',
       'type': 'lab',
-      'message': 'Mary Smith lab results are ready for review',
+      'message': 'Mary Smith document is ready for review',
       'patient': 'Mary Smith',
       'patientId': '2',
       'timestamp': DateTime.now().subtract(const Duration(hours: 8)),
@@ -862,13 +862,13 @@ class _AlertListScreenState extends State<AlertListScreen> {
       case 'appointment':
         return Icons.calendar_today;
       case 'measurement':
-        return Icons.monitor_heart;
+        return Icons.show_chart;
       case 'visit':
-        return Icons.medical_services;
+        return Icons.event;
       case 'lab':
         return Icons.science;
       case 'emergency':
-        return Icons.emergency;
+        return Icons.notifications_active;
       default:
         return Icons.notifications;
     }

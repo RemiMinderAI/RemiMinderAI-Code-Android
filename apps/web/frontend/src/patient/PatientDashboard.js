@@ -502,7 +502,7 @@ export default function PatientDashboard() {
               <Mic size={22} className={styles.actionIcon} />
             </div>
             <h3>Record Visit</h3>
-            <p>Start recording your healthcare visit</p>
+            <p>Start recording your care visit</p>
             <button className={styles.purpleButton} onClick={() => navigate("/record")}>Start Recording</button>
           </div>
 
@@ -511,7 +511,7 @@ export default function PatientDashboard() {
               <UserPlus size={22} className={styles.actionIconLightInner} />
             </div>
             <h3>Invite Caregiver</h3>
-            <p>Share your health information</p>
+            <p>Share your care information</p>
             <button className={styles.purpleButton} onClick={goToInvitation}>Send Invitation</button>
           </div>
 
@@ -573,7 +573,7 @@ export default function PatientDashboard() {
           <div className={styles.sectionHeader}>
             <div>
               <h3>Recent Visits</h3>
-              <p>Your latest healthcare visits</p>
+              <p>Your latest care visits</p>
             </div>
             <button className={styles.textButton} onClick={goToVisitHistory}>View All</button>
           </div>
@@ -605,7 +605,7 @@ export default function PatientDashboard() {
           <div className={styles.sectionHeader}>
             <div>
               <h3>Your Caregivers</h3>
-              <p>People who have access to your health information</p>
+              <p>People who have access to your care information</p>
             </div>
             <button className={styles.textButton}>Manage</button>
           </div>

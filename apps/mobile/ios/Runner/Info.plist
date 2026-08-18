@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>mediminder</string>
+	<string>RemiMinder</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -50,13 +50,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>This app needs camera access to scan pill bottles, lab reports, and other medical documents.</string>
+	<string>This app needs camera access to scan pill bottles, labels, and other care documents.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs microphone access to record healthcare conversations and consultations.</string>
+	<string>This app needs microphone access to record care conversations you choose to save.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app needs photo library access to select and upload medical images and documents.</string>
+	<string>This app needs photo library access to select and upload care documents you choose to save.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app needs speech recognition to transcribe healthcare conversations and consultations in real-time.</string>
+	<string>This app needs speech recognition to transcribe care conversations in real time.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This app uses tracking to provide personalized experiences.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

@@ -1,5 +1,5 @@
 name: RemiMinder
-description: A healthcare companion app for patients and caregivers
+description: A caregiving companion app for families and caregivers
 version: 1.4.0+80
 
 environment:

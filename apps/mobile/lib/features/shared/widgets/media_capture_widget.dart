@@ -46,7 +46,7 @@ class _MediaCaptureWidgetState extends State<MediaCaptureWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Medical Media Capture',
+              'Capture Documents',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.bold,
@@ -86,7 +86,7 @@ class _MediaCaptureWidgetState extends State<MediaCaptureWidget> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Take photos of pill bottles, lab reports, prescriptions, or medical documents',
+          'Take photos of pill bottles, lab reports, labels and documents',
           style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         const SizedBox(height: 16),
@@ -138,7 +138,7 @@ class _MediaCaptureWidgetState extends State<MediaCaptureWidget> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Record healthcare consultations, medication instructions, or important discussions',
+          'Record care conversations, medication instructions, or important discussions',
           style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         const SizedBox(height: 16),

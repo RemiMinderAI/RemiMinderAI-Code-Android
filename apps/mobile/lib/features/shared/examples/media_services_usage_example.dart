@@ -1,4 +1,4 @@
-// Example: How to use Camera and Audio services in your healthcare app screens
+// Example: How to use Camera and Audio services in your caregiving app screens
 
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -7,7 +7,7 @@ import '../../../core/services/audio_service.dart';
 import '../../../core/services/permissions_service.dart';
 import '../widgets/media_capture_widget.dart';
 
-/// Example screen showing how to integrate media capture in healthcare workflows
+/// Example screen showing how to integrate media capture in caregiving workflows
 class MediaServicesExampleScreen extends StatefulWidget {
   const MediaServicesExampleScreen({super.key});
 
@@ -98,8 +98,8 @@ class _MediaServicesExampleScreenState
             // Direct Camera Usage
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.blue),
-              title: const Text('Scan Prescription'),
-              subtitle: const Text('Take photo of prescription label'),
+              title: const Text('Scan Label'),
+              subtitle: const Text('Take photo of medication label'),
               trailing: ElevatedButton(
                 onPressed: _scanPrescription,
                 child: const Text('Scan'),
@@ -116,10 +116,10 @@ class _MediaServicesExampleScreenState
               ),
               title: Text(_audioService.isRecording
                   ? 'Recording...'
-                  : 'Record Doctor Notes'),
+                  : 'Record Care Notes'),
               subtitle: Text(_audioService.isRecording
                   ? 'Duration: ${_audioService.getFormattedDuration()}'
-                  : 'Record important medical instructions'),
+                  : 'Record important care instructions'),
               trailing: ElevatedButton(
                 onPressed: _audioService.isRecording
                     ? _stopAudioRecording
@@ -240,7 +240,7 @@ class _MediaServicesExampleScreenState
         await _cameraService.cleanupImageFile(imagePath);
       }
     } catch (e) {
-      _showErrorDialog('Failed to scan prescription', e.toString());
+      _showErrorDialog('Failed to scan label', e.toString());
     }
   }
 
@@ -298,13 +298,13 @@ class _MediaServicesExampleScreenState
       context: context,
       barrierDismissible: false,
       builder: (context) => const AlertDialog(
-        title: Text('Processing Prescription'),
+        title: Text('Processing Label'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Analyzing prescription data...'),
+            Text('Analyzing label data...'),
           ],
         ),
       ),
@@ -320,13 +320,13 @@ class _MediaServicesExampleScreenState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Prescription Detected'),
+        title: const Text('Label Detected'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Medication: Lisinopril'),
-            Text('Dosage: 10mg'),
+            Text('Amount: 10mg'),
             Text('Frequency: Once daily'),
             Text('Instructions: Take with food'),
           ],

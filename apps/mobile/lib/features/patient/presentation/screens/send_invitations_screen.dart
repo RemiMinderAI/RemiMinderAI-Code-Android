@@ -27,7 +27,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
     'Spouse/Partner',
     'Parent',
     'Child',
-    'Healthcare Professional',
+    'Care team',
     'Caregiver',
     'Other',
   ];
@@ -150,7 +150,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Invite family members or friends\nto help manage your healthcare',
+            'Invite family members or friends\nto help manage your care routine',
             style: TextStyle(
               fontSize: 16,
               color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
@@ -739,8 +739,8 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                       setState(() => _updatePermissions(caregiver, updated)),
                 ),
                 _buildPermissionItem(
-                  'Manage Emergency Contacts',
-                  'Can modify emergency contact settings',
+                  'Manage Urgent Contacts',
+                  'Can modify urgent contact settings',
                   'manage_emergency',
                   currentPermissions,
                   (updated) =>
@@ -748,7 +748,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                 ),
                 _buildPermissionItem(
                   'Receive Alerts',
-                  'Gets notified of important health events',
+                  'Gets notified of important care events',
                   'receive_alerts',
                   currentPermissions,
                   (updated) =>

@@ -110,7 +110,7 @@ const CaregiverInvite = () => {
           <h1 style={{ fontSize: 28, fontWeight: "500", color: "#111", margin: "0 0 8px 0" }}>
             You've Been Invited!
           </h1>
-          <p style={{ fontSize: 16, color: "#555", margin: 0 }}>Someone wants to share their health information with you</p>
+          <p style={{ fontSize: 16, color: "#555", margin: 0 }}>Someone wants to share their care information with you</p>
         </div>
 
         {/* Profile Card */}
@@ -156,7 +156,7 @@ const CaregiverInvite = () => {
                 fontStyle: "italic",
               }}
             >
-              "I'd like to share my health information with you so you can help me stay on top of my appointments and medical care. Thank you for being there for me!"
+              "I'd like to share my care information with you so you can help me stay on top of my appointments and daily care. Thank you for being there for me!"
             </div>
           </div>
 
@@ -171,7 +171,7 @@ const CaregiverInvite = () => {
               {[
                 {
                   title: "Visit Summaries",
-                  desc: "View all recorded healthcare visits and AI-generated summaries",
+                  desc: "View all recorded care visits and AI-generated summaries",
                   bg: "#E3F2FD",
                   color: "#4F8EF7",
                   icon: (
@@ -179,8 +179,8 @@ const CaregiverInvite = () => {
                   ),
                 },
                 {
-                  title: "Health Information",
-                  desc: "Access health notes, medications, and medical history",
+                  title: "Care Information",
+                  desc: "Access care notes, medications, and care records",
                   bg: "#F3E8FF",
                   color: "#7E5BEF",
                   icon: (
@@ -270,7 +270,7 @@ const CaregiverInvite = () => {
                 Your Role & Responsibilities
               </div>
               <p style={{ fontSize: 14, color: "#555", lineHeight: 1.4, margin: 0 }}>
-                As a caregiver, you'll have read-only access to the patient's health information. You must respect their privacy and use this information only for caregiving purposes. The patient can revoke your access at any time.
+                As a caregiver, you'll have read-only access to the MyCare user's care information. You must respect their privacy and use this information only for caregiving purposes. They can revoke your access at any time.
               </p>
             </div>
           </div>
