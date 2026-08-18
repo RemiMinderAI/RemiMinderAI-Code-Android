@@ -52,10 +52,10 @@ class _PatientAppShellState extends State<PatientAppShell> {
             child: widget.child,
           ),
 
-          if (kDebugMode)
-            Positioned(
-              right: 56,
-              bottom: bottomInset + 102,
+          // Visible for QA on this branch. Play Store hid it with `if (false)`.
+          Positioned(
+              right: 16,
+              bottom: bottomInset + 118,
               child: const _VoxFloatingButton(),
             ),
 
