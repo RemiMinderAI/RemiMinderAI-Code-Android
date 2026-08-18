@@ -504,14 +504,19 @@ def transcribe_deepgram(
     if lang_param == "multi":
         lang_param = "en"
         model = _deepgram_model("en")
-        dg_params = f"model={model}&language={lang_param}&detect_language=true&smart_format=true&punctuate=true"
+        dg_params = f"model={model}&language={lang_param}&smart_format=true&punctuate=true"
     else:
         lang_param = normalize_language_code(lang_param)
         model = _deepgram_model(lang_param)
         dg_params = f"model={model}&language={lang_param}&smart_format=true&punctuate=true"
 
-    # Add keyterm prompting for common medications
+    # Add keyterm prompting for medications + action words
+    _ACTION_KEYTERMS = "snooze,cancel,delete,update,change,reminder,medication,schedule,reschedule,appointment"
     keywords = os.getenv("DEEPGRAM_KEYWORDS", "")
+    if keywords:
+        keywords = keywords + ":" + _ACTION_KEYTERMS
+    else:
+        keywords = _ACTION_KEYTERMS
     if keywords:
         for kw in keywords.replace(":", ",").split(","):
             kw = kw.strip()

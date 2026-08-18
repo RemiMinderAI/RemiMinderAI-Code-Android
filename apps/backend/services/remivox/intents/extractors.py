@@ -33,6 +33,37 @@ _TIME_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Spoken/word times that _TIME_RE (digit-only) cannot see, e.g.
+# "at eight PM", "at eight thirty PM", "from eight to nine". Used to keep the
+# time phrase out of stored reminder titles.
+_NUM_WORD_PAT = (
+    r"one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|"
+    r"noon|midnight|fice|nive|fiv"
+)
+_MIN_WORD_PAT = (
+    r"o'?clock|oclock|fifteen|thirty|forty[\s-]?five|forty|fifty|"
+    r"twenty[\s-]?(?:one|two|three|four|five|six|seven|eight|nine)?|"
+    r"ten|five|\d{2}"
+)
+_TIME_UNIT_PAT = (
+    rf"(?:{_NUM_WORD_PAT}|\d{{1,2}})"
+    rf"(?:\s*[:\s]\s*(?:{_MIN_WORD_PAT}))?"
+    rf"(?:\s*(?:a\.?\s?m\.?|p\.?\s?m\.?))?"
+    rf"(?:\s+(?:in\s+the\s+)?(?:morning|afternoon|evening|night))?"
+)
+_SPOKEN_TIME_RE = re.compile(
+    rf"\b(?:at|by|around|about|from)\s+{_TIME_UNIT_PAT}"
+    rf"(?:\s*(?:to|till|until|through|-)\s*{_TIME_UNIT_PAT})?",
+    re.IGNORECASE,
+)
+
+# Day/relative words that belong to scheduling, never to the title.
+_WHEN_WORDS_RE = re.compile(
+    r"\b(?:today|tonight|tomorrow|this\s+(?:morning|afternoon|evening|night)|"
+    r"right\s+now|now|starting\s+today)\b",
+    re.IGNORECASE,
+)
+
 _CREATE_RE = re.compile(
     r"(?:set(?:\s*up)?|create|add|schedule|make)\s+(?:another\s+|a\s+)?"
     r"(?:reminder\s+)?(?:for\s+)?"
@@ -109,11 +140,10 @@ def _fix_stt_compound_times(text: str) -> str:
         mn = _SPOKEN_MINS[m.group(2).lower()]
         return f"{h}:{mn}"
     result = _STT_COMPOUND_RE.sub(_repl, text)
-    def _repl_bare(m):
-        return _TENS_AS_HOUR[m.group(1).lower()]
-    result = _STT_BARE_TENS_RE.sub(_repl_bare, result)
 
-    # Handle "eight twenty five pm" pattern
+    # Handle "eight thirty pm" / "eight twenty five pm" BEFORE the bare-tens
+    # pass: that pass would otherwise consume the minutes word ("thirty pm" ->
+    # "3 pm"), leaving "at 8 3 PM" and an 08:00 misparse.
     def _repl_hour_compound(m):
         h_raw = m.group(1).lower()
         h = _WORD_TO_NUM.get(h_raw) or _ONES.get(h_raw) or h_raw
@@ -122,6 +152,10 @@ def _fix_stt_compound_times(text: str) -> str:
         mn = tens + ones
         return f"{h}:{mn:02d} "
     result = _STT_HOUR_COMPOUND_MIN_RE.sub(_repl_hour_compound, result)
+
+    def _repl_bare(m):
+        return _TENS_AS_HOUR[m.group(1).lower()]
+    result = _STT_BARE_TENS_RE.sub(_repl_bare, result)
     return result
 
 
@@ -230,7 +264,11 @@ def extract_medication_or_title(text: str) -> Optional[str]:
         title,
         flags=re.I,
     )
+    # Strip the time phrase before the digit-only pass so word times
+    # ("at eight thirty PM") never end up inside the stored title.
+    title = _SPOKEN_TIME_RE.sub("", title)
     title = _TIME_RE.sub("", title)
+    title = _WHEN_WORDS_RE.sub("", title)
     title = re.sub(r"\breminders?\b", "", title, flags=re.I)
     title = re.sub(r"\s+", " ", title).strip(" .,")
     # Drop leading filler
@@ -280,8 +318,13 @@ def score_reminders(reminders: dict, hint: str) -> list[tuple[int, dict]]:
     for item in active:
         title = reminder_title(item).lower()
         score = 0
+        # Match title tokens in hint
         for token in re.findall(r"[a-z0-9]{3,}", title):
             if token in lower:
+                score += 2
+        # Also match hint tokens in title (reverse match)
+        for token in re.findall(r"[a-z0-9]{3,}", lower):
+            if token in title and len(token) >= 4:
                 score += 2
         if str(item.get("display_status", "")).lower() == "due now":
             score += 1

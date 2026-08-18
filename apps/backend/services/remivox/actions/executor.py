@@ -28,7 +28,8 @@ from services.remivox.intents.extractors import (
     reminder_title,
 )
 from services.remivox.intents.models import IntentResult, PROTECTED_ACTIONS, VoxIntent
-from services.remivox_intents import build_briefing, build_caregiver_brief
+from services.remivox.intents.router import DEFAULT_SNOOZE_MINUTES
+from services.remivox_intents import build_caregiver_brief
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def _latest_summary(summaries: list[dict]) -> tuple[str, str]:
         return "your latest doctor visit", ""
     latest = summaries[0]
     title = str(latest.get("title") or "your latest doctor visit").strip()
-    summary = str(latest.get("summary") or latest.get("summary_text") or "").strip()
+    summary = str(latest.get("summary") or latest.get("summary_text") or latest.get("summary_preview") or "").strip()
     return title, summary
 
 
@@ -172,6 +173,7 @@ async def execute_intent(
         )
 
     if intent == VoxIntent.READ_DOCTOR_SUMMARY:
+        logger.info(f"READ_DOCTOR_SUMMARY: {len(summaries)} summaries available, keys={list(summaries[0].keys()) if summaries else 'none'}")
         title, summary = _latest_summary(summaries)
         return ActionResult(
             success=True,
@@ -212,17 +214,14 @@ async def execute_intent(
         )
 
     if intent == VoxIntent.UNKNOWN:
-        briefing = build_briefing(reminders, summaries)
-        briefing = briefing.replace(
-            "This is not medical advice. Take medicines only as prescribed and ask a clinician "
-            "if anything feels unclear.",
-            "",
-        ).strip()
+        # The user said something we could not route. Offer the capability list
+        # rather than the full briefing — the briefing is for the no-speech case
+        # and reads as a non sequitur after a specific question.
         return ActionResult(
-            success=True,
-            action="briefing",
-            message_key="briefing",
-            payload={"text": briefing},
+            success=False,
+            action="unknown_intent",
+            message_key="unknown_intent",
+            payload={},
         )
 
     if intent in PROTECTED_ACTIONS:
@@ -318,6 +317,14 @@ async def _update_reminder(
     timezone_name: str,
 ) -> ActionResult:
     hint = str(entities.get("title_hint") or entities.get("medication") or "")
+    from services.remivox.intents.extractors import all_active_reminders, reminder_title, score_reminders
+    # Fallback: use raw transcript for matching if no hint extracted
+    if not hint and entities.get("raw_transcript"):
+        hint = entities["raw_transcript"]
+    active = all_active_reminders(reminders)
+    logger.info(f"UPDATE_MATCH: hint='{hint}', active_titles={[reminder_title(r) for r in active]}")
+    scored = score_reminders(reminders, hint)
+    logger.info(f"UPDATE_SCORES: {[(s, reminder_title(r)) for s, r in scored[:5]]}")
     match, ambiguous = find_high_confidence_reminder(reminders, hint)
     if ambiguous:
         names = [reminder_title(i) for i in ambiguous[:4]]
@@ -402,7 +409,11 @@ async def _checkin(
     *,
     mode: str,
 ) -> ActionResult:
-    hint = str(entities.get("title_hint") or entities.get("medication") or "medication")
+    hint = str(entities.get("title_hint") or entities.get("medication") or "")
+    if not hint:
+        hint = str(entities.get("raw_transcript") or "")
+    if not hint:
+        hint = "medication"
     match, ambiguous = find_high_confidence_reminder(reminders, hint, min_score=2)
     if ambiguous:
         return ActionResult(
@@ -426,7 +437,7 @@ async def _checkin(
     title = reminder_title(match)
     try:
         if mode == "snooze":
-            minutes = int(entities.get("minutes") or 20)
+            minutes = int(entities.get("minutes") or DEFAULT_SNOOZE_MINUTES)
             minutes = max(5, min(180, minutes))
             await snooze_reminder(rid, user_uuid, minutes)
             return ActionResult(
@@ -462,8 +473,11 @@ async def _checkin(
 
 
 async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict) -> ActionResult:
-    hint = str(entities.get("title_hint") or entities.get("medication") or "")
-    if not hint.strip():
+    hint = str(entities.get("title_hint") or entities.get("medication") or "").strip()
+    if not hint:
+        # Fall back to the whole utterance before giving up on a match.
+        hint = str(entities.get("raw_transcript") or "").strip()
+    if not hint:
         names = [reminder_title(i) for i in all_active_reminders(reminders)[:4]]
         return ActionResult(
             success=False,
@@ -508,6 +522,7 @@ async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict) -> Ac
             "reminder_id": rid,
             "medication": title,
             "title_hint": title,
+            "raw_transcript": entities.get("raw_transcript") or "",
         },
         missing_slots=["confirmation"],
     )

@@ -120,6 +120,9 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   bool _awaitingFollowUp = false;
   VoxLiveSession? _live;
   String? _voxSessionId;
+  DateTime? _voxSessionStartedAt;
+  /// Backend conversation state (pending confirmations) lives for 5 minutes.
+  static const Duration _voxSessionTtl = Duration(minutes: 5);
   StreamSubscription<Uint8List>? _pipecatMicSubscription;
   StreamSubscription<Uint8List>? _pipecatAudioSubscription;
   Timer? _pipecatSilenceTimer;
@@ -194,10 +197,14 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
 
   String _ensureSessionId() {
     final existing = _voxSessionId?.trim();
-    if (existing != null && existing.isNotEmpty) return existing;
+    final startedAt = _voxSessionStartedAt;
+    final stillFresh = startedAt != null &&
+        DateTime.now().difference(startedAt) < _voxSessionTtl;
+    if (existing != null && existing.isNotEmpty && stillFresh) return existing;
     final created =
         'vox_${DateTime.now().millisecondsSinceEpoch}_${UniqueKey().hashCode.abs()}';
     _voxSessionId = created;
+    _voxSessionStartedAt = DateTime.now();
     return created;
   }
 
@@ -259,8 +266,8 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
       } else {
         _snack(message);
       }
-      _voxSessionId = null;
-      _awaitingFollowUp = false;
+      // Keep the session id when a clarification/confirmation is still pending.
+      _clearPendingSession(keepSession: _awaitingFollowUp);
     } finally {
       if (mounted && !_voiceLiveActive) {
         setState(() {
@@ -575,7 +582,8 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
 
     if (initialClip == null) {
       if (isFollowUp) {
-        _clearPendingSession();
+        // A pending confirmation may still be waiting server-side.
+        _clearPendingSession(keepSession: true);
         _snack('No worries, you can try again anytime');
         return;
       }
@@ -603,6 +611,7 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
       if (returnedSession != null && returnedSession.isNotEmpty) {
         sessionId = returnedSession;
         _voxSessionId = returnedSession;
+        _voxSessionStartedAt = DateTime.now();
       }
 
       // Wait for TTS to finish before reopening the mic.
@@ -645,7 +654,9 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
         requireSpeech: true,
       );
       if (followUp == null) {
-        _clearPendingSession();
+        // Server still holds this pending action; keep the session so the next
+        // Vox press can answer it instead of starting a fresh conversation.
+        _clearPendingSession(keepSession: true);
         _snack('No worries, you can try again anytime');
         return;
       }
@@ -655,8 +666,17 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     _clearPendingSession();
   }
 
-  void _clearPendingSession() {
-    _voxSessionId = null;
+  /// Ends the local turn loop.
+  ///
+  /// [keepSession] preserves `_voxSessionId` so the next Vox press rejoins the
+  /// same backend conversation — required whenever the server still has a
+  /// pending confirmation (e.g. "Should I delete your Pregabalin reminder?")
+  /// and the mic closed before the user answered.
+  void _clearPendingSession({bool keepSession = false}) {
+    if (!keepSession) {
+      _voxSessionId = null;
+      _voxSessionStartedAt = null;
+    }
     _awaitingFollowUp = false;
   }
 

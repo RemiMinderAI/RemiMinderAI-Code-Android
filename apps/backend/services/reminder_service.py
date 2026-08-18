@@ -305,18 +305,12 @@ async def complete_reminder(
         return None
     
     # Mark as complete (this already resets consecutive_skips in db_reminders.py)
+    # NOTE: mark_reminder_complete already calls create_recurring_reminder internally,
+    # so do NOT call it again here — that was causing duplicate reminders.
     reminder = await mark_reminder_complete(reminder_id, user_id, action_data.notes)
     
     if reminder:
         logger.info(f"Completed reminder {reminder_id}")
-        
-        # If recurring, create next instance immediately
-        if reminder_data.get('recurrence') and reminder_data['recurrence'] != 'once':
-            from .db_reminders import create_recurring_reminder
-            new_reminder = await create_recurring_reminder(reminder_data)
-            if new_reminder:
-                logger.info(f"Created next recurring reminder {new_reminder['id']} from {reminder_id}")
-        
         return _enrich_reminder_response(reminder)
     
     return None
@@ -361,14 +355,10 @@ async def skip_reminder(
     
     if reminder:
         logger.info(f"Skipped reminder {reminder_id}")
-        
-        # If recurring, create next instance immediately
-        if reminder_data.get('recurrence') and reminder_data['recurrence'] != 'once':
-            from .db_reminders import create_recurring_reminder
-            new_reminder = await create_recurring_reminder(reminder_data)
-            if new_reminder:
-                logger.info(f"Created next recurring reminder {new_reminder['id']} from {reminder_id}")
-        
+
+        # NOTE: db_skip_reminder already calls create_recurring_reminder
+        # internally, so do NOT call it again here — that caused duplicates.
+
         # Trigger caregiver alert asynchronously (non-blocking)
         asyncio.create_task(
             check_and_send_caregiver_alerts(reminder_id, user_id, 'skipped')

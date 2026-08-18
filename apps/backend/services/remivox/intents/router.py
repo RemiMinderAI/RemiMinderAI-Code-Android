@@ -20,6 +20,9 @@ from services.remivox.languages import (
     normalize_language_code,
 )
 
+# Keep in sync with executor._checkin and the Flutter snooze action.
+DEFAULT_SNOOZE_MINUTES = 30
+
 _CANCEL_PHRASES = (
     "cancel that",
     "cancel it",
@@ -120,15 +123,19 @@ def _merge_entities(
     return out
 
 
-def _create_missing(entities: dict[str, Any]) -> list[str]:
+def _create_missing(entities: dict[str, Any], text: str = "") -> list[str]:
     missing: list[str] = []
     if not (entities.get("medication") or entities.get("title")):
         missing.append("medication")
     if not entities.get("time"):
         missing.append("time")
     if not entities.get("frequency"):
-        # Default to daily — most medication reminders are daily
-        entities["frequency"] = "daily"
+        # "today" / "tonight" / "this evening" = once; otherwise default daily
+        lower_text = text.lower() if isinstance(text, str) else ""
+        if any(w in lower_text for w in ("today", "tonight", "this evening", "this morning", "right now", "in an hour", "once")):
+            entities["frequency"] = "once"
+        else:
+            entities["frequency"] = "daily"
     return missing
 
 
@@ -152,6 +159,26 @@ def _extract_create_entities(text: str) -> dict[str, Any]:
     return entities
 
 
+_STT_CORRECTIONS = {
+    "smooth": "snooze",
+    "news": "snooze",
+    "snoops": "snooze",
+    "moves": "move",
+    "shuttle": "schedule",
+    "counsel": "cancel",
+    "remainder": "reminder",
+    "reminds": "reminder",
+}
+
+def _correct_stt(text: str) -> str:
+    """Fix common Deepgram mishears for action words."""
+    words = text.split()
+    corrected = []
+    for w in words:
+        corrected.append(_STT_CORRECTIONS.get(w.lower(), w))
+    return " ".join(corrected)
+
+
 def route_intent(
     *,
     text: str,
@@ -165,7 +192,7 @@ def route_intent(
     When pending_intent is set (e.g. CREATE waiting for time), merge new
     entities into the pending create/update/delete flow.
     """
-    raw = (text or "").strip()
+    raw = _correct_stt((text or "").strip())
     lower = raw.lower()
     lang = normalize_language_code(language)
     pending = pending_entities or {}
@@ -180,7 +207,27 @@ def route_intent(
             normalized_text=raw,
         )
 
-    # --- Cancel pending / cancel reminder request ---
+    # --- Cancel/delete a specific reminder ---
+    if (_has_any(lower, ("cancel", "delete", "remove", "get rid of"))
+        and "reminder" in lower
+        and any(w in lower for w in ("my", "the", "a"))
+    ):
+        hint = extract_medication_or_title(raw)
+        if not hint:
+            import re as _re
+            m = _re.search(r"(?:cancel|delete|remove)\s+(?:my\s+|the\s+|a\s+)?(.+?)\s+reminder", raw, _re.IGNORECASE)
+            if m:
+                hint = m.group(1).strip()
+        return IntentResult(
+            intent=VoxIntent.DELETE_REMINDER,
+            language=lang,
+            entities={"title_hint": hint, "medication": hint, "raw_transcript": raw},
+            confidence=0.95,
+            raw_transcript=raw,
+            normalized_text=raw,
+        )
+
+    # --- Cancel pending action (bare "cancel", "no", "nope") ---
     if _has_any(lower, _CANCEL_PHRASES) or lower in {"no", "cancel", "nope"}:
         return IntentResult(
             intent=VoxIntent.CANCEL_ACTION,
@@ -234,7 +281,7 @@ def route_intent(
             updates["medication"] = None
             updates["title"] = None
         merged = _merge_entities(pending, {k: v for k, v in updates.items() if v})
-        missing = _create_missing(merged)
+        missing = _create_missing(merged, raw)
         if missing:
             return IntentResult(
                 intent=VoxIntent.CLARIFY,
@@ -314,7 +361,7 @@ def route_intent(
             for t in ("set", "create", "add", "schedule", "remind me", "reminder for", "reminder about")
         ) and not any(t in lower for t in ("update", "change", "move", "reschedule", "delete", "remove")):
             entities = _extract_create_entities(raw)
-            missing = _create_missing(entities)
+            missing = _create_missing(entities, raw)
             if missing:
                 return IntentResult(
                     intent=VoxIntent.CLARIFY,
@@ -344,7 +391,7 @@ def route_intent(
         return IntentResult(
             intent=VoxIntent.DELETE_REMINDER,
             language=lang,
-            entities={"title_hint": hint, "medication": hint},
+            entities={"title_hint": hint, "medication": hint, "raw_transcript": raw},
             confidence=0.95,
             raw_transcript=raw,
             normalized_text=raw,
@@ -357,10 +404,22 @@ def route_intent(
     update_requested = _has_keyword(lower, _UPDATE_PHRASES) or (
         "actually" in lower and (update_time or update_frequency)
     )
+    # Extract medication from "change my X to" / "move X to" patterns
+    if not update_hint and update_requested:
+        m = re.search(
+            r"(?:change|update|move|switch|reschedule|modify)\s+(?:my\s+)?(.+?)\s+(?:to|from|at)\b",
+            raw, re.IGNORECASE,
+        )
+        if m:
+            hint_text = m.group(1).strip()
+            hint_text = re.sub(r"\b(reminder|the)\b", "", hint_text, flags=re.I).strip()
+            if len(hint_text) >= 2:
+                update_hint = hint_text
     update_targeted = (
         "reminder" in lower
         or "that" in lower
         or bool(update_hint)
+        or (update_requested and update_time)
     )
     if update_requested and update_targeted:
         entities = {
@@ -370,6 +429,7 @@ def route_intent(
             "frequency": (
                 update_frequency.value if update_frequency else None
             ),
+            "raw_transcript": raw,
         }
         return IntentResult(
             intent=VoxIntent.UPDATE_REMINDER,
@@ -398,7 +458,7 @@ def route_intent(
         return IntentResult(
             intent=VoxIntent.COMPLETE_REMINDER,
             language=lang,
-            entities={"title_hint": hint, "medication": hint},
+            entities={"title_hint": hint, "medication": hint, "raw_transcript": raw},
             confidence=0.95,
             raw_transcript=raw,
             normalized_text=raw,
@@ -406,7 +466,7 @@ def route_intent(
 
     # --- Snooze ---
     if any(w in lower for w in ("snooze", "remind me later", "later")):
-        minutes = 20
+        minutes = DEFAULT_SNOOZE_MINUTES
         m = re.search(r"(\d{1,3})\s*(?:min|minute)", lower)
         if m:
             minutes = max(5, min(180, int(m.group(1))))
@@ -414,7 +474,7 @@ def route_intent(
         return IntentResult(
             intent=VoxIntent.SNOOZE_REMINDER,
             language=lang,
-            entities={"title_hint": hint, "minutes": minutes},
+            entities={"title_hint": hint, "minutes": minutes, "raw_transcript": raw},
             confidence=0.9,
             raw_transcript=raw,
             normalized_text=raw,
@@ -426,7 +486,7 @@ def route_intent(
         return IntentResult(
             intent=VoxIntent.SKIP_REMINDER,
             language=lang,
-            entities={"title_hint": hint},
+            entities={"title_hint": hint, "raw_transcript": raw},
             confidence=0.9,
             raw_transcript=raw,
             normalized_text=raw,
@@ -470,6 +530,18 @@ def route_intent(
             "my medications",
             "what medicine",
             "what meds",
+            "my meds",
+            "what are my med",
+            "today's med",
+            "medications for today",
+            "tell me my med",
+            "list my med",
+            "show my med",
+            "do i have med",
+            "any medications",
+            "any meds",
+            "medication list",
+            "what medications",
         )
     ):
         return IntentResult(

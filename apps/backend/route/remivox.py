@@ -344,6 +344,7 @@ def _pulse_transcribe(
     Returns (transcript, detected_or_requested_language_code).
     """
     provider = os.getenv("REMIVOX_STT_PROVIDER", "pulse").strip().lower()
+    logger.info(f"STT provider selected: {provider}")
     try:
         if provider == "deepgram":
             result = transcribe_deepgram(
@@ -923,10 +924,13 @@ async def _remivox_response(
     )
     sid = (session_id or firebase_uid or "default").strip() or "default"
 
+    _SUPPORTED_NON_EN = {"hi", "bn", "ta", "gu", "pa", "mr", "te", "ur", "es", "fr", "de", "pt", "ja", "ko", "zh"}
+
     if intent_prompt:
-        # Intent Router is English-keyed; translate non-English speech → English for routing.
+        # Intent Router is English-keyed; only translate if detected language
+        # is a supported non-English language we trust (not misdetections)
         english_prompt = intent_prompt
-        if lang != DEFAULT_REMIVOX_LANGUAGE:
+        if lang != DEFAULT_REMIVOX_LANGUAGE and lang in _SUPPORTED_NON_EN:
             english_prompt = _simple_translate(
                 intent_prompt,
                 lang,
@@ -934,6 +938,7 @@ async def _remivox_response(
             )
 
         # Stage C: Intent Router → Action Executor → Response Builder
+        logger.info(f"VOX_TRANSCRIPT: '{intent_prompt}' | english: '{english_prompt}' | lang: {lang}")
         result = await run_care_turn(
             user_uuid=user_uuid,
             text=english_prompt,

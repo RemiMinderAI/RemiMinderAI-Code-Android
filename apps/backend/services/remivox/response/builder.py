@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 from services.remivox.actions.types import ActionResult
 from services.remivox.intents.models import IntentResult, VoxIntent
+from services.remivox.intents.router import DEFAULT_SNOOZE_MINUTES
 from services.remivox.languages import DEFAULT_REMIVOX_LANGUAGE
 
 NO_DISCLAIMER_INTENTS: frozenset[VoxIntent] = frozenset(
@@ -172,7 +173,7 @@ def _text_for(
 
     if key == "snoozed":
         title = payload.get("title", "that reminder")
-        minutes = payload.get("minutes", 20)
+        minutes = payload.get("minutes", DEFAULT_SNOOZE_MINUTES)
         return f"Okay — I snoozed {title} for {minutes} minutes."
 
     if key == "skipped":
@@ -220,8 +221,15 @@ def _text_for(
             "or treatment advice. Please check with your clinician for that."
         )
 
+    if key == "unknown_intent":
+        return (
+            "I didn't catch that. I can set reminders, read your medications, "
+            "summarize your doctor visits, or update an existing reminder. "
+            "What would you like?"
+        )
+
     if key == "briefing":
-        return payload.get("text") or "Hi — I'm Vox. How can I help organize your care today?"
+        return payload.get("text") or "How can I help? I can set reminders, read your medications, or summarize your last doctor visit."
 
     if intent == VoxIntent.UNKNOWN:
         return payload.get("text") or (

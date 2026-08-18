@@ -12,6 +12,24 @@ from services.cloud_sql_engine import get_cloud_sql_engine
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# reminders.user_id is a uuid column, but callers pass either the internal
+# users.id UUID or a Firebase UID string. Comparing a uuid column directly to a
+# bound string parameter makes the driver infer a uuid param and blow up on
+# Firebase UIDs, so every reminder lookup compares as text and resolves the id
+# in either direction.
+# ---------------------------------------------------------------------------
+_USER_MATCH_SQL = """(
+    user_id::text = CAST(:user_id AS text)
+    OR user_id::text = COALESCE(
+        (SELECT firebase_uid FROM users WHERE id::text = CAST(:user_id AS text) LIMIT 1),
+        (SELECT id::text FROM users WHERE firebase_uid = CAST(:user_id AS text) LIMIT 1)
+    )
+)"""
+
+_REMINDER_ID_MATCH_SQL = "id::text = CAST(:reminder_id AS text)"
+
+
 def _row_to_dict(row: Any) -> Optional[Dict[str, Any]]:
     if not row:
         return None
@@ -126,17 +144,11 @@ async def get_reminder(reminder_id: str, user_id: str) -> Optional[Dict[str, Any
     engine = get_cloud_sql_engine()
     with engine.connect() as conn:
         result = conn.execute(
-            text("""
+            text(f"""
                 SELECT *
                 FROM reminders
-                WHERE id = :reminder_id
-                  AND (
-                    user_id = :user_id
-                    OR user_id = COALESCE(
-                        (SELECT firebase_uid FROM users WHERE id::text = :user_id LIMIT 1),
-                        (SELECT id::text FROM users WHERE firebase_uid = :user_id LIMIT 1)
-                    )
-                  )
+                WHERE {_REMINDER_ID_MATCH_SQL}
+                  AND {_USER_MATCH_SQL}
                 LIMIT 1
             """),
             {"reminder_id": reminder_id, "user_id": user_id},
@@ -152,14 +164,10 @@ async def get_all_reminders(user_id: str) -> List[Dict[str, Any]]:
     engine = get_cloud_sql_engine()
     with engine.connect() as conn:
         result = conn.execute(
-            text("""
+            text(f"""
                 SELECT *
                 FROM reminders
-                WHERE user_id = :user_id
-                   OR user_id = COALESCE(
-                       (SELECT firebase_uid FROM users WHERE id::text = :user_id LIMIT 1),
-                       (SELECT id::text FROM users WHERE firebase_uid = :user_id LIMIT 1)
-                   )
+                WHERE {_USER_MATCH_SQL}
                 ORDER BY scheduled_time ASC
             """),
             {"user_id": user_id},
@@ -188,8 +196,8 @@ async def update_reminder(reminder_id: str, user_id: str, updates: dict) -> Opti
             text(f"""
                 UPDATE reminders
                 SET {', '.join(set_clauses)}
-                WHERE id = :reminder_id
-                  AND user_id = :user_id
+                WHERE {_REMINDER_ID_MATCH_SQL}
+                  AND {_USER_MATCH_SQL}
                 RETURNING *
             """),
             params,
@@ -202,10 +210,10 @@ async def delete_reminder(reminder_id: str, user_id: str) -> bool:
     engine = get_cloud_sql_engine()
     with engine.begin() as conn:
         result = conn.execute(
-            text("""
+            text(f"""
                 DELETE FROM reminders
-                WHERE id = :reminder_id
-                  AND user_id = :user_id
+                WHERE {_REMINDER_ID_MATCH_SQL}
+                  AND {_USER_MATCH_SQL}
                 RETURNING id
             """),
             {"reminder_id": reminder_id, "user_id": user_id},
@@ -606,10 +614,10 @@ async def get_next_reminders_for_patient(user_id: str, limit: int = 5) -> List[D
     engine = get_cloud_sql_engine()
     with engine.connect() as conn:
         result = conn.execute(
-            text("""
+            text(f"""
                 SELECT id, title, scheduled_time, reminder_type, status
                 FROM reminders
-                WHERE user_id = :user_id
+                WHERE {_USER_MATCH_SQL}
                   AND status = 'pending'
                   AND scheduled_time >= :now
                 ORDER BY scheduled_time ASC
