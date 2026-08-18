@@ -6,8 +6,11 @@ from services.remivox.intents.models import (
     VoxIntent,
 )
 
+from services.remivox.intents.validate import validate_care_critical_fields
+
 __all__ = [
     "PROTECTED_ACTIONS",
     "IntentResult",
     "VoxIntent",
+    "validate_care_critical_fields",
 ]

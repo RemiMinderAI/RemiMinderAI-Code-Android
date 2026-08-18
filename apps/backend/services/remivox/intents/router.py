@@ -19,6 +19,7 @@ from services.remivox.languages import (
     DEFAULT_REMIVOX_LANGUAGE,
     normalize_language_code,
 )
+from services.remivox.transcript import preserve_raw_transcript
 
 _CANCEL_PHRASES = (
     "cancel that",
@@ -151,23 +152,43 @@ def _extract_create_entities(text: str) -> dict[str, Any]:
     return entities
 
 
+def _extract_create_prefer_raw(raw: str, normalized: Optional[str]) -> dict[str, Any]:
+    from_raw = _extract_create_entities(raw)
+    if not normalized or preserve_raw_transcript(normalized) == preserve_raw_transcript(raw):
+        return from_raw
+    from_norm = _extract_create_entities(normalized)
+    return _merge_entities(from_norm, {k: v for k, v in from_raw.items() if v})
+
+
+def _hint_prefer_raw(raw: str, normalized: Optional[str]) -> Optional[str]:
+    hint = extract_medication_or_title(raw)
+    if hint:
+        return hint
+    if normalized:
+        return extract_medication_or_title(normalized)
+    return None
+
+
 def route_intent(
     *,
     text: str,
     language: str = DEFAULT_REMIVOX_LANGUAGE,
     pending_intent: Optional[str] = None,
     pending_entities: Optional[dict[str, Any]] = None,
+    normalized_text: Optional[str] = None,
 ) -> IntentResult:
     """
     Resolve user text into a structured IntentResult.
 
-    When pending_intent is set (e.g. CREATE waiting for time), merge new
-    entities into the pending create/update/delete flow.
+    `text` is the Pulse STT / typed utterance — raw and unredacted.
+    `normalized_text` is optional English for phrase matching only.
     """
-    raw = (text or "").strip()
-    lower = raw.lower()
+    raw = preserve_raw_transcript(text)
+    assist = preserve_raw_transcript(normalized_text) if normalized_text else ""
+    lower = " ".join(part.lower() for part in (raw, assist) if part)
     lang = normalize_language_code(language)
     pending = pending_entities or {}
+    extract_src = raw or assist
 
     if not raw:
         return IntentResult(
@@ -176,7 +197,7 @@ def route_intent(
             entities={},
             confidence=0.0,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Cancel pending / cancel reminder request ---
@@ -187,7 +208,7 @@ def route_intent(
             entities={"reason": raw},
             confidence=1.0,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Confirm pending sensitive action ---
@@ -201,7 +222,7 @@ def route_intent(
             entities=_merge_entities(pending, {"confirmed": True}),
             confidence=1.0,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     if _has_any(lower, _CONFIRM_PHRASES) and pending_intent:
@@ -211,7 +232,7 @@ def route_intent(
             entities=_merge_entities(pending, {"confirmed": True}),
             confidence=0.9,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Medical advice refusal (before create heuristics) ---
@@ -222,12 +243,12 @@ def route_intent(
             entities={},
             confidence=1.0,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Continue pending CREATE with slot fills ("8 PM", "every day") ---
     if pending_intent == VoxIntent.CREATE_REMINDER.value:
-        updates = _extract_create_entities(raw)
+        updates = _extract_create_prefer_raw(extract_src, assist or None)
         # Pure time/frequency utterances may not yield a medication — keep pending.
         if not updates.get("medication") and len(raw.split()) <= 6:
             updates["medication"] = None
@@ -246,7 +267,7 @@ def route_intent(
                 missing_slots=missing,
                 confidence=0.95,
                 raw_transcript=raw,
-                normalized_text=raw,
+                normalized_text=assist or raw,
             )
         return IntentResult(
             intent=VoxIntent.CREATE_REMINDER,
@@ -254,12 +275,14 @@ def route_intent(
             entities=merged,
             confidence=0.95,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Pending DELETE: user names which reminder ---
     if pending_intent == VoxIntent.DELETE_REMINDER.value:
-        hint = extract_medication_or_title(raw) or raw
+        hint = extract_medication_or_title(extract_src) or (
+            extract_medication_or_title(assist) if assist else None
+        ) or raw
         merged = _merge_entities(pending, {"title_hint": hint, "medication": hint})
         return IntentResult(
             intent=VoxIntent.DELETE_REMINDER,
@@ -267,15 +290,17 @@ def route_intent(
             entities=merged,
             confidence=0.9,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Pending UPDATE slot fill ---
     if pending_intent == VoxIntent.UPDATE_REMINDER.value:
         updates: dict[str, Any] = {}
-        t = extract_time_hhmm(raw)
-        f = extract_frequency(raw)
-        m = extract_medication_or_title(raw)
+        t = extract_time_hhmm(extract_src) or (extract_time_hhmm(assist) if assist else None)
+        f = extract_frequency(extract_src) or (extract_frequency(assist) if assist else None)
+        m = extract_medication_or_title(extract_src) or (
+            extract_medication_or_title(assist) if assist else None
+        )
         if t:
             updates["time"] = t
         if f:
@@ -290,7 +315,7 @@ def route_intent(
             entities=merged,
             confidence=0.9,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Create reminder ---
@@ -312,7 +337,7 @@ def route_intent(
             t in lower
             for t in ("set", "create", "add", "schedule", "remind me", "reminder for", "reminder about")
         ) and not any(t in lower for t in ("update", "change", "move", "reschedule", "delete", "remove")):
-            entities = _extract_create_entities(raw)
+            entities = _extract_create_prefer_raw(extract_src, assist or None)
             missing = _create_missing(entities)
             if missing:
                 return IntentResult(
@@ -326,7 +351,7 @@ def route_intent(
                     missing_slots=missing,
                     confidence=0.9,
                     raw_transcript=raw,
-                    normalized_text=raw,
+                    normalized_text=assist or raw,
                 )
             return IntentResult(
                 intent=VoxIntent.CREATE_REMINDER,
@@ -334,25 +359,33 @@ def route_intent(
                 entities=entities,
                 confidence=1.0,
                 raw_transcript=raw,
-                normalized_text=raw,
+                normalized_text=assist or raw,
             )
 
     # --- Delete ---
     if any(w in lower for w in ("delete", "remove", "get rid of")) and "reminder" in lower:
-        hint = extract_medication_or_title(raw)
+        hint = extract_medication_or_title(extract_src) or (
+            extract_medication_or_title(assist) if assist else None
+        )
         return IntentResult(
             intent=VoxIntent.DELETE_REMINDER,
             language=lang,
             entities={"title_hint": hint, "medication": hint},
             confidence=0.95,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Update ---
-    update_time = extract_time_hhmm(raw)
-    update_frequency = extract_frequency(raw)
-    update_hint = extract_medication_or_title(raw)
+    update_time = extract_time_hhmm(extract_src) or (
+        extract_time_hhmm(assist) if assist else None
+    )
+    update_frequency = extract_frequency(extract_src) or (
+        extract_frequency(assist) if assist else None
+    )
+    update_hint = extract_medication_or_title(extract_src) or (
+            extract_medication_or_title(assist) if assist else None
+        )
     update_requested = _has_keyword(lower, _UPDATE_PHRASES) or (
         "actually" in lower and (update_time or update_frequency)
     )
@@ -376,7 +409,7 @@ def route_intent(
             entities={k: v for k, v in entities.items() if v},
             confidence=0.9,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Complete / taken ---
@@ -393,14 +426,16 @@ def route_intent(
             "done taking",
         )
     ):
-        hint = extract_medication_or_title(raw) or raw
+        hint = extract_medication_or_title(extract_src) or (
+            extract_medication_or_title(assist) if assist else None
+        ) or raw
         return IntentResult(
             intent=VoxIntent.COMPLETE_REMINDER,
             language=lang,
             entities={"title_hint": hint, "medication": hint},
             confidence=0.95,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Snooze ---
@@ -409,26 +444,30 @@ def route_intent(
         m = re.search(r"(\d{1,3})\s*(?:min|minute)", lower)
         if m:
             minutes = max(5, min(180, int(m.group(1))))
-        hint = extract_medication_or_title(raw)
+        hint = extract_medication_or_title(extract_src) or (
+            extract_medication_or_title(assist) if assist else None
+        )
         return IntentResult(
             intent=VoxIntent.SNOOZE_REMINDER,
             language=lang,
             entities={"title_hint": hint, "minutes": minutes},
             confidence=0.9,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Skip ---
     if re.search(r"\bskip\b", lower):
-        hint = extract_medication_or_title(raw)
+        hint = extract_medication_or_title(extract_src) or (
+            extract_medication_or_title(assist) if assist else None
+        )
         return IntentResult(
             intent=VoxIntent.SKIP_REMINDER,
             language=lang,
             entities={"title_hint": hint},
             confidence=0.9,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Conversational handoffs (before appointment/summary reads) ---
@@ -442,7 +481,7 @@ def route_intent(
             entities={"audience": "caregiver"},
             confidence=0.95,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     if _has_keyword(lower, _HYDRA_KNOWLEDGE_PHRASES):
@@ -455,7 +494,7 @@ def route_intent(
             },
             confidence=0.95,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     # --- Reads ---
@@ -477,7 +516,7 @@ def route_intent(
             entities={},
             confidence=1.0,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     if any(
@@ -490,7 +529,7 @@ def route_intent(
             entities={},
             confidence=0.9,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     if any(
@@ -503,7 +542,7 @@ def route_intent(
             entities={},
             confidence=0.9,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     if any(
@@ -524,7 +563,7 @@ def route_intent(
             entities={},
             confidence=0.95,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     if any(w in lower for w in ("help", "what can you do", "what do you do")):
@@ -534,7 +573,7 @@ def route_intent(
             entities={},
             confidence=1.0,
             raw_transcript=raw,
-            normalized_text=raw,
+            normalized_text=assist or raw,
         )
 
     return IntentResult(

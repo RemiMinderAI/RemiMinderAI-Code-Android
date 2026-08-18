@@ -109,6 +109,10 @@ class TestRemiVoxProcessorCareIntegration(unittest.IsolatedAsyncioTestCase):
             "Set a reminder for Metoprolol at 8 PM every day",
             kwargs["text"],
         )
+        self.assertEqual(
+            "Set a reminder for Metoprolol at 8 PM every day",
+            kwargs["transcript"],
+        )
         self.assertEqual("internal-user-uuid", kwargs["user_uuid"])
         self.assertEqual("America/New_York", kwargs["timezone_name"])
         self.assertEqual("test-session", kwargs["session_id"])

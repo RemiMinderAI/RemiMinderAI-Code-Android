@@ -28,6 +28,7 @@ from services.remivox.intents.extractors import (
     reminder_title,
 )
 from services.remivox.intents.models import IntentResult, PROTECTED_ACTIONS, VoxIntent
+from services.remivox.intents.validate import validate_care_critical_fields
 from services.remivox_intents import build_briefing, build_caregiver_brief
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,17 @@ async def execute_intent(
     summaries: list[dict],
     timezone_name: str = "UTC",
 ) -> ActionResult:
+    gated = validate_care_critical_fields(intent_result)
+    intent_result = gated.intent_result
+    if gated.blocked_reason == "redacted_transcript":
+        return ActionResult(
+            success=False,
+            action="blocked",
+            message_key="redacted_transcript",
+            error="redacted_transcript",
+            missing_slots=list(gated.missing_slots),
+            clear_pending=True,
+        )
     intent = intent_result.intent
     entities = dict(intent_result.entities or {})
 

@@ -91,21 +91,24 @@ Also: `reply_language`, `content_type` (existing client fields).
 ```
 Mobile
   → WS /api/remivox/stream
-    → Pipecat Pipeline
-      → SmallestSTTService
-        (Pulse streaming, REMIVOX_EOU_TIMEOUT_MS; default 2000)
-      → SileroVADAnalyzer
-        (interruption handling)
+    → Pipecat Pipeline (transport only)
+      → SmallestSTTService / Pulse  (redact_pii=False, always)
+      → RAW / UNREDACTED TRANSCRIPT
       → RemiVoxProcessor
-        (calls run_care_turn)
-      → SmallestTTSService
-        (REMIVOX_TTS_MODEL, REMIVOX_TTS_SPEED)
+           → Intent + entity extraction
+           → Validate care-critical fields
+           → Action Executor → reminder / care action
+      → SmallestTTSService / Lightning
     → WebSocket audio back to mobile
 ```
 
 `RemiVoxProcessor` is the bridge between Pipecat and the existing care engine.
-It receives finalized STT transcripts, calls `run_care_turn(...)`, and emits
-response text downstream for TTS.
+It receives finalized Pulse transcripts **without STT PII redaction**, calls
+`run_care_turn(...)` on that raw text, and emits response text downstream for TTS.
+
+Pulse PII mode must stay off: it turns "Metoprolol" into `[COMPANYNAME_1]` and
+would create reminders with that placeholder. Logs omit PHI; the care transcript
+is not redacted before extraction.
 
 ### Languages
 
@@ -137,8 +140,11 @@ languages are rejected before pipeline startup.
 The deterministic v2 care workflow remains unchanged:
 
 ```
-Intent Router
+Pulse STT (raw / unredacted)
+  → Intent + entity extraction
+  → Validate care-critical fields
   → Action Executor
+  → Reminder / care action
   → Response Builder
 ```
 

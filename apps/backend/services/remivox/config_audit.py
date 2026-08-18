@@ -72,10 +72,20 @@ def audit_remivox_production_config() -> dict[str, Any]:
         )
         report["warnings"].append(msg)
         logger.warning("RemiVox config audit: %s", msg)
-    else:
+
+    if _truthy("REMIVOX_STT_REDACT_PII", "false"):
+        msg = (
+            "REMIVOX_STT_REDACT_PII=true is IGNORED. Care Pulse STT must stay "
+            "unredacted so medication names reach the intent router."
+        )
+        report["warnings"].append(msg)
+        report["ok"] = False
+        logger.error("RemiVox config audit: %s", msg)
+
+    if not report["warnings"]:
         logger.info(
             "RemiVox config audit OK: REMIVOX_TEST_MODE=false, "
-            "REMIVOX_TEST_MODE_ALLOW_IN_PROD=false (env=%s)",
+            "STT redact_pii forced off (env=%s)",
             report["app_env"],
         )
 

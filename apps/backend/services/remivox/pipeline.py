@@ -1,10 +1,14 @@
 """
-RemiVox v2 care-turn pipeline (Stage C).
+RemiVox care-turn pipeline.
 
-Voice Layer (Pulse/Lightning) stays in route/remivox.py + remivox.voice.
-This pipeline owns: Intent Router → Action Executor → Response Builder (+ state).
+Pipecat is streaming transport only. Care path:
 
-Hydra is NOT used here for care actions.
+  Pulse STT
+    → RAW / UNREDACTED TRANSCRIPT
+    → Intent + entity extraction
+    → Validate care-critical fields
+    → Action Executor
+    → Reminder / care action
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ from typing import Any, Optional
 
 from services.remivox.actions.executor import execute_intent
 from services.remivox.intents.router import route_intent
+from services.remivox.intents.validate import validate_care_critical_fields
 from services.remivox.languages import (
     DEFAULT_REMIVOX_LANGUAGE,
     resolve_session_language,
@@ -24,6 +29,7 @@ from services.remivox.state.conversation import (
     get_state,
     upsert_pending,
 )
+from services.remivox.transcript import preserve_raw_transcript
 
 
 async def run_care_turn(
@@ -37,11 +43,13 @@ async def run_care_turn(
     timezone_name: str = "UTC",
     session_id: Optional[str] = None,
     transcript: Optional[str] = None,
+    routing_text: Optional[str] = None,
 ) -> dict[str, Any]:
     """
-    Deterministic care workflow for one user turn (text already normalized).
+    Deterministic care workflow for one user turn.
 
-    Returns dict compatible with RemiVoxBriefingResponse fields plus intent metadata.
+    `text` / `transcript` must be the Pulse STT (or typed) utterance, unredacted.
+    `routing_text` is optional English used only as a phrase-matching assist.
     """
     sid = (session_id or "default").strip() or "default"
     detected = detected_language or language or DEFAULT_REMIVOX_LANGUAGE
@@ -52,16 +60,21 @@ async def run_care_turn(
         has_audio=bool(detected_language),
     )
 
+    raw_transcript = preserve_raw_transcript(transcript if transcript is not None else text)
+
     prior = get_state(user_uuid, sid)
     pending_intent = prior.pending_intent if prior else None
     pending_entities = prior.pending_entities if prior else None
 
     intent_result = route_intent(
-        text=text,
+        text=raw_transcript,
         language=lang,
         pending_intent=pending_intent,
         pending_entities=pending_entities,
+        normalized_text=preserve_raw_transcript(routing_text) or None,
     )
+    care_validation = validate_care_critical_fields(intent_result)
+    intent_result = care_validation.intent_result
     log_intent_decision(
         user_id=user_uuid,
         intent=intent_result.intent.value,
@@ -80,6 +93,10 @@ async def run_care_turn(
     )
 
     validation_result = "ok"
+    if care_validation.blocked_reason:
+        validation_result = care_validation.blocked_reason
+    elif care_validation.missing_slots:
+        validation_result = "clarify_missing_slots"
     if action_result.missing_slots or action_result.message_key in {
         "clarify_missing_slots",
         "ambiguous_reminder",
