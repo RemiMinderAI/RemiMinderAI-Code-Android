@@ -132,9 +132,14 @@ def _create_missing(entities: dict[str, Any], text: str = "") -> list[str]:
     if not entities.get("frequency"):
         # "today" / "tonight" / "this evening" = once; otherwise default daily
         lower_text = text.lower() if isinstance(text, str) else ""
+        r_type = entities.get("reminder_type", "medication")
         if any(w in lower_text for w in ("today", "tonight", "this evening", "this morning", "right now", "in an hour", "once")):
             entities["frequency"] = "once"
+        elif r_type in ("task", "appointment"):
+            # Tasks and appointments default to once, not daily
+            entities["frequency"] = "once"
         else:
+            # Medications default to daily
             entities["frequency"] = "daily"
     return missing
 
