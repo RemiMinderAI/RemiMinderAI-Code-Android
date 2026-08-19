@@ -278,6 +278,20 @@ def extract_medication_or_title(text: str) -> Optional[str]:
         title,
         flags=re.I,
     ).strip(" .,")
+    # Strip trailing filler words and day names
+    title = re.sub(r"\s+(?:on|for|with|at|to|in)\s*$", "", title, flags=re.I).strip(" .,")
+    # Strip "on Monday/Tuesday/etc" or "on Thursday"
+    title = re.sub(
+        r"\s+on\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*$",
+        "", title, flags=re.I,
+    ).strip(" .,")
+    # Strip "on" + date patterns
+    title = re.sub(r"\s+on\s*$", "", title, flags=re.I).strip(" .,")
+    # Strip leading filler: "my task for", "a", "my"
+    title = re.sub(r"^(?:my\s+task\s+(?:for|to)\s+|my\s+|a\s+)", "", title, flags=re.I).strip(" .,")
+    # Capitalize first letter
+    if title and title[0].islower():
+        title = title[0].upper() + title[1:]
     if len(title) < 2:
         return None
     return title[:80]
@@ -318,6 +332,9 @@ def score_reminders(reminders: dict, hint: str) -> list[tuple[int, dict]]:
     for item in active:
         title = reminder_title(item).lower()
         score = 0
+        # Exact title match gets highest score
+        if title.strip() == lower.strip() or title.strip() in lower:
+            score += 10
         # Match title tokens in hint
         for token in re.findall(r"[a-z0-9]{3,}", title):
             if token in lower:

@@ -54,13 +54,15 @@ def _get_display_status(reminder: dict) -> str:
     # Past section statuses
     if status == 'completed':
         return "Completed"
-    if status == 'snoozed' and completed_at:
+    if status == 'snoozed':
         return "Snoozed"
     if status == 'skipped':
         return "Skipped"
+    if status == 'cancelled':
+        return "Cancelled"
 
     if scheduled is None:
-        return "Unknown"
+        return "Scheduled"
 
     # Active/Due Now (within 15 minutes of scheduled time)
     if scheduled <= now <= scheduled + timedelta(minutes=15) and status == 'pending':
@@ -74,7 +76,7 @@ def _get_display_status(reminder: dict) -> str:
     if scheduled < now and status == 'pending':
         return "Missed"
 
-    return "Unknown"
+    return "Scheduled"
 
 
 def _format_display_time(scheduled_time: Optional[datetime], timezone_str: str) -> str:
@@ -83,7 +85,11 @@ def _format_display_time(scheduled_time: Optional[datetime], timezone_str: str) 
     if scheduled_time is None:
         return ""
     # For MVP, just format in UTC or assume frontend handles timezone
-    return scheduled_time.strftime("%I:%M %p").lstrip('0')
+    formatted = scheduled_time.strftime("%I:%M %p").lstrip('0')
+    # Safety: ensure minutes are always two digits (e.g. "8:00 PM" not "8:0 PM")
+    import re as _re
+    formatted = _re.sub(r':(\d)', r':0', formatted)
+    return formatted
 
 
 def _format_relative_time(scheduled_time: Optional[datetime]) -> str:
@@ -224,9 +230,12 @@ async def list_patient_reminders(user_id: str) -> Dict[str, Any]:
         status = r.get('status')
         display_status = r.get('display_status')
 
-        # Past: completed, snoozed, skipped, or missed
-        if status in ['completed', 'skipped'] or display_status in ['Completed', 'Snoozed', 'Skipped', 'Missed']:
+        # Past: completed, skipped, or missed (NOT snoozed — snoozed is still active)
+        if status in ['completed', 'skipped'] or display_status in ['Completed', 'Skipped', 'Missed']:
             past.append(r)
+        # Snoozed: treat as today (still active, just delayed)
+        elif status == 'snoozed':
+            today.append(r)
         # Today: scheduled for today and still pending
         elif scheduled is not None and today_start <= scheduled < today_end and status == 'pending':
             today.append(r)

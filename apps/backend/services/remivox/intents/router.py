@@ -145,9 +145,9 @@ def _extract_create_entities(text: str) -> dict[str, Any]:
     frequency = extract_frequency(text)
     reminder_type = "medication"
     lower = text.lower()
-    if any(w in lower for w in ("appointment", "visit", "doctor")):
+    if any(w in lower for w in ("appointment", "visit", "doctor", "appt")):
         reminder_type = "appointment"
-    elif any(w in lower for w in ("task", "to do", "todo")):
+    elif any(w in lower for w in ("task", "to do", "todo", "pick up", "laundry", "errand", "chore")):
         reminder_type = "task"
     entities: dict[str, Any] = {
         "medication": medication,
@@ -449,9 +449,14 @@ def route_intent(
             "taken",
             "mark as taken",
             "mark taken",
+            "mark done",
+            "mark as done",
+            "mark as completed",
             "mark my",
             "completed",
             "done taking",
+            "i finished",
+            "done with",
         )
     ):
         hint = extract_medication_or_title(raw) or raw

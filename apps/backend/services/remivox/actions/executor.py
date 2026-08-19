@@ -141,10 +141,10 @@ async def execute_intent(
         typed = [
             i
             for i in all_active_reminders(reminders)
-            if "med" in str(i.get("reminder_type", "")).lower()
-            or "med" in reminder_title(i).lower()
+            if str(i.get("reminder_type", "")).lower() == "medication"
         ]
-        use = typed or list(reminders.get("today") or [])
+        # Only fall back to all today if NO medication reminders exist at all
+        use = typed if typed else list(reminders.get("today") or [])
         names = [reminder_title(i) for i in use[:5]]
         return ActionResult(
             success=True,

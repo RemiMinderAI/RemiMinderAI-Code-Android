@@ -33,10 +33,13 @@ class LocaleFormat {
     return DateFormat.Md(locale(context)).format(date.toLocal());
   }
 
-  static String time(BuildContext context, DateTime date) {
-    return DateFormat.jm(locale(context)).format(date.toLocal());
+    static String time(BuildContext context, DateTime date) {
+    final local = date.toLocal();
+    final h = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final m = local.minute.toString().padLeft(2, '0');
+    final p = local.hour >= 12 ? 'PM' : 'AM';
+    return '$h:$m $p';
   }
-
   static String dateTimeMedium(BuildContext context, DateTime date) {
     return '${dateMedium(context, date)} ${time(context, date)}';
   }
@@ -56,8 +59,14 @@ class LocaleFormat {
   static String localizeDigitsInText(BuildContext context, String text) {
     final formatter = NumberFormat.decimalPattern(locale(context));
     return text.replaceAllMapped(RegExp(r'\d+'), (match) {
-      final value = int.parse(match.group(0)!);
-      return formatter.format(value);
+      final raw = match.group(0)!;
+      final value = int.parse(raw);
+      final formatted = formatter.format(value);
+      // Preserve leading zeros (e.g. "00" in "9:00 PM" must stay "00")
+      if (raw.length > formatted.length && raw.startsWith('0')) {
+        return formatted.padLeft(raw.length, '0');
+      }
+      return formatted;
     });
   }
 
