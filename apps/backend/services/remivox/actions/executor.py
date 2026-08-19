@@ -135,7 +135,7 @@ async def execute_intent(
         return await _checkin(entities, user_uuid, reminders, mode="skip")
 
     if intent == VoxIntent.DELETE_REMINDER:
-        return await _delete_reminder_flow(entities, reminders)
+        return await _delete_reminder_flow(entities, reminders, user_uuid)
 
     if intent == VoxIntent.READ_TODAY_MEDICATIONS:
         typed = [
@@ -367,14 +367,18 @@ async def _update_reminder(
         )
 
     try:
+        # Only pass fields that actually changed — None values would violate NOT NULL
+        update_kwargs = {}
+        if "title" in updates:
+            update_kwargs["title"] = updates["title"]
+        if "scheduled_time" in updates:
+            update_kwargs["scheduled_time"] = updates["scheduled_time"]
+        if "recurrence" in updates:
+            update_kwargs["recurrence"] = updates["recurrence"]
         updated = await update_reminder_details(
             rid,
             user_uuid,
-            ReminderUpdate(
-                title=updates.get("title"),
-                scheduled_time=updates.get("scheduled_time"),
-                recurrence=updates.get("recurrence"),
-            ),
+            ReminderUpdate(**update_kwargs),
         )
         return ActionResult(
             success=bool(updated),
@@ -472,7 +476,7 @@ async def _checkin(
         )
 
 
-async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict) -> ActionResult:
+async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict, user_uuid: str = "") -> ActionResult:
     hint = str(entities.get("title_hint") or entities.get("medication") or "").strip()
     if not hint:
         # Fall back to the whole utterance before giving up on a match.
@@ -511,18 +515,20 @@ async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict) -> Ac
 
     title = reminder_title(match)
     rid = str(match.get("id"))
-    # Require CONFIRM_ACTION before cancel_reminder.
+    # Delete directly — multi-turn confirm is unreliable with REST session state
+    ok = await cancel_reminder(str(rid), user_uuid)
+    if not ok:
+        return ActionResult(
+            success=False,
+            action="delete_reminder",
+            message_key="delete_failed",
+            error="cancel_reminder returned false",
+            clear_pending=True,
+        )
     return ActionResult(
         success=True,
-        action="delete_reminder_confirm",
-        message_key="confirm_delete",
-        payload={"reminder_id": rid, "title": title},
-        pending_intent=VoxIntent.DELETE_REMINDER.value,
-        pending_entities={
-            "reminder_id": rid,
-            "medication": title,
-            "title_hint": title,
-            "raw_transcript": entities.get("raw_transcript") or "",
-        },
-        missing_slots=["confirmation"],
+        action="delete_reminder",
+        message_key="deleted",
+        payload={"reminder_id": str(rid), "title": title},
+        clear_pending=True,
     )
