@@ -108,7 +108,9 @@ def send_medication_reminder(
             notification=messaging.AndroidNotification(
                 channel_id="medication_reminders_v2",
                 priority="high",
-                default_vibrate=True,
+                # firebase-admin names this default_vibrate_timings; the old
+                # default_vibrate raised TypeError on every send.
+                default_vibrate_timings=True,
                 default_sound=True,
             ),
         )
