@@ -26,6 +26,7 @@ from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
 from google.genai import types
+from google.genai.errors import ClientError
 
 from services.gemini_client import get_gemini_client, resolve_gemini_api_key
 from services.remivox.intents.models import IntentResult, VoxIntent
@@ -36,7 +37,10 @@ logger = logging.getLogger(__name__)
 # gemini-2.0-flash and 2.5-flash are retired for new users; the API points
 # callers at 3.6-flash. Override per-environment with REMIVOX_NLU_MODEL.
 DEFAULT_NLU_MODEL = "gemini-3.6-flash"
-DEFAULT_TIMEOUT_SECONDS = 5.0
+DEFAULT_TIMEOUT_SECONDS = 15.0
+# Thinking tokens share this budget with the visible JSON; 512 was exhausted
+# mid-object. ~13 fields need far less than 2048, so this is pure headroom.
+DEFAULT_MAX_OUTPUT_TOKENS = 2048
 
 
 class ExtractionError(Exception):
@@ -138,7 +142,9 @@ RULES:
    "Pregavelin"->"Pregabalin", "smooth"->"snooze" when clearly an action.
    Correct the drug name only when confident; otherwise keep what was heard.
 6. Relative dates: "today", "tomorrow", "Thursday" -> resolve to YYYY-MM-DD using
-   the current date provided in the user message.
+   the current date provided in the user message. If the user did NOT name a day,
+   "date" MUST be null — never fill in today's date as a guess. A time on its own
+   ("at 10 AM") states no day. Only "today"/"tonight" state today.
 7. For UPDATE intents, put the target reminder name in "title" and the new values
    in "new_time" / "new_frequency".
 8. Multi-intent utterances: pick the PRIMARY intent.
@@ -402,37 +408,140 @@ def normalize_extraction(
 
 # --- Gemini call -------------------------------------------------------------
 
+# Thinking tokens are drawn from the same max_output_tokens budget as the visible
+# answer, so a thinking model can spend the whole budget before it finishes
+# emitting the JSON. Entity extraction is a structured transform, not a reasoning
+# task, so we ask for the least thinking the model allows.
+#
+# The knob differs by model generation: Gemini 3.x accepts thinking_level and
+# REJECTS thinking_budget=0 with 400 INVALID_ARGUMENT; 2.x accepts
+# thinking_budget. Prefer level, fall back to budget, and if the server rejects
+# whatever we sent, drop it for the rest of the process and retry once.
+_thinking_supported = True
+
+
+def _thinking_config() -> Optional[Any]:
+    if not _thinking_supported:
+        return None
+    level = getattr(types, "ThinkingLevel", None)
+    if level is not None and hasattr(level, "MINIMAL"):
+        try:
+            return types.ThinkingConfig(thinking_level=level.MINIMAL)
+        except Exception:
+            pass
+    try:
+        return types.ThinkingConfig(thinking_budget=0)
+    except Exception:
+        return None
+
+
+def _max_output_tokens() -> int:
+    try:
+        return int(os.getenv("REMIVOX_NLU_MAX_TOKENS") or DEFAULT_MAX_OUTPUT_TOKENS)
+    except (TypeError, ValueError):
+        return DEFAULT_MAX_OUTPUT_TOKENS
+
+
+def _build_config(*, with_thinking: bool) -> Any:
+    kwargs: dict[str, Any] = {
+        "system_instruction": SYSTEM_INSTRUCTION,
+        "response_mime_type": "application/json",
+        # Extraction must be deterministic: the same utterance extracting
+        # differently between turns is a correctness bug, not a style choice.
+        "temperature": 0.0,
+        "top_p": 0.9,
+        "max_output_tokens": _max_output_tokens(),
+    }
+    if with_thinking:
+        thinking = _thinking_config()
+        if thinking is not None:
+            kwargs["thinking_config"] = thinking
+    return types.GenerateContentConfig(**kwargs)
+
+
+def _finish_reason(response: Any) -> Optional[str]:
+    candidates = getattr(response, "candidates", None) or []
+    if not candidates:
+        return None
+    reason = getattr(candidates[0], "finish_reason", None)
+    if reason is None:
+        return None
+    return getattr(reason, "name", None) or str(reason)
+
+
+def _redacted_tail(text: str, size: int = 40) -> str:
+    """
+    Structural shape of the response tail, with all content masked.
+
+    The tail is what distinguishes "cut mid-string" from "genuinely malformed",
+    but a truncated body routinely ends inside a medication name — so only JSON
+    punctuation survives; every content character becomes a dot.
+    """
+    tail = (text or "")[-size:]
+    return "".join(ch if ch in '{}[]":,' or ch.isspace() else "." for ch in tail)
+
+
+async def _generate(client: Any, user_message: str, *, with_thinking: bool) -> Any:
+    return await asyncio.wait_for(
+        client.aio.models.generate_content(
+            model=_nlu_model(),
+            contents=user_message,
+            config=_build_config(with_thinking=with_thinking),
+        ),
+        timeout=_timeout_seconds(),
+    )
+
+
 async def _call_gemini(user_message: str) -> dict[str, Any]:
+    global _thinking_supported
+
     api_key = resolve_gemini_api_key()
     if not api_key:
         raise ExtractionError("GEMINI_API_KEY not set")
 
     client = get_gemini_client(api_key)
-    config = types.GenerateContentConfig(
-        system_instruction=SYSTEM_INSTRUCTION,
-        response_mime_type="application/json",
-        temperature=0.0,
-        top_p=0.9,
-        max_output_tokens=512,
-    )
+    try:
+        response = await _generate(client, user_message, with_thinking=True)
+    except ClientError as exc:
+        # The only argument we send that varies by model generation is the
+        # thinking config; if the server rejects the request, drop it and retry
+        # once rather than falling back to regex for the rest of the process.
+        if _thinking_supported and "INVALID_ARGUMENT" in str(exc):
+            logger.warning(
+                "VOX_NLU thinking config rejected by model=%s — disabling and retrying",
+                _nlu_model(),
+            )
+            _thinking_supported = False
+            response = await _generate(client, user_message, with_thinking=False)
+        else:
+            raise
 
-    response = await asyncio.wait_for(
-        client.aio.models.generate_content(
-            model=_nlu_model(),
-            contents=user_message,
-            config=config,
-        ),
-        timeout=_timeout_seconds(),
-    )
-
+    finish_reason = _finish_reason(response)
     raw = getattr(response, "text", None) or ""
     cleaned = _strip_code_fences(raw)
+
     if not cleaned:
-        raise ExtractionError("LLM returned empty text")
+        raise ExtractionError(
+            f"LLM returned empty text (finish_reason={finish_reason})"
+        )
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError as exc:
-        raise ExtractionError(f"LLM returned non-JSON: {exc}") from exc
+        if finish_reason == "MAX_TOKENS":
+            logger.warning(
+                "VOX_NLU llm truncated (finish_reason=MAX_TOKENS, budget=%d) "
+                "— falling back to regex",
+                _max_output_tokens(),
+            )
+        logger.warning(
+            "VOX_NLU llm JSON parse failed: finish_reason=%s len=%d tail=%r",
+            finish_reason,
+            len(cleaned),
+            _redacted_tail(cleaned),
+        )
+        raise ExtractionError(
+            f"LLM returned non-JSON (finish_reason={finish_reason}): {exc}"
+        ) from exc
 
 
 async def extract_care_intent(

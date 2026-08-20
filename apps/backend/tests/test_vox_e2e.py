@@ -174,7 +174,14 @@ def today() -> date:
     return datetime.now(timezone.utc).date()
 
 
-def next_weekday(name: str) -> date:
+def next_weekday(name: str, at_hhmm: Optional[str] = None) -> date:
+    """
+    The date a user means by a bare weekday name.
+
+    Mirrors executor._scheduled_from_parts: if today IS that weekday, "Thursday
+    at 3 PM" means today when 3 PM is still ahead, and next week once it has
+    passed. Callers that pass no time keep the conservative next-week reading.
+    """
     names = [
         "monday",
         "tuesday",
@@ -184,10 +191,20 @@ def next_weekday(name: str) -> date:
         "saturday",
         "sunday",
     ]
+    from zoneinfo import ZoneInfo
+
+    now = datetime.now(ZoneInfo(TZ))
     wanted = names.index(name)
-    base = today()
+    base = now.date()
     delta = (wanted - base.weekday()) % 7
-    return base + timedelta(days=delta or 7)
+    if delta == 0:
+        still_ahead = False
+        if at_hhmm:
+            hour, minute = (int(part) for part in at_hhmm.split(":", 1))
+            still_ahead = (now.hour, now.minute) < (hour, minute)
+        if not still_ahead:
+            delta = 7
+    return base + timedelta(days=delta)
 
 
 # ---------------------------------------------------------------------------
@@ -198,7 +215,7 @@ def next_weekday(name: str) -> date:
 def _mock_table() -> dict[str, dict]:
     t = today().isoformat()
     tomorrow = (today() + timedelta(days=1)).isoformat()
-    thursday = next_weekday("thursday").isoformat()
+    thursday = next_weekday("thursday", "15:00").isoformat()
     return {
         "Set a reminder for Metoprolol at 10 AM every day": {
             "intent": "CREATE_REMINDER",
@@ -454,8 +471,9 @@ async def case_06(s):
     expect("3 PM" not in r.title and "Thursday" not in r.title,
            f"title still carries schedule words: {r.title!r}")
     expect(local_hhmm(r.scheduled_time) == "15:00", f"time={local_hhmm(r.scheduled_time)}")
-    expect(local_date(r.scheduled_time) == next_weekday("thursday").isoformat(),
-           f"date={local_date(r.scheduled_time)}")
+    expected = next_weekday("thursday", "15:00").isoformat()
+    expect(local_date(r.scheduled_time) == expected,
+           f"date={local_date(r.scheduled_time)} expected {expected}")
 
 
 async def case_07(s):

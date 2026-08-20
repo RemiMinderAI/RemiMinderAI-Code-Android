@@ -153,6 +153,29 @@ def to_intent_result(
         # Target known but nothing to change: the executor asks, holding the match.
         return result(VoxIntent.UPDATE_REMINDER, _update_entities(merged, raw_transcript))
 
+    # An unintelligible answer to a pending question is a failed clarification
+    # round, not a change of subject: re-ask the same slot so the round counter
+    # advances and the pipeline restarts the flow once the limit is reached.
+    # (A clearly different intent still wins — only UNKNOWN is treated this way.)
+    if intent == VoxIntent.UNKNOWN and pending_intent in {
+        VoxIntent.CREATE_REMINDER.value,
+        VoxIntent.UPDATE_REMINDER.value,
+    }:
+        if pending_intent == VoxIntent.CREATE_REMINDER.value:
+            slot = next_question_slot(validate_create(pending))
+        else:
+            slot = next_question_slot(validate_update(pending)) and "reminder"
+        if slot:
+            return result(
+                VoxIntent.CLARIFY,
+                {
+                    "pending_intent": pending_intent,
+                    "pending_entities": pending,
+                    "missing_slots": [slot],
+                },
+                missing=[slot],
+            )
+
     title = _title(entities)
 
     if intent in {
