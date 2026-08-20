@@ -183,7 +183,7 @@ def _present_fields(entities: dict[str, Any]) -> list[str]:
     return sorted(
         key
         for key, value in (entities or {}).items()
-        if value is not None and value != "" and value != []
+        if value is not None and value is not False and value != "" and value != []
     )
 
 
