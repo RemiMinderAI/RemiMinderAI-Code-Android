@@ -13,26 +13,49 @@ logger = logging.getLogger(__name__)
 _fcm_initialized = False
 
 
+def _load_service_account() -> Optional[dict]:
+    """
+    Read the service account from whichever env var this deployment provides.
+
+    Two shapes are in use: FIREBASE_SERVICE_ACCOUNT holds base64-encoded JSON,
+    while FIREBASE_SERVICE_ACCOUNT_JSON (what Cloud Run mounts from Secret
+    Manager) holds raw JSON. Accept either, so FCM does not silently stay off
+    because of a naming mismatch.
+    """
+    import base64
+    import json as json_module
+
+    for name in ("FIREBASE_SERVICE_ACCOUNT", "FIREBASE_SERVICE_ACCOUNT_JSON"):
+        raw = (os.getenv(name) or "").strip()
+        if not raw:
+            continue
+        try:
+            if raw.startswith("{"):
+                return json_module.loads(raw)
+            return json_module.loads(base64.b64decode(raw).decode("utf-8"))
+        except Exception as exc:
+            logger.error("%s is set but could not be decoded: %s", name, type(exc).__name__)
+    return None
+
+
 def init_fcm():
     """
     Initialize Firebase Admin SDK for FCM.
-    Uses FIREBASE_SERVICE_ACCOUNT environment variable with base64-encoded JSON.
+    Credentials come from FIREBASE_SERVICE_ACCOUNT (base64) or
+    FIREBASE_SERVICE_ACCOUNT_JSON (raw JSON).
     """
     global _fcm_initialized
     if _fcm_initialized:
         return True
 
     try:
-        service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT")
-        if not service_account_json:
-            logger.warning("FIREBASE_SERVICE_ACCOUNT not configured - FCM disabled")
+        service_account_info = _load_service_account()
+        if not service_account_info:
+            logger.warning(
+                "No Firebase service account configured "
+                "(FIREBASE_SERVICE_ACCOUNT / FIREBASE_SERVICE_ACCOUNT_JSON) - FCM disabled"
+            )
             return False
-
-        import json as json_module
-        import base64
-
-        decoded_json = base64.b64decode(service_account_json).decode("utf-8")
-        service_account_info = json_module.loads(decoded_json)
 
         import firebase_admin
         cred = credentials.Certificate(service_account_info)
