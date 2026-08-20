@@ -334,7 +334,7 @@ def _mock_table() -> dict[str, dict]:
             "entities": {"title": None, "reminder_type": "medication"},
             "confidence": 0.6,
         },
-        "I'm not sure": {
+        "uhh hmm err": {
             "intent": "CREATE_REMINDER",
             "entities": {"title": "Gonarex", "reminder_type": "medication"},
             "confidence": 0.6,
@@ -606,10 +606,12 @@ async def case_21(s):
     out = await say("Set a reminder for Gonarex", session=s)
     expect("time" in out["text"].lower(), f"round 1: {out['text']!r}")
 
-    out = await say("I'm not sure", session=s)
+    # Unintelligible, and not confusable with "never mind" — this case is about
+    # the round limit, not about abandoning the request.
+    out = await say("uhh hmm err", session=s)
     expect("time" in out["text"].lower(), f"round 2: {out['text']!r}")
 
-    out = await say("I'm not sure", session=s)
+    out = await say("uhh hmm err", session=s)
     expect("start over" in out["text"].lower(),
            f"round 3 should restart: {out['text']!r}")
     expect(not STORE.created, "nothing may be created")
