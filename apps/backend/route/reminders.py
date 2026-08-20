@@ -25,7 +25,7 @@ from services.reminder_service import (
     skip_reminder,
     get_caregiver_dashboard_data
 )
-from services.reminder_service import send_fcm_notification
+from services.reminder_service import ReminderNotDueError, send_fcm_notification
 # from services.speech_to_text_service import SpeechToTextService  # TODO: Implement this service
 from services.db_reminders import (
     get_caregiver_alerts,
@@ -479,9 +479,23 @@ async def mark_complete(
         invalidate(f"reminders_list:{user_id}")
         invalidate_prefix("caregiver_dashboard:")
         return reminder
-    
+
     except HTTPException:
         raise
+    except ReminderNotDueError as not_due:
+        # 409, not 500: the request is well-formed, the state is wrong. The
+        # client needs to distinguish this from a genuine failure so it can say
+        # when the dose is actually due.
+        when = not_due.scheduled_time.isoformat() if not_due.scheduled_time else None
+        logger.info("mark_complete refused: reminder %s not due yet", reminder_id)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "reminder_not_due",
+                "message": "This reminder isn't due yet.",
+                "scheduled_time": when,
+            },
+        )
     except Exception as e:
         logger.error(f"Error in mark_complete: {str(e)}")
         raise HTTPException(

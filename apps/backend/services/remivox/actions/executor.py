@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 
 from schemas.reminder_schemas import ReminderAction, ReminderCreate, ReminderUpdate
 from services.reminder_service import (
+    ReminderNotDueError,
     cancel_reminder,
     complete_reminder,
     create_new_reminder,
@@ -25,7 +26,9 @@ from services.remivox.actions.types import ActionResult
 from services.remivox.intents.extractors import (
     all_active_reminders,
     find_high_confidence_reminder,
+    reminder_local_hhmm,
     reminder_title,
+    resolve_reminder,
 )
 from services.remivox.intents.models import IntentResult, PROTECTED_ACTIONS, VoxIntent
 from services.remivox.intents.router import DEFAULT_SNOOZE_MINUTES
@@ -110,6 +113,43 @@ def _scheduled_from_parts(
     return _scheduled_from_hhmm(time_hhmm, timezone_name)
 
 
+def _local_display(scheduled: Optional[datetime], item: dict) -> str:
+    """"tomorrow at 10 PM" — spoken form of when a reminder is actually due."""
+    if scheduled is None:
+        return ""
+    tz = _tz(str(item.get("timezone") or "UTC"))
+    local = scheduled.astimezone(tz)
+    now = datetime.now(tz)
+    delta_days = (local.date() - now.date()).days
+    day = {0: "today", 1: "tomorrow"}.get(delta_days) or local.strftime("%A")
+    hour = local.hour % 12 or 12
+    meridiem = "AM" if local.hour < 12 else "PM"
+    clock = f"{hour}:{local.minute:02d} {meridiem}" if local.minute else f"{hour} {meridiem}"
+    return f"{day} at {clock}"
+
+
+def _time_mismatch_result(
+    action: str,
+    entities: dict[str, Any],
+    candidates: list[dict],
+    timezone_name: str,
+) -> ActionResult:
+    """The user named a time no reminder with that title is set for."""
+    return ActionResult(
+        success=False,
+        action=action,
+        message_key="time_mismatch",
+        payload={
+            "title": entities.get("title_hint") or entities.get("medication") or "",
+            "asked_time": entities.get("match_time"),
+            "available_times": [
+                reminder_local_hhmm(item, timezone_name) for item in candidates[:4]
+            ],
+        },
+        error="stated time matched no reminder",
+    )
+
+
 def _latest_summary(summaries: list[dict]) -> tuple[str, str]:
     if not summaries:
         return "your latest doctor visit", ""
@@ -189,16 +229,16 @@ async def execute_intent(
         return await _update_reminder(entities, user_uuid, reminders, timezone_name)
 
     if intent == VoxIntent.COMPLETE_REMINDER:
-        return await _checkin(entities, user_uuid, reminders, mode="complete")
+        return await _checkin(entities, user_uuid, reminders, mode="complete", timezone_name=timezone_name)
 
     if intent == VoxIntent.SNOOZE_REMINDER:
-        return await _checkin(entities, user_uuid, reminders, mode="snooze")
+        return await _checkin(entities, user_uuid, reminders, mode="snooze", timezone_name=timezone_name)
 
     if intent == VoxIntent.SKIP_REMINDER:
-        return await _checkin(entities, user_uuid, reminders, mode="skip")
+        return await _checkin(entities, user_uuid, reminders, mode="skip", timezone_name=timezone_name)
 
     if intent == VoxIntent.DELETE_REMINDER:
-        return await _delete_reminder_flow(entities, reminders, user_uuid)
+        return await _delete_reminder_flow(entities, reminders, user_uuid, timezone_name)
 
     if intent == VoxIntent.READ_TODAY_MEDICATIONS:
         typed = [
@@ -402,7 +442,17 @@ async def _update_reminder(
     logger.info(f"UPDATE_MATCH: hint='{hint}', active_titles={[reminder_title(r) for r in active]}")
     scored = score_reminders(reminders, hint)
     logger.info(f"UPDATE_SCORES: {[(s, reminder_title(r)) for s, r in scored[:5]]}")
-    match, ambiguous = find_high_confidence_reminder(reminders, hint)
+    resolved = resolve_reminder(
+        reminders,
+        hint,
+        time_hhmm=entities.get("match_time"),
+        timezone_name=timezone_name,
+    )
+    if resolved.time_mismatch:
+        return _time_mismatch_result(
+            "update_reminder", entities, resolved.time_mismatch, timezone_name
+        )
+    match, ambiguous = resolved.match, resolved.ambiguous
     if ambiguous:
         names = [reminder_title(i) for i in ambiguous[:4]]
         return ActionResult(
@@ -492,10 +542,22 @@ async def _checkin(
     reminders: dict,
     *,
     mode: str,
+    timezone_name: str = "UTC",
 ) -> ActionResult:
     named = str(entities.get("title_hint") or entities.get("medication") or "").strip()
     hint = named or str(entities.get("raw_transcript") or "").strip() or "medication"
-    match, ambiguous = find_high_confidence_reminder(reminders, hint, min_score=2)
+    resolved = resolve_reminder(
+        reminders,
+        hint,
+        time_hhmm=entities.get("match_time"),
+        timezone_name=timezone_name,
+        min_score=2,
+    )
+    if resolved.time_mismatch:
+        return _time_mismatch_result(
+            f"{mode}_reminder", entities, resolved.time_mismatch, timezone_name
+        )
+    match, ambiguous = resolved.match, resolved.ambiguous
     if ambiguous:
         return ActionResult(
             success=False,
@@ -544,7 +606,19 @@ async def _checkin(
                 message_key="skipped",
                 payload={"reminder_id": rid, "title": title},
             )
-        await complete_reminder(rid, user_uuid, ReminderAction(notes="vox_v2_taken"))
+        try:
+            await complete_reminder(rid, user_uuid, ReminderAction(notes="vox_v2_taken"))
+        except ReminderNotDueError as not_due:
+            return ActionResult(
+                success=False,
+                action="complete_reminder",
+                message_key="not_due_yet",
+                payload={
+                    "title": title,
+                    "due_local": _local_display(not_due.scheduled_time, match),
+                },
+                error="reminder not due yet",
+            )
         return ActionResult(
             success=True,
             action="complete_reminder",
@@ -562,7 +636,12 @@ async def _checkin(
         )
 
 
-async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict, user_uuid: str = "") -> ActionResult:
+async def _delete_reminder_flow(
+    entities: dict[str, Any],
+    reminders: dict,
+    user_uuid: str = "",
+    timezone_name: str = "UTC",
+) -> ActionResult:
     named = str(entities.get("title_hint") or entities.get("medication") or "").strip()
     # Fall back to the whole utterance before giving up on a match, but remember
     # that the user never actually named a reminder.
@@ -583,7 +662,17 @@ async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict, user_
     if not hint:
         return _ask_which()
 
-    match, ambiguous = find_high_confidence_reminder(reminders, hint)
+    resolved = resolve_reminder(
+        reminders,
+        hint,
+        time_hhmm=entities.get("match_time"),
+        timezone_name=timezone_name,
+    )
+    if resolved.time_mismatch:
+        return _time_mismatch_result(
+            "delete_reminder", entities, resolved.time_mismatch, timezone_name
+        )
+    match, ambiguous = resolved.match, resolved.ambiguous
     if ambiguous:
         return ActionResult(
             success=False,

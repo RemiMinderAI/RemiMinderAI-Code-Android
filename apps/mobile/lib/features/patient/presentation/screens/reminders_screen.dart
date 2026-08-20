@@ -424,7 +424,14 @@ class _RemindersScreenState extends State<RemindersScreen>
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => _markAsCompleted(reminder['id']),
+                          // Marking a dose done that isn't due yet records
+                          // adherence that never happened, so the button is
+                          // inert until the reminder is (nearly) due. The
+                          // backend refuses it too — this only removes the
+                          // temptation to tap.
+                          onPressed: _canMarkDone(reminder)
+                              ? () => _markAsCompleted(reminder['id'])
+                              : null,
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
                               color: Theme.of(context).colorScheme.primary,
@@ -1135,6 +1142,20 @@ class _RemindersScreenState extends State<RemindersScreen>
             SnackBar(content: Text(l10n.failedToUpdateReminder('$err'))));
       }
     }
+  }
+
+  /// Mirrors the backend's early-completion grace window
+  /// (services/reminder_guards.py). A patient may legitimately take a dose a
+  /// little early; anything further out is a different dose.
+  static const Duration _earlyCompletionGrace = Duration(hours: 2);
+
+  bool _canMarkDone(Map<String, dynamic> reminder) {
+    final scheduled = DateTime.tryParse(
+      reminder['scheduled_time']?.toString() ?? '',
+    );
+    if (scheduled == null) return true; // unknown time — let the backend decide
+    return scheduled.toUtc().difference(DateTime.now().toUtc()) <=
+        _earlyCompletionGrace;
   }
 
   void _markAsCompleted(String id) {

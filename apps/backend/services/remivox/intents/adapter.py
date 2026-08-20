@@ -66,9 +66,22 @@ def _update_entities(entities: dict[str, Any], raw: str) -> dict[str, Any]:
     title = _title(entities)
     new_time = entities.get("new_time") or entities.get("time")
     new_frequency = entities.get("new_frequency") or entities.get("frequency")
+    # "Change my Metoprolol at 8 AM to 10 PM": time identifies the target,
+    # new_time is the value. With only one time present it is the new value,
+    # never a selector — otherwise we would match the reminder already at 10 PM.
+    # ...and only when the two differ: the regex fallback populates both slots
+    # with the same value, which would otherwise be read as "find the reminder
+    # already at the new time".
+    stated_time = entities.get("time")
+    match_time = (
+        stated_time
+        if stated_time and entities.get("new_time") and stated_time != new_time
+        else None
+    )
     return {
         "title_hint": title,
         "medication": title,
+        "match_time": match_time,
         "time": new_time,
         "frequency": recurrence_for(new_frequency),
         "interval_hours": entities.get("interval_hours"),
@@ -183,7 +196,14 @@ def to_intent_result(
         VoxIntent.COMPLETE_REMINDER,
         VoxIntent.SKIP_REMINDER,
     }:
-        out = {"title_hint": title, "medication": title, "raw_transcript": raw_transcript}
+        # For these there is no "new" time, so any time stated is the user
+        # disambiguating WHICH reminder they mean.
+        out = {
+            "title_hint": title,
+            "medication": title,
+            "raw_transcript": raw_transcript,
+            "match_time": entities.get("time"),
+        }
         if pending_intent == intent.value:
             out = merge_entities(pending, out)
         return result(intent, out)
@@ -195,6 +215,7 @@ def to_intent_result(
                 "title_hint": title,
                 "medication": title,
                 "minutes": entities.get("minutes"),
+                "match_time": entities.get("time"),
             },
         )
 

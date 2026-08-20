@@ -218,6 +218,28 @@ def _text_for(
             return _SLOT_PROMPTS.get(slot, "Could you share a bit more detail?")
         return "Could you share a bit more detail?"
 
+    if key == "not_due_yet":
+        title = payload.get("title") or "That reminder"
+        due = payload.get("due_local")
+        if due:
+            return f"{title} isn't due until {due} — did you mean today's?"
+        return f"{title} isn't due yet — did you mean a different one?"
+
+    if key == "time_mismatch":
+        title = payload.get("title") or "that"
+        asked = _speak_time(payload.get("asked_time"))
+        times = _join_names(
+            [_speak_time(t) for t in (payload.get("available_times") or []) if t]
+        )
+        if asked and times:
+            return (
+                f"I don't see a {title} reminder at {asked} — you have one at "
+                f"{times}. Did you mean that one?"
+            )
+        if times:
+            return f"I don't see one at that time — you have {title} at {times}."
+        return f"I don't see a {title} reminder at that time."
+
     if key == "restart_flow":
         return (
             "Let's start over. Tell me the full reminder — for example: "

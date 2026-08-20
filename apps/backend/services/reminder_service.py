@@ -18,6 +18,11 @@ from .db_reminders import (
 )
 
 from .message_generator import generate_reminder_message
+from .reminder_guards import (  # noqa: F401 — re-exported for existing importers
+    EARLY_COMPLETION_GRACE,
+    ReminderNotDueError,
+    ensure_completable,
+)
 from .alert_service import check_and_send_caregiver_alerts, notify_caregivers_patient_reminder_updated, notify_caregivers_reminder_created
 import asyncio
 
@@ -318,7 +323,17 @@ async def complete_reminder(
     reminder_data = await get_reminder(reminder_id, user_id)
     if not reminder_data:
         return None
-    
+
+    # A completed row is a claim that a dose was taken. Refuse to record one for
+    # a dose that is not due yet — over-reporting adherence is the dangerous
+    # direction of failure, and it also stops a stray second tap from walking
+    # the schedule forward a day at a time.
+    try:
+        ensure_completable(reminder_data)
+    except ReminderNotDueError:
+        logger.info("Refused completion of reminder %s: not due yet", reminder_id)
+        raise
+
     # Mark as complete (this already resets consecutive_skips in db_reminders.py)
     # NOTE: mark_reminder_complete already calls create_recurring_reminder internally,
     # so do NOT call it again here — that was causing duplicate reminders.

@@ -7,7 +7,10 @@ Deterministic NLP only — no LLM.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
 from services.remivox.intents.models import VoxRecurrence
 
@@ -317,7 +320,51 @@ def all_active_reminders(reminders: dict) -> list[dict]:
     return _items(reminders.get("today")) + _items(reminders.get("upcoming"))
 
 
-def score_reminders(reminders: dict, hint: str) -> list[tuple[int, dict]]:
+# A stated time is the most specific signal a user can give, and the only thing
+# separating two reminders that share a title. It must outrank any title match.
+TIME_MATCH_BONUS = 20
+
+
+def reminder_local_hhmm(item: dict, fallback_tz: str = "UTC") -> Optional[str]:
+    """
+    The reminder's wall-clock time as the patient sees it, "HH:MM".
+
+    scheduled_time is stored as UTC; comparing against it directly would be off
+    by the timezone offset, so convert using the reminder's own timezone.
+    """
+    raw = item.get("scheduled_time")
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        try:
+            raw = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if not isinstance(raw, datetime):
+        return None
+    if raw.tzinfo is None:
+        raw = raw.replace(tzinfo=timezone.utc)
+    name = str(item.get("timezone") or fallback_tz or "UTC")
+    try:
+        tz = ZoneInfo(name)
+    except Exception:
+        tz = timezone.utc
+    return raw.astimezone(tz).strftime("%H:%M")
+
+
+def matches_local_time(item: dict, time_hhmm: str, fallback_tz: str = "UTC") -> bool:
+    """Hour and minute only — the user says "8 AM", never a full timestamp."""
+    local = reminder_local_hhmm(item, fallback_tz)
+    return bool(local) and local == str(time_hhmm).strip()
+
+
+def score_reminders(
+    reminders: dict,
+    hint: str,
+    *,
+    time_hhmm: Optional[str] = None,
+    timezone_name: str = "UTC",
+) -> list[tuple[int, dict]]:
     """Return (score, item) pairs sorted high→low for active + missed."""
     past = _items(reminders.get("past"))
     missed = [
@@ -347,9 +394,73 @@ def score_reminders(reminders: dict, hint: str) -> list[tuple[int, dict]]:
             score += 1
         if str(item.get("reminder_type", "")).lower() == "medication":
             score += 1
+        # Only when the user actually stated a time — otherwise behaviour is
+        # identical to before.
+        if time_hhmm and matches_local_time(item, time_hhmm, timezone_name):
+            score += TIME_MATCH_BONUS
         scored.append((score, item))
     scored.sort(key=lambda pair: pair[0], reverse=True)
     return scored
+
+
+@dataclass
+class ReminderMatch:
+    """
+    Outcome of resolving an utterance to one reminder.
+
+    time_mismatch is distinct from ambiguous on purpose: the user named a time,
+    reminders with that title exist, but none is at that time. Falling through
+    to a title-only match would act on the wrong dose.
+    """
+
+    match: Optional[dict] = None
+    ambiguous: list[dict] = field(default_factory=list)
+    time_mismatch: list[dict] = field(default_factory=list)
+
+
+def resolve_reminder(
+    reminders: dict,
+    hint: str,
+    *,
+    time_hhmm: Optional[str] = None,
+    timezone_name: str = "UTC",
+    min_score: int = 2,
+) -> ReminderMatch:
+    """Resolve to a single reminder, using a stated time to break title ties."""
+    scored = score_reminders(
+        reminders, hint, time_hhmm=time_hhmm, timezone_name=timezone_name
+    )
+    if not scored:
+        return ReminderMatch()
+
+    if time_hhmm:
+        # Candidates the title alone would have accepted, scored without the
+        # time bonus so the comparison is like-for-like.
+        title_candidates = [
+            item
+            for score, item in score_reminders(reminders, hint)
+            if score >= min_score
+        ]
+        # Only meaningful when we actually know the candidates' times. Reminder
+        # dicts without a scheduled_time cannot contradict a stated time, and
+        # treating them as a mismatch would refuse a perfectly good match.
+        comparable = [
+            item
+            for item in title_candidates
+            if reminder_local_hhmm(item, timezone_name) is not None
+        ]
+        if comparable and not any(
+            matches_local_time(item, time_hhmm, timezone_name) for item in comparable
+        ):
+            return ReminderMatch(time_mismatch=comparable)
+
+    top = scored[0][0]
+    if top < min_score:
+        return ReminderMatch()
+    leaders = [item for score, item in scored if score == top]
+    if len(leaders) == 1:
+        return ReminderMatch(match=leaders[0])
+    return ReminderMatch(ambiguous=leaders)
 
 
 def find_high_confidence_reminder(

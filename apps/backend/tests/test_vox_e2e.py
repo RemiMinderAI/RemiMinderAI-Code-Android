@@ -57,6 +57,19 @@ class FakeStore:
 STORE = FakeStore()
 
 
+# The reminders passed into the current turn, so the fake service can apply the
+# real guard to the same rows the executor matched against.
+CURRENT_REMINDERS: dict = {}
+
+
+def _find_fixture_reminder(reminder_id: str):
+    for bucket in (CURRENT_REMINDERS or reminders_fixture()).values():
+        for item in bucket:
+            if str(item.get("id")) == str(reminder_id):
+                return item
+    return None
+
+
 def _install_stubs() -> None:
     svc = types.ModuleType("services.reminder_service")
 
@@ -75,6 +88,13 @@ def _install_stubs() -> None:
         return True
 
     async def complete_reminder(reminder_id, user_id, action):
+        # Apply the production guard, not a copy of it, so this test fails if the
+        # real rule regresses.
+        from services.reminder_guards import ensure_completable
+
+        item = _find_fixture_reminder(reminder_id)
+        if item is not None:
+            ensure_completable(item)
         STORE.completed.append(reminder_id)
         # Exactly one next instance per completion (the dupe bug regressed twice).
         STORE.recurring_created.append(reminder_id)
@@ -91,6 +111,9 @@ def _install_stubs() -> None:
     async def list_patient_reminders(user_id):
         return reminders_fixture()
 
+    from services.reminder_guards import ReminderNotDueError as _NotDue
+
+    svc.ReminderNotDueError = _NotDue
     svc.create_new_reminder = create_new_reminder
     svc.update_reminder_details = update_reminder_details
     svc.cancel_reminder = cancel_reminder
@@ -157,6 +180,50 @@ def reminders_fixture() -> dict[str, list[dict]]:
                 "status": "pending",
                 "recurrence": "once",
             },
+        ],
+        "past": [],
+    }
+
+
+def _at_local(hhmm: str, *, days: int = 0):
+    """A UTC scheduled_time for a given local wall-clock time, N days out."""
+    from zoneinfo import ZoneInfo
+
+    hour, minute = (int(p) for p in hhmm.split(":"))
+    local = datetime.now(ZoneInfo(TZ)).replace(
+        hour=hour, minute=minute, second=0, microsecond=0
+    ) + timedelta(days=days)
+    return local.astimezone(timezone.utc)
+
+
+def collision_fixture() -> dict:
+    """Two same-titled Metoprolol reminders, 08:00 and 22:00 local."""
+    return {
+        "today": [
+            {"id": "r-met-0800", "title": "Metoprolol", "reminder_type": "medication",
+             "status": "pending", "recurrence": "daily", "timezone": TZ,
+             "scheduled_time": _at_local("08:00")},
+            {"id": "r-met-2200", "title": "Metoprolol", "reminder_type": "medication",
+             "status": "pending", "recurrence": "daily", "timezone": TZ,
+             "scheduled_time": _at_local("22:00")},
+        ],
+        "upcoming": [],
+        "past": [],
+    }
+
+
+def due_fixture() -> dict:
+    """One reminder due earlier today, one not due until tomorrow."""
+    return {
+        "today": [
+            {"id": "r-due-today", "title": "Metoprolol", "reminder_type": "medication",
+             "status": "pending", "recurrence": "daily", "timezone": TZ,
+             "scheduled_time": _at_local("00:05")},
+        ],
+        "upcoming": [
+            {"id": "r-due-tomorrow", "title": "Amlodipine", "reminder_type": "medication",
+             "status": "pending", "recurrence": "daily", "timezone": TZ,
+             "scheduled_time": _at_local("22:00", days=1)},
         ],
         "past": [],
     }
@@ -339,6 +406,28 @@ def _mock_table() -> dict[str, dict]:
             "entities": {"title": "Gonarex", "reminder_type": "medication"},
             "confidence": 0.6,
         },
+        "I took my Amlodipine": {
+            "intent": "COMPLETE_REMINDER",
+            "entities": {"title": "Amlodipine", "reminder_type": "medication"},
+            "confidence": 0.95,
+        },
+        "Cancel Metoprolol at 8 AM": {
+            "intent": "DELETE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication",
+                         "time": "08:00"},
+            "confidence": 0.95,
+        },
+        "Cancel my Metoprolol": {
+            "intent": "DELETE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication"},
+            "confidence": 0.95,
+        },
+        "Cancel Metoprolol at 3 AM": {
+            "intent": "DELETE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication",
+                         "time": "03:00"},
+            "confidence": 0.95,
+        },
         "Pregavelin at eighty thirty PM everyday": {
             "intent": "CREATE_REMINDER",
             "entities": {"title": "Pregabalin", "reminder_type": "medication",
@@ -382,11 +471,14 @@ async def say(
     session: str,
     reminders: Optional[dict] = None,
 ) -> dict:
+    global CURRENT_REMINDERS
+    reminders = reminders or reminders_fixture()
+    CURRENT_REMINDERS = reminders
     return await run_care_turn(
         user_uuid=USER,
         text=transcript,
         language="en",
-        reminders=reminders or reminders_fixture(),
+        reminders=reminders,
         summaries=SUMMARIES,
         timezone_name=TZ,
         session_id=session,
@@ -621,6 +713,48 @@ async def case_21(s):
     expect(bool(STORE.created), "a complete command after restart must execute")
 
 
+async def case_22(s):
+    """Mark done a reminder due today -> succeeds, exactly one next instance."""
+    out = await say("I took my Metoprolol", session=s, reminders=due_fixture())
+    expect(STORE.completed == ["r-due-today"], f"completed={STORE.completed}")
+    expect(len(STORE.recurring_created) == 1,
+           f"expected exactly ONE next instance, got {len(STORE.recurring_created)}")
+    expect("logged" in out["text"].lower(), f"reply={out['text']!r}")
+
+
+async def case_23(s):
+    """Mark done a reminder due tomorrow -> refused, nothing written."""
+    out = await say("I took my Amlodipine", session=s, reminders=due_fixture())
+    expect(not STORE.completed, f"must not complete a future dose: {STORE.completed}")
+    expect(not STORE.recurring_created,
+           f"must not spawn an instance: {STORE.recurring_created}")
+    text = out["text"].lower()
+    expect("isn't due" in text or "not due" in text, f"reply={out['text']!r}")
+    expect("tomorrow" in text, f"should say when it IS due: {out['text']!r}")
+
+
+async def case_24(s):
+    """Colliding titles + a stated time -> cancels the right one."""
+    await say("Cancel Metoprolol at 8 AM", session=s, reminders=collision_fixture())
+    expect(STORE.deleted == ["r-met-0800"],
+           f"expected the 08:00 one, got {STORE.deleted}")
+
+
+async def case_25(s):
+    """Colliding titles, no time -> still asks which (must not guess)."""
+    out = await say("Cancel my Metoprolol", session=s, reminders=collision_fixture())
+    expect(not STORE.deleted, f"must not guess: {STORE.deleted}")
+    expect("which" in out["text"].lower(), f"reply={out['text']!r}")
+
+
+async def case_26(s):
+    """Stated time matches nothing -> says so, never falls back to another."""
+    out = await say("Cancel Metoprolol at 3 AM", session=s, reminders=collision_fixture())
+    expect(not STORE.deleted, f"must not delete a different one: {STORE.deleted}")
+    text = out["text"].lower()
+    expect("don't see" in text or "do not see" in text, f"reply={out['text']!r}")
+
+
 CASES = [
     ("01 create daily medication", case_01),
     ("02 create daily, spoken 8:30 PM", case_02),
@@ -643,6 +777,11 @@ CASES = [
     ("19 'delete everything' is not bulk delete", case_19),
     ("20 STT artifacts corrected", case_20),
     ("21 clarification limit restarts the flow", case_21),
+    ("22 mark done due today -> one next instance", case_22),
+    ("23 mark done due tomorrow -> refused", case_23),
+    ("24 colliding titles + time -> right one", case_24),
+    ("25 colliding titles, no time -> asks", case_25),
+    ("26 stated time matches nothing -> says so", case_26),
 ]
 
 
