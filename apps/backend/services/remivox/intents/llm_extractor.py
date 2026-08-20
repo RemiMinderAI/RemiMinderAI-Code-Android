@@ -145,6 +145,9 @@ RULES:
    the current date provided in the user message. If the user did NOT name a day,
    "date" MUST be null — never fill in today's date as a guess. A time on its own
    ("at 10 AM") states no day. Only "today"/"tonight" state today.
+   A bare weekday means the NEXT time that weekday occurs: if today is that
+   weekday but the stated time has already passed, resolve to next week's date,
+   never to a moment in the past.
 7. For UPDATE intents, put the target reminder name in "title" and the new values
    in "new_time" / "new_frequency".
 8. Multi-intent utterances: pick the PRIMARY intent.

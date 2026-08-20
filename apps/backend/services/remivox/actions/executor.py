@@ -86,6 +86,12 @@ def _scheduled_from_parts(
             scheduled = datetime(
                 day.year, day.month, day.day, hour % 24, minute % 60, tzinfo=tz
             )
+            # "Thursday at 3 PM" said at 3:23 PM on a Thursday means NEXT
+            # Thursday. The model resolves the weekday to today regardless, so
+            # roll forward rather than scheduling in the past. Only when the user
+            # named a weekday — an explicit calendar date is taken at face value.
+            if day_of_week and scheduled <= now:
+                scheduled += timedelta(days=7)
             return scheduled.astimezone(timezone.utc)
         except ValueError:
             logger.warning("Vox v2 ignoring unparseable date for scheduling")
