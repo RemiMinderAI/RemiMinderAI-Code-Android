@@ -118,3 +118,12 @@ experiment_results/
 # Cursor / local audit clones (never commit)
 _audit_RemiMinderAI-Mobile/
 .github/workflows/build.yml
+
+# Signing keys and secrets — never commit
+*.jks
+*.keystore
+key.properties
+key.properties.bak
+apps/backend/.env
+apps/backend/.env.docker
+apps/mobile/.env

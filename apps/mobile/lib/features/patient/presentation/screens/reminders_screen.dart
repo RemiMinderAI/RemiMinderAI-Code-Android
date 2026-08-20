@@ -1591,6 +1591,25 @@ class _RemindersScreenState extends State<RemindersScreen>
           );
           return;
         }
+        // 409 = reminder not due yet. Say when, don't just fail.
+        if (response.statusCode == 409 && mounted) {
+          String msg = 'This reminder isn\'t due yet.';
+          try {
+            final detail = jsonDecode(response.body)['detail'];
+            if (detail is Map && detail['error'] == 'reminder_not_due') {
+              final when = detail['scheduled_time']?.toString();
+              final parsed = when != null ? DateTime.tryParse(when) : null;
+              if (parsed != null) {
+                msg = 'Not due until ${LocaleFormat.time(context, parsed.toLocal())}.';
+              } else if (detail['message'] != null) {
+                msg = detail['message'].toString();
+              }
+            }
+          } catch (_) {}
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(msg)));
+          return;
+        }
         throw Exception('Failed (${response.statusCode})');
       }
       await _loadReminders();
