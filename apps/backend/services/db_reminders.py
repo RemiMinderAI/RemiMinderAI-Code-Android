@@ -1071,7 +1071,9 @@ async def save_fcm_token(user_id: str, fcm_token: str, device_type: str = "andro
         return True
         
     except Exception as e:
-        logger.error(f"Error saving FCM token: {str(e)}")
+        # Type only — the exception text carries the bound fcm_token, and unlike
+        # the prune path this one handles LIVE tokens.
+        logger.error("Error saving FCM token: %s", type(e).__name__)
         return False
 
 
@@ -1087,13 +1089,16 @@ async def delete_fcm_token_by_value(fcm_token: str) -> bool:
     engine = get_cloud_sql_engine()
     try:
         with engine.begin() as conn:
+            # fcm_tokens has no id column — user_id is the primary key.
             result = conn.execute(
-                text("DELETE FROM fcm_tokens WHERE fcm_token = :fcm_token RETURNING id"),
+                text("DELETE FROM fcm_tokens WHERE fcm_token = :fcm_token RETURNING user_id"),
                 {"fcm_token": fcm_token},
             )
             return result.fetchone() is not None
     except Exception as exc:
-        logger.warning("delete_fcm_token_by_value failed: %s", exc)
+        # Log the type only: SQLAlchemy embeds bound parameters in the exception
+        # text, which would put the registration token itself into the logs.
+        logger.warning("delete_fcm_token_by_value failed: %s", type(exc).__name__)
         return False
 
 
@@ -1115,7 +1120,7 @@ async def delete_fcm_token(user_id: str) -> bool:
             )
             return result.rowcount > 0
     except Exception as e:
-        logger.error(f"Error deleting FCM token for user_id={user_id}: {e}")
+        logger.error("Error deleting FCM token: %s", type(e).__name__)
         return False
 
 
