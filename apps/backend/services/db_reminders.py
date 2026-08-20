@@ -1075,6 +1075,28 @@ async def save_fcm_token(user_id: str, fcm_token: str, device_type: str = "andro
         return False
 
 
+async def delete_fcm_token_by_value(fcm_token: str) -> bool:
+    """
+    Remove one dead registration token, whichever user it is filed under.
+
+    Called when FCM reports a token as unregistered so the row stops being
+    retried forever and lookups fall through to the email path.
+    """
+    if not fcm_token:
+        return False
+    engine = get_cloud_sql_engine()
+    try:
+        with engine.begin() as conn:
+            result = conn.execute(
+                text("DELETE FROM fcm_tokens WHERE fcm_token = :fcm_token RETURNING id"),
+                {"fcm_token": fcm_token},
+            )
+            return result.fetchone() is not None
+    except Exception as exc:
+        logger.warning("delete_fcm_token_by_value failed: %s", exc)
+        return False
+
+
 async def delete_fcm_token(user_id: str) -> bool:
     """Delete FCM token for a user on logout. user_id may be internal UUID or Firebase UID."""
     engine = get_cloud_sql_engine()

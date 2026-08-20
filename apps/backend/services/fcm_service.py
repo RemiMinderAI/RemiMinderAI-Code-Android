@@ -13,6 +13,16 @@ logger = logging.getLogger(__name__)
 _fcm_initialized = False
 
 
+class DeadTokenError(Exception):
+    """
+    FCM rejected the registration token itself — the app was uninstalled, the
+    token rotated, or it belongs to another sender.
+
+    Retrying can never succeed, so callers should delete the stored token and
+    fall back to email where one exists.
+    """
+
+
 def _load_service_account() -> Optional[dict]:
     """
     Read the service account from whichever env var this deployment provides.
@@ -140,6 +150,9 @@ def send_medication_reminder(
         logger.info(f"FCM notification sent: {response}")
         return True
 
+    except (messaging.UnregisteredError, messaging.SenderIdMismatchError) as e:
+        # Distinct from a transient failure: this token will never work again.
+        raise DeadTokenError(type(e).__name__) from e
     except Exception as e:
         logger.error(f"Failed to send FCM notification: {e}")
         return False

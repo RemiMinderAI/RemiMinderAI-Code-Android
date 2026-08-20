@@ -460,16 +460,26 @@ async def send_fcm_notification(
         True if sent successfully
     """
     try:
-        from .fcm_service import send_medication_reminder
-        
-        result = send_medication_reminder(
-            fcm_token=fcm_token,
-            title=title,
-            body=body,
-            data=data
-        )
-        return result
-        
+        from .fcm_service import DeadTokenError, send_medication_reminder
+
+        try:
+            return send_medication_reminder(
+                fcm_token=fcm_token,
+                title=title,
+                body=body,
+                data=data
+            )
+        except DeadTokenError as dead:
+            # The device is gone. Drop the token so we stop retrying it and so
+            # the next lookup falls through to the email fallback.
+            from .db_reminders import delete_fcm_token_by_value
+
+            removed = await delete_fcm_token_by_value(fcm_token)
+            logger.info(
+                "FCM token rejected (%s); pruned=%s", dead, removed
+            )
+            return False
+
     except Exception as e:
         logger.error(f"FCM notification error: {str(e)}")
         return False
