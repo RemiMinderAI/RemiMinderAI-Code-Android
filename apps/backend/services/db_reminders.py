@@ -1113,6 +1113,11 @@ async def get_patient_fcm_token(user_id: str) -> Optional[str]:
                            (SELECT id::text FROM users WHERE firebase_uid = :user_id LIMIT 1),
                            (SELECT firebase_uid FROM users WHERE id::text = :user_id LIMIT 1)
                        )
+                    -- One patient can have rows under BOTH the internal UUID and
+                    -- the Firebase UID (one per device/platform). Without an
+                    -- explicit order the row returned is arbitrary, so a live
+                    -- device can be skipped in favour of a dead one.
+                    ORDER BY updated_at DESC
                     LIMIT 1
                 """),
                 {"user_id": user_id}
