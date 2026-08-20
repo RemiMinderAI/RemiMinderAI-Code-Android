@@ -34,17 +34,74 @@ from services.remivox_intents import build_caregiver_brief
 logger = logging.getLogger(__name__)
 
 
-def _scheduled_from_hhmm(time_hhmm: str, timezone_name: str) -> datetime:
-    hour, minute = [int(x) for x in time_hhmm.split(":", 1)]
+_WEEKDAY_INDEX = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
+
+
+def _tz(timezone_name: str):
     try:
-        tz = ZoneInfo(timezone_name)
+        return ZoneInfo(timezone_name)
     except Exception:
-        tz = timezone.utc
+        return timezone.utc
+
+
+def _scheduled_from_hhmm(time_hhmm: str, timezone_name: str) -> datetime:
+    """Next occurrence of a wall-clock time, in UTC."""
+    hour, minute = [int(x) for x in time_hhmm.split(":", 1)]
+    tz = _tz(timezone_name)
     now = datetime.now(tz)
     scheduled = now.replace(hour=hour % 24, minute=minute % 60, second=0, microsecond=0)
     if scheduled <= now:
         scheduled += timedelta(days=1)
     return scheduled.astimezone(timezone.utc)
+
+
+def _scheduled_from_parts(
+    time_hhmm: str,
+    timezone_name: str,
+    *,
+    date_iso: Optional[str] = None,
+    day_of_week: Optional[str] = None,
+) -> datetime:
+    """
+    Resolve time + optional date/weekday to an absolute UTC instant.
+
+    An explicit date wins; then a named weekday (the next one, today included if
+    the time has not passed); otherwise the next occurrence of the time.
+    """
+    hour, minute = [int(x) for x in str(time_hhmm).split(":", 1)]
+    tz = _tz(timezone_name)
+    now = datetime.now(tz)
+
+    if date_iso:
+        try:
+            day = datetime.strptime(str(date_iso), "%Y-%m-%d").date()
+            scheduled = datetime(
+                day.year, day.month, day.day, hour % 24, minute % 60, tzinfo=tz
+            )
+            return scheduled.astimezone(timezone.utc)
+        except ValueError:
+            logger.warning("Vox v2 ignoring unparseable date for scheduling")
+
+    if day_of_week:
+        wanted = _WEEKDAY_INDEX.get(str(day_of_week).strip().lower())
+        if wanted is not None:
+            scheduled = now.replace(
+                hour=hour % 24, minute=minute % 60, second=0, microsecond=0
+            )
+            delta = (wanted - scheduled.weekday()) % 7
+            if delta == 0 and scheduled <= now:
+                delta = 7
+            return (scheduled + timedelta(days=delta)).astimezone(timezone.utc)
+
+    return _scheduled_from_hhmm(time_hhmm, timezone_name)
 
 
 def _latest_summary(summaries: list[dict]) -> tuple[str, str]:
@@ -266,8 +323,15 @@ async def _create_reminder(
             missing_slots=missing,
             error="missing_slots",
         )
+    interval_hours = entities.get("interval_hours")
+    custom_days = entities.get("custom_days") or None
     try:
-        scheduled = _scheduled_from_hhmm(str(time_hhmm), timezone_name)
+        scheduled = _scheduled_from_parts(
+            str(time_hhmm),
+            timezone_name,
+            date_iso=entities.get("date"),
+            day_of_week=entities.get("day_of_week"),
+        )
         created = await create_new_reminder(
             ReminderCreate(
                 user_id=user_uuid,
@@ -276,6 +340,8 @@ async def _create_reminder(
                 scheduled_time=scheduled,
                 timezone=timezone_name or "UTC",
                 recurrence=frequency,  # type: ignore[arg-type]
+                interval_hours=interval_hours,
+                custom_days=custom_days,
                 context_data={"source": "remivox_v2"},
             )
         )
@@ -296,6 +362,11 @@ async def _create_reminder(
                 "title": title,
                 "time": time_hhmm,
                 "frequency": frequency,
+                "interval_hours": interval_hours,
+                "custom_days": custom_days,
+                "date": entities.get("date"),
+                "day_of_week": entities.get("day_of_week"),
+                "reminder_type": reminder_type,
             },
             clear_pending=True,
         )
@@ -349,9 +420,18 @@ async def _update_reminder(
     rid = str(match.get("id"))
     updates: dict[str, Any] = {}
     if entities.get("time"):
-        updates["scheduled_time"] = _scheduled_from_hhmm(str(entities["time"]), timezone_name)
+        updates["scheduled_time"] = _scheduled_from_parts(
+            str(entities["time"]),
+            timezone_name,
+            date_iso=entities.get("date"),
+            day_of_week=entities.get("day_of_week"),
+        )
     if entities.get("frequency"):
         updates["recurrence"] = entities["frequency"]
+    if entities.get("interval_hours"):
+        updates["interval_hours"] = entities["interval_hours"]
+    if entities.get("custom_days"):
+        updates["custom_days"] = entities["custom_days"]
     if entities.get("title") and entities.get("title") != hint:
         updates["title"] = entities["title"]
 
@@ -367,18 +447,12 @@ async def _update_reminder(
         )
 
     try:
-        # Only pass fields that actually changed — None values would violate NOT NULL
-        update_kwargs = {}
-        if "title" in updates:
-            update_kwargs["title"] = updates["title"]
-        if "scheduled_time" in updates:
-            update_kwargs["scheduled_time"] = updates["scheduled_time"]
-        if "recurrence" in updates:
-            update_kwargs["recurrence"] = updates["recurrence"]
+        # `updates` only ever holds fields that actually changed — passing a
+        # None explicitly would mark it "set" and null out a NOT NULL column.
         updated = await update_reminder_details(
             rid,
             user_uuid,
-            ReminderUpdate(**update_kwargs),
+            ReminderUpdate(**updates),
         )
         return ActionResult(
             success=bool(updated),
@@ -413,11 +487,8 @@ async def _checkin(
     *,
     mode: str,
 ) -> ActionResult:
-    hint = str(entities.get("title_hint") or entities.get("medication") or "")
-    if not hint:
-        hint = str(entities.get("raw_transcript") or "")
-    if not hint:
-        hint = "medication"
+    named = str(entities.get("title_hint") or entities.get("medication") or "").strip()
+    hint = named or str(entities.get("raw_transcript") or "").strip() or "medication"
     match, ambiguous = find_high_confidence_reminder(reminders, hint, min_score=2)
     if ambiguous:
         return ActionResult(
@@ -427,7 +498,16 @@ async def _checkin(
             payload={"candidates": [reminder_title(i) for i in ambiguous[:4]]},
         )
     if not match:
-        # Soft fallback: first today item for taken/snooze/skip when no hint match
+        if named:
+            # The user named something we could not match. Logging the wrong
+            # medication as taken is worse than asking them to say it again.
+            return ActionResult(
+                success=False,
+                action=f"{mode}_reminder",
+                message_key="no_match",
+                error="Named reminder did not match",
+            )
+        # Nothing named — fall back to the first item due today.
         today = list(reminders.get("today") or [])
         match = today[0] if today else None
     if not match:
@@ -477,11 +557,12 @@ async def _checkin(
 
 
 async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict, user_uuid: str = "") -> ActionResult:
-    hint = str(entities.get("title_hint") or entities.get("medication") or "").strip()
-    if not hint:
-        # Fall back to the whole utterance before giving up on a match.
-        hint = str(entities.get("raw_transcript") or "").strip()
-    if not hint:
+    named = str(entities.get("title_hint") or entities.get("medication") or "").strip()
+    # Fall back to the whole utterance before giving up on a match, but remember
+    # that the user never actually named a reminder.
+    hint = named or str(entities.get("raw_transcript") or "").strip()
+
+    def _ask_which() -> ActionResult:
         names = [reminder_title(i) for i in all_active_reminders(reminders)[:4]]
         return ActionResult(
             success=False,
@@ -492,6 +573,9 @@ async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict, user_
             pending_entities=entities,
             missing_slots=["reminder"],
         )
+
+    if not hint:
+        return _ask_which()
 
     match, ambiguous = find_high_confidence_reminder(reminders, hint)
     if ambiguous:
@@ -505,6 +589,10 @@ async def _delete_reminder_flow(entities: dict[str, Any], reminders: dict, user_
             missing_slots=["reminder"],
         )
     if not match:
+        if not named:
+            # "Delete everything" / "remove them all" — never guess, and never
+            # bulk delete. Ask which one.
+            return _ask_which()
         return ActionResult(
             success=False,
             action="delete_reminder",

@@ -130,17 +130,8 @@ def _create_missing(entities: dict[str, Any], text: str = "") -> list[str]:
     if not entities.get("time"):
         missing.append("time")
     if not entities.get("frequency"):
-        # "today" / "tonight" / "this evening" = once; otherwise default daily
-        lower_text = text.lower() if isinstance(text, str) else ""
-        r_type = entities.get("reminder_type", "medication")
-        if any(w in lower_text for w in ("today", "tonight", "this evening", "this morning", "right now", "in an hour", "once")):
-            entities["frequency"] = "once"
-        elif r_type in ("task", "appointment"):
-            # Tasks and appointments default to once, not daily
-            entities["frequency"] = "once"
-        else:
-            # Medications default to daily
-            entities["frequency"] = "daily"
+        # Never assume frequency — ask the user if not explicitly stated
+        pass
     return missing
 
 
@@ -585,7 +576,8 @@ def route_intent(
         for w in (
             "last doctor", "last visit", "summary", "doctor visit", "notes",
             "read my last", "visit summary", "read summary", "read me the",
-            "what did the doctor", "what happened at", "doctor said",
+            "what did the doctor", "what did my doctor", "what happened at",
+            "doctor said", "what did they say",
             "last appointment", "previous visit", "show summary",
             "tell me about my visit", "my last summary",
         )

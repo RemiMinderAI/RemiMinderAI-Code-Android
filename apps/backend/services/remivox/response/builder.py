@@ -42,6 +42,93 @@ _SLOT_PROMPTS = {
     "confirmation": "Just to be sure — should I go ahead?",
 }
 
+# Asked when the title slot is empty — phrased for what is being scheduled.
+_TITLE_PROMPTS = {
+    "medication": "Which medicine should I remind you about?",
+    "task": "What should I call this task?",
+    "appointment": "What is the appointment for?",
+}
+
+_DAY_NAMES = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+)
+
+
+def _speak_time(value: Any) -> str:
+    """"20:30" -> "8:30 PM" so the reply reads the way a person would say it."""
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    try:
+        hour_s, minute_s = text.split(":", 1)
+        hour, minute = int(hour_s), int(minute_s)
+    except (ValueError, TypeError):
+        return text
+    meridiem = "AM" if hour < 12 else "PM"
+    display_hour = hour % 12 or 12
+    if minute:
+        return f"{display_hour}:{minute:02d} {meridiem}"
+    return f"{display_hour} {meridiem}"
+
+
+def _speak_day(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    for name in _DAY_NAMES:
+        if name.lower() == text:
+            return name
+    return text.title() if text else ""
+
+
+def _speak_days(days: Any) -> str:
+    if not isinstance(days, (list, tuple)):
+        return ""
+    return _join_names([_speak_day(day) for day in days])
+
+
+def _schedule_phrase(payload: dict[str, Any]) -> str:
+    """The "when" half of a creation confirmation, in plain speech."""
+    frequency = str(payload.get("frequency") or "once")
+    when = _speak_time(payload.get("time"))
+    at_time = f" at {when}" if when else ""
+
+    if frequency == "interval":
+        hours = payload.get("interval_hours")
+        starting = f" starting at {when}" if when else ""
+        if hours:
+            unit = "hour" if int(hours) == 1 else "hours"
+            return f"every {int(hours)} {unit}{starting}"
+        return f"on a schedule{starting}"
+
+    if frequency == "custom":
+        days = _speak_days(payload.get("custom_days"))
+        if days:
+            return f"every {days}{at_time}"
+        return f"on the days you chose{at_time}"
+
+    if frequency == "daily":
+        return f"every day{at_time}"
+
+    if frequency == "weekly":
+        day = _speak_day(payload.get("day_of_week"))
+        return f"every {day}{at_time}" if day else f"every week{at_time}"
+
+    if frequency in {"twice", "twice_daily"}:
+        return f"twice a day{at_time}"
+
+    # once
+    day = _speak_day(payload.get("day_of_week"))
+    if day:
+        return f"on {day}{at_time}"
+    if payload.get("date"):
+        return f"on {payload['date']}{at_time}"
+    return at_time.strip() or "once"
+
 
 def _join_names(names: list[str]) -> str:
     clean = [n for n in names if n]
@@ -98,19 +185,44 @@ def _text_for(
     if key == "clarify_missing_slots":
         missing = payload.get("missing_slots") or action.missing_slots or []
         pending = payload.get("pending_entities") or action.pending_entities or {}
-        med = pending.get("medication") or pending.get("title")
-        if missing == ["time"] and med:
-            return f"I can set a reminder for {med} — what time works for you?"
-        if missing == ["frequency"] and med:
-            return (
-                f"Got it for {med}. Should that be every day, weekly, or just once?"
-            )
-        if missing == ["medication"]:
-            return _SLOT_PROMPTS["medication"]
-        parts = [_SLOT_PROMPTS.get(m, m) for m in missing]
-        if med:
-            return f"Almost there for {med}. " + " ".join(parts)
-        return " ".join(parts) or "Could you share a bit more detail?"
+        title = pending.get("title") or pending.get("medication")
+        rtype = str(pending.get("reminder_type") or "medication")
+        # One question per turn — the validation layer already ordered these.
+        slot = missing[0] if missing else None
+
+        if slot in {"title", "medication"}:
+            return _TITLE_PROMPTS.get(rtype, _TITLE_PROMPTS["medication"])
+        if slot == "time":
+            if title:
+                return f"What time should I remind you about {title}?"
+            return _SLOT_PROMPTS["time"]
+        if slot == "date_or_day":
+            if title:
+                return f"Which day is the {title}?"
+            return "Which day should that be?"
+        if slot == "frequency":
+            if title:
+                return f"Should I remind you about {title} every day, or just once?"
+            return _SLOT_PROMPTS["frequency"]
+        if slot == "interval_hours":
+            return "How many hours apart should I remind you?"
+        if slot == "custom_days":
+            return "Which days of the week should I remind you?"
+        if slot == "new_value":
+            if title:
+                return f"What should I change about {title} — the time, or how often?"
+            return "What should I change about it?"
+        if slot == "reminder":
+            return _SLOT_PROMPTS["reminder"]
+        if slot:
+            return _SLOT_PROMPTS.get(slot, "Could you share a bit more detail?")
+        return "Could you share a bit more detail?"
+
+    if key == "restart_flow":
+        return (
+            "Let's start over. Tell me the full reminder — for example: "
+            "Metoprolol at 8 PM every day."
+        )
 
     if key == "cancelled":
         return "Okay — I cancelled that. What else can I help with?"
@@ -120,16 +232,10 @@ def _text_for(
 
     if key == "created":
         title = payload.get("title", "your reminder")
-        time = payload.get("time", "")
-        freq = payload.get("frequency", "once")
-        freq_phrase = {
-            "daily": "every day",
-            "weekly": "every week",
-            "twice": "twice a day",
-            "once": "once",
-        }.get(str(freq), str(freq))
-        when = f" at {time}" if time else ""
-        return f"All set — I'll remind you about {title}{when}, {freq_phrase}."
+        schedule = _schedule_phrase(payload)
+        if schedule:
+            return f"All set — I'll remind you about {title} {schedule}."
+        return f"All set — I'll remind you about {title}."
 
     if key == "create_failed":
         return "I couldn't save that reminder just now. Want to try again in a moment?"

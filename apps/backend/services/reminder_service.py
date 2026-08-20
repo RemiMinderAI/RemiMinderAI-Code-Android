@@ -171,7 +171,9 @@ async def create_new_reminder(data: ReminderCreate) -> Optional[Dict[str, Any]]:
             "message": message,
             "scheduled_time": data.scheduled_time,
             "timezone": data.timezone,
-            "recurrence": data.recurrence
+            "recurrence": data.recurrence,
+            "interval_hours": data.interval_hours,
+            "custom_days": list(data.custom_days) if data.custom_days else None,
         }
         
         # Save to database
@@ -271,8 +273,12 @@ async def update_reminder_details(
     updates: ReminderUpdate
 ) -> Optional[Dict[str, Any]]:
     """Update reminder details."""
-    update_dict = updates.model_dump(exclude_unset=True)
-    
+    update_dict = {
+        key: value
+        for key, value in updates.model_dump(exclude_unset=True).items()
+        if value is not None
+    }
+
     if not update_dict:
         return await get_reminder_by_id(reminder_id, user_id)
     

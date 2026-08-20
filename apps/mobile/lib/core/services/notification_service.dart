@@ -375,6 +375,14 @@ class NotificationService {
       case 'monthly':
         matchTime = DateTimeComponents.dayOfMonthAndTime;
         break;
+      case 'interval':
+      case 'custom':
+        // "Every 4 hours" and "Monday/Wednesday/Friday" cannot be expressed as a
+        // single DateTimeComponents match. Repeating daily here would fire on the
+        // wrong days, so schedule just this occurrence — the backend due-push
+        // drives the following ones.
+        matchTime = null;
+        break;
       default:
         matchTime = DateTimeComponents.time;
     }

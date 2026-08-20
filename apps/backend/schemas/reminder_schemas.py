@@ -6,6 +6,10 @@ from uuid import UUID
 # ============================================================================
 # REQUEST SCHEMAS
 # ============================================================================
+Recurrence = Literal[
+    "daily", "weekly", "once", "twice", "twice_daily", "interval", "custom"
+]
+
 class ReminderCreate(BaseModel):
     user_id: str
     visit_id: Optional[UUID] = None
@@ -13,7 +17,10 @@ class ReminderCreate(BaseModel):
     title: str
     scheduled_time: datetime
     timezone: str = "America/New_York"
-    recurrence: Literal["daily", "weekly", "once", "twice"] = "once"
+    recurrence: Recurrence = "once"
+    # recurrence="interval" -> every N hours; recurrence="custom" -> named weekdays
+    interval_hours: Optional[int] = Field(default=None, ge=1, le=24)
+    custom_days: Optional[List[str]] = None
     context_data: Optional[dict] = None  # For AI: {medication_list: [...], task_type: "bp_check"}
 
 class ReminderUpdate(BaseModel):
@@ -21,6 +28,8 @@ class ReminderUpdate(BaseModel):
     scheduled_time: Optional[datetime] = None
     timezone: Optional[str] = None
     recurrence: Optional[str] = None
+    interval_hours: Optional[int] = Field(default=None, ge=1, le=24)
+    custom_days: Optional[List[str]] = None
     status: Optional[Literal["pending", "completed", "snoozed", "skipped"]] = None
 
 class ReminderAction(BaseModel):
@@ -43,6 +52,8 @@ class ReminderResponse(BaseModel):
     scheduled_time: datetime
     timezone: str = "UTC"
     recurrence: Optional[str] = None
+    interval_hours: Optional[int] = None
+    custom_days: Optional[List[str]] = None
     
     # Status
     status: str

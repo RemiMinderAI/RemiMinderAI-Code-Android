@@ -188,11 +188,19 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     }
   }
 
-  void _snack(String message) {
+  void _snack(String message, {Duration? duration}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        duration: duration ?? const Duration(seconds: 4),
+      ),
     );
+  }
+
+  /// Keeps the listening notice on screen for the whole recording window.
+  void _snackListening(String message, Duration listenFor) {
+    _snack(message, duration: listenFor + const Duration(seconds: 1));
   }
 
   String _ensureSessionId() {
@@ -566,17 +574,19 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     final lang = await _preferredLanguage();
     var sessionId = _ensureSessionId();
 
-    _snack(
+    final listenFor = isFollowUp ? _followUpListenFor : _initialListenFor;
+    _snackListening(
       isFollowUp
           ? 'Vox is still listening…'
           : 'Vox is listening… speak in English or Hindi',
+      listenFor,
     );
     if (isFollowUp && mounted) {
       setState(() => _awaitingFollowUp = true);
     }
 
     final initialClip = await _recordPromptClip(
-      listenFor: isFollowUp ? _followUpListenFor : _initialListenFor,
+      listenFor: listenFor,
       requireSpeech: isFollowUp,
     );
 
@@ -648,7 +658,7 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
 
       // Clarification needed — keep session_id and auto-reopen mic.
       if (mounted) setState(() => _awaitingFollowUp = true);
-      _snack('Vox is still listening…');
+      _snackListening('Vox is still listening…', _followUpListenFor);
       final followUp = await _recordPromptClip(
         listenFor: _followUpListenFor,
         requireSpeech: true,
@@ -715,6 +725,50 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     return false;
   }
 
+  /// Records until the user stops talking, or [maxDuration] elapses.
+  ///
+  /// Waiting out the full window cut people off mid-sentence and made short
+  /// answers ("yes") feel broken. We watch mic amplitude instead: once speech
+  /// has been heard, [VoxConfig.speechEndDebounce] of quiet ends the turn.
+  /// If the amplitude stream is unavailable we fall back to the fixed window.
+  Future<void> _waitForSpeechEnd({required Duration maxDuration}) async {
+    final done = Completer<void>();
+    Timer? silenceTimer;
+    StreamSubscription<Amplitude>? amplitudes;
+    var heardSpeech = false;
+
+    void finish() {
+      if (!done.isCompleted) done.complete();
+    }
+
+    final hardStop = Timer(maxDuration, finish);
+    try {
+      amplitudes = _recorder
+          .onAmplitudeChanged(VoxConfig.amplitudePollInterval)
+          .listen(
+            (amplitude) {
+              if (amplitude.current > VoxConfig.speechAmplitudeThresholdDb) {
+                heardSpeech = true;
+                silenceTimer?.cancel();
+                silenceTimer = null;
+                return;
+              }
+              if (heardSpeech && silenceTimer == null) {
+                silenceTimer = Timer(VoxConfig.speechEndDebounce, finish);
+              }
+            },
+            onError: (_) {},
+          );
+    } catch (_) {
+      // No amplitude stream on this device — the hard stop still applies.
+    }
+
+    await done.future;
+    hardStop.cancel();
+    silenceTimer?.cancel();
+    await amplitudes?.cancel();
+  }
+
   Future<({String base64, String contentType})?> _recordPromptClip({
     Duration listenFor = _initialListenFor,
     bool requireSpeech = false,
@@ -733,7 +787,7 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
         ),
         path: path,
       );
-      await Future<void>.delayed(listenFor);
+      await _waitForSpeechEnd(maxDuration: listenFor);
       final saved = await _recorder.stop();
       final filePath = saved ?? path;
       final file = File(filePath);

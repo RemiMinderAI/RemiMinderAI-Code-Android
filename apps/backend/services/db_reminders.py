@@ -53,8 +53,10 @@ async def create_reminder(data: dict) -> Optional[Dict[str, Any]]:
         result = conn.execute(
             text("""
                 INSERT INTO reminders
-                (user_id, visit_id, reminder_type, title, message, scheduled_time, timezone, recurrence, status)
-                VALUES (:user_id, :visit_id, :reminder_type, :title, :message, :scheduled_time, :timezone, :recurrence, :status)
+                (user_id, visit_id, reminder_type, title, message, scheduled_time, timezone,
+                 recurrence, interval_hours, custom_days, status)
+                VALUES (:user_id, :visit_id, :reminder_type, :title, :message, :scheduled_time, :timezone,
+                        :recurrence, :interval_hours, :custom_days, :status)
                 RETURNING *
             """),
             {
@@ -66,6 +68,8 @@ async def create_reminder(data: dict) -> Optional[Dict[str, Any]]:
                 "scheduled_time": data["scheduled_time"],
                 "timezone": data["timezone"],
                 "recurrence": data.get("recurrence", "once"),
+                "interval_hours": data.get("interval_hours"),
+                "custom_days": data.get("custom_days"),
                 "status": "pending",
             },
         )
@@ -541,6 +545,61 @@ async def caregiver_alert_exists_for_context(
         return result.fetchone() is not None
 
 
+_WEEKDAY_INDEX = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
+
+
+def next_recurrence_time(
+    original_time: datetime,
+    recurrence: Optional[str],
+    *,
+    interval_hours: Optional[int] = None,
+    custom_days: Optional[List[str]] = None,
+) -> Optional[datetime]:
+    """
+    When the next instance of a recurring reminder is due.
+
+    Returns None when the reminder does not recur (or the recurrence is not
+    actionable, e.g. "custom" with no weekdays stored).
+    """
+    recurrence = (recurrence or "").strip().lower()
+
+    if recurrence == "daily":
+        return original_time + timedelta(days=1)
+    if recurrence == "weekly":
+        return original_time + timedelta(weeks=1)
+    if recurrence in {"twice", "twice_daily"}:
+        # AM half -> PM half the same day; PM half -> AM half the next day.
+        return original_time + timedelta(hours=12)
+    if recurrence == "interval":
+        hours = int(interval_hours or 0)
+        if hours < 1:
+            return None
+        return original_time + timedelta(hours=hours)
+    if recurrence == "custom":
+        wanted = sorted(
+            {
+                _WEEKDAY_INDEX[str(day).strip().lower()]
+                for day in (custom_days or [])
+                if str(day).strip().lower() in _WEEKDAY_INDEX
+            }
+        )
+        if not wanted:
+            return None
+        current = original_time.weekday()
+        # Days until the next selected weekday, wrapping to next week.
+        deltas = [(day - current) % 7 or 7 for day in wanted]
+        return original_time + timedelta(days=min(deltas))
+    return None
+
+
 async def create_recurring_reminder(original_reminder: dict) -> Optional[Dict[str, Any]]:
     """Create a new reminder for recurring schedule (used by scheduler)."""
     # Parse original scheduled time
@@ -549,17 +608,19 @@ async def create_recurring_reminder(original_reminder: dict) -> Optional[Dict[st
         original_time = raw_time
     else:
         original_time = datetime.fromisoformat(str(raw_time).replace("Z", "+00:00"))
-    
-    # Calculate next scheduled time based on recurrence
-    if original_reminder["recurrence"] == "daily":
-        next_time = original_time + timedelta(days=1)
-    elif original_reminder["recurrence"] == "weekly":
-        next_time = original_time + timedelta(weeks=1)
-    elif original_reminder["recurrence"] == "twice":
-        next_time = original_time + timedelta(hours=12)
-    else:
+
+    interval_hours = original_reminder.get("interval_hours")
+    custom_days = original_reminder.get("custom_days")
+
+    next_time = next_recurrence_time(
+        original_time,
+        original_reminder.get("recurrence"),
+        interval_hours=interval_hours,
+        custom_days=custom_days,
+    )
+    if next_time is None:
         return None  # No recurrence
-    
+
     # Create new reminder (copy of original with new time)
     new_reminder_data = {
         "user_id": original_reminder["user_id"],
@@ -570,16 +631,20 @@ async def create_recurring_reminder(original_reminder: dict) -> Optional[Dict[st
         "scheduled_time": next_time.isoformat(),
         "timezone": original_reminder["timezone"],
         "recurrence": original_reminder["recurrence"],
+        "interval_hours": interval_hours,
+        "custom_days": list(custom_days) if custom_days else None,
         "status": "pending"
     }
-    
+
     engine = get_cloud_sql_engine()
     with engine.begin() as conn:
         result = conn.execute(
             text("""
                 INSERT INTO reminders
-                (user_id, visit_id, reminder_type, title, message, scheduled_time, timezone, recurrence, status)
-                VALUES (:user_id, :visit_id, :reminder_type, :title, :message, :scheduled_time, :timezone, :recurrence, :status)
+                (user_id, visit_id, reminder_type, title, message, scheduled_time, timezone,
+                 recurrence, interval_hours, custom_days, status)
+                VALUES (:user_id, :visit_id, :reminder_type, :title, :message, :scheduled_time, :timezone,
+                        :recurrence, :interval_hours, :custom_days, :status)
                 RETURNING *
             """),
             new_reminder_data,

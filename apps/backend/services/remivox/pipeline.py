@@ -9,10 +9,15 @@ Hydra is NOT used here for care actions.
 
 from __future__ import annotations
 
+import logging
+import os
 from typing import Any, Optional
 
 from services.remivox.actions.executor import execute_intent
-from services.remivox.intents.router import route_intent
+from services.remivox.actions.types import ActionResult
+from services.remivox.intents.adapter import to_intent_result
+from services.remivox.intents.llm_extractor import extract_care_intent, regex_fallback
+from services.remivox.intents.models import VoxIntent
 from services.remivox.languages import (
     DEFAULT_REMIVOX_LANGUAGE,
     resolve_session_language,
@@ -24,6 +29,53 @@ from services.remivox.state.conversation import (
     get_state,
     upsert_pending,
 )
+
+logger = logging.getLogger(__name__)
+
+# Two unanswered clarification rounds, then start the whole request over rather
+# than trapping the user in a question loop.
+MAX_CLARIFY_ROUNDS = 2
+_CLARIFY_ROUNDS_KEY = "_clarify_rounds"
+
+
+def _nlu_mode() -> str:
+    """REMIVOX_NLU=llm (default) | regex — instant rollback path."""
+    return (os.getenv("REMIVOX_NLU") or "llm").strip().lower()
+
+
+async def resolve_intent(
+    *,
+    text: str,
+    language: str,
+    timezone_name: str,
+    pending_intent: Optional[str],
+    pending_entities: Optional[dict[str, Any]],
+    missing_slots: Optional[list[str]],
+) -> tuple[Any, dict[str, Any]]:
+    """Run the NLU layer (LLM or regex) and adapt it to an IntentResult."""
+    context = {
+        "pending_intent": pending_intent,
+        "pending_entities": pending_entities or {},
+        "missing_slots": missing_slots or [],
+    }
+    if _nlu_mode() == "regex":
+        nlu = regex_fallback(text, context, timezone_name=timezone_name, language=language)
+    else:
+        nlu = await extract_care_intent(
+            text,
+            context,
+            timezone_name=timezone_name,
+            language=language,
+        )
+
+    intent_result = to_intent_result(
+        nlu,
+        language=language,
+        raw_transcript=text,
+        pending_intent=pending_intent,
+        pending_entities=pending_entities,
+    )
+    return intent_result, nlu
 
 
 async def run_care_turn(
@@ -56,11 +108,13 @@ async def run_care_turn(
     pending_intent = prior.pending_intent if prior else None
     pending_entities = prior.pending_entities if prior else None
 
-    intent_result = route_intent(
+    intent_result, nlu = await resolve_intent(
         text=text,
         language=lang,
+        timezone_name=timezone_name or "UTC",
         pending_intent=pending_intent,
         pending_entities=pending_entities,
+        missing_slots=prior.missing_slots if prior else None,
     )
     log_intent_decision(
         user_id=user_uuid,
@@ -71,13 +125,31 @@ async def run_care_turn(
         session_id=sid,
     )
 
-    action_result = await execute_intent(
-        intent_result=intent_result,
-        user_uuid=user_uuid,
-        reminders=reminders,
-        summaries=summaries,
-        timezone_name=timezone_name or "UTC",
-    )
+    action_result: Optional[ActionResult] = None
+    if intent_result.intent == VoxIntent.CLARIFY:
+        rounds = int((pending_entities or {}).get(_CLARIFY_ROUNDS_KEY) or 0) + 1
+        if rounds > MAX_CLARIFY_ROUNDS:
+            logger.info("VOX_NLU clarify limit reached (%d rounds) — restarting flow", rounds)
+            action_result = ActionResult(
+                success=False,
+                action="restart_flow",
+                message_key="restart_flow",
+                payload={},
+                clear_pending=True,
+            )
+        else:
+            carried = dict(intent_result.entities.get("pending_entities") or {})
+            carried[_CLARIFY_ROUNDS_KEY] = rounds
+            intent_result.entities["pending_entities"] = carried
+
+    if action_result is None:
+        action_result = await execute_intent(
+            intent_result=intent_result,
+            user_uuid=user_uuid,
+            reminders=reminders,
+            summaries=summaries,
+            timezone_name=timezone_name or "UTC",
+        )
 
     validation_result = "ok"
     if action_result.missing_slots or action_result.message_key in {
@@ -100,7 +172,9 @@ async def run_care_turn(
         error=action_result.error,
     )
 
-    if action_result.clear_pending:
+    if action_result.clear_pending or (
+        action_result.success and not action_result.pending_intent
+    ):
         clear_state(user_uuid, sid)
     elif action_result.pending_intent:
         upsert_pending(
@@ -174,6 +248,7 @@ async def run_care_turn(
         "intent": intent_result.intent.value,
         "entities": intent_result.entities,
         "success": action_result.success,
+        "nlu_source": nlu.get("source"),
     }
 
 
