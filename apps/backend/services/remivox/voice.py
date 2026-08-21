@@ -316,6 +316,80 @@ def transcribe_pulse(
     raise VoiceTranscriptionError(last_error or "Could not transcribe audio.")
 
 
+# --- TTS text normalisation -------------------------------------------------
+# Lightning reads written forms literally: "B12" comes out as "bee-twelve-the-
+# number", "5mg" as "five-em-gee". Elderly users hear the reply and nothing
+# else, so the spoken form has to be right. Applied to both the streaming and
+# non-streaming paths so they can never drift apart.
+
+_VITAMIN_RE = re.compile(r"\b([A-K])(\d{1,2})\b")
+_DOSE_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*(mg|mcg|ug|ml|g|iu)\b", re.IGNORECASE)
+# Capture a trailing meridiem so "9:00 AM" becomes "nine AM", not
+# "nine o'clock AM" — nobody says the latter.
+_TIME_RE_TTS = re.compile(r"\b(\d{1,2}):(\d{2})(\s*(?:[AaPp]\.?[Mm]\.?))?")
+
+_NUM_WORDS = {
+    0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
+    6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
+    11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen",
+    15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen",
+    19: "nineteen", 20: "twenty", 30: "thirty", 40: "forty", 50: "fifty",
+}
+
+_UNIT_WORDS = {
+    "mg": "milligrams", "mcg": "micrograms", "ug": "micrograms",
+    "ml": "millilitres", "g": "grams", "iu": "international units",
+}
+
+
+def _spell_number(n: int) -> str:
+    if n in _NUM_WORDS:
+        return _NUM_WORDS[n]
+    if 20 < n < 100:
+        tens, ones = divmod(n, 10)
+        base = _NUM_WORDS.get(tens * 10)
+        if base and ones:
+            return f"{base} {_NUM_WORDS[ones]}"
+        if base:
+            return base
+    return str(n)
+
+
+def normalize_for_speech(text: str) -> str:
+    """Rewrite written forms into how they should be spoken."""
+    if not text:
+        return text
+    out = text
+
+    # "8:30" -> "eight thirty"; ":00" reads as "o'clock"
+    def _time(m):
+        h, mn = int(m.group(1)), int(m.group(2))
+        meridiem = m.group(3) or ""
+        if mn == 0:
+            spoken = _spell_number(h) if meridiem else f"{_spell_number(h)} o'clock"
+        elif mn < 10:
+            spoken = f"{_spell_number(h)} oh {_spell_number(mn)}"
+        else:
+            spoken = f"{_spell_number(h)} {_spell_number(mn)}"
+        return spoken + meridiem
+    out = _TIME_RE_TTS.sub(_time, out)
+
+    # "5mg" / "10 mg" -> "five milligrams"
+    def _dose(m):
+        raw, unit = m.group(1), m.group(2).lower()
+        word = _UNIT_WORDS.get(unit, unit)
+        if "." not in raw:
+            return f"{_spell_number(int(raw))} {word}"
+        return f"{raw} {word}"
+    out = _DOSE_RE.sub(_dose, out)
+
+    # "B12" -> "B twelve", "D3" -> "D three". Single letter + number only, so
+    # medication names carrying digits are left alone.
+    out = _VITAMIN_RE.sub(lambda m: f"{m.group(1)} {_spell_number(int(m.group(2)))}", out)
+
+    return out
+
+
 def stream_lightning(
     text: str,
     *,
@@ -332,6 +406,7 @@ def stream_lightning(
     callers can fall back to the non-streaming path while it is still possible to
     change the response shape.
     """
+    text = normalize_for_speech(text)
     api_key = _api_key()
     if not api_key:
         raise VoiceConfigError("SmallestAI API key not configured.")
@@ -416,6 +491,7 @@ def synthesize_lightning(
     Does not hardcode English for the primary attempt. Non-English failures
     fall back to English Lightning (legacy compatibility).
     """
+    text = normalize_for_speech(text)
     started = time.perf_counter()
     api_key = _api_key()
     if not api_key:
