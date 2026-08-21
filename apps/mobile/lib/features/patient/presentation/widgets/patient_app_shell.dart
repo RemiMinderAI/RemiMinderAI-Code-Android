@@ -631,6 +631,15 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
       Map<String, dynamic> data;
       VoxStreamTurn? streamed;
       try {
+        // Streaming TTS playback produces distorted audio on device —
+        // MediaPlayer is created/torn down ~15x per reply, suggesting
+        // segments overlap rather than queue. Backend streaming works
+        // (200 OK, TTFB 382ms); the defect is client-side playback.
+        // Flip to true once playback queueing is fixed.
+        const bool kVoxStreamingEnabled = false;
+        if (!kVoxStreamingEnabled) {
+          throw StateError('streaming disabled pending playback fix');
+        }
         streamed = await BackendApiService().askVoxStream(
           null,
           replyLanguage: lang,
