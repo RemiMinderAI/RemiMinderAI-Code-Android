@@ -1035,42 +1035,98 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   /// sample-by-sample: the player needs a complete container per play() call.
   /// The first segment is deliberately small so speech starts as early as
   /// possible; later ones are larger to keep the joins from being audible.
-  Future<void> _playStreamedAudio(Stream<List<int>> audio, int sampleRate) async {
-    const bytesPerSecond0 = 2; // 16-bit mono
-    final firstSegmentBytes = sampleRate * bytesPerSecond0 ~/ 2; // ~0.5s
-    final laterSegmentBytes = sampleRate * bytesPerSecond0 * 2; // ~2s
-
-    final pending = BytesBuilder();
-    var isFirst = true;
-    Future<void> queue = Future<void>.value();
-
-    Future<void> playSegment(Uint8List pcm) async {
-      if (pcm.isEmpty) return;
-      final wav = _wavFromPcm(pcm, sampleRate);
-      final done = _player.onPlayerComplete.first;
-      await _player.play(BytesSource(wav, mimeType: 'audio/wav'));
-      try {
-        await done.timeout(VoxConfig.ttsCompletionTimeout);
-      } on TimeoutException {
-        // Keep going — a missed completion event must not strand the turn.
-      }
+  /// Plays one PCM segment and returns only when it has finished sounding.
+  Future<void> _playPcmSegment(Uint8List pcm, int sampleRate) async {
+    if (pcm.isEmpty) return;
+    final wav = _wavFromPcm(pcm, sampleRate);
+    final done = _player.onPlayerComplete.first;
+    await _player.play(BytesSource(wav, mimeType: 'audio/wav'));
+    try {
+      await done.timeout(VoxConfig.ttsCompletionTimeout);
+    } on TimeoutException {
+      debugPrint('VOX_STREAM_SEGMENT_TIMEOUT: ${pcm.length} bytes');
     }
+  }
+
+  /// Plays a Vox reply as it arrives, one segment at a time.
+  ///
+  /// Pull-based, not push-based, and that distinction is the whole fix. The
+  /// earlier version cut a segment every ~2s of audio as bytes arrived; since
+  /// Lightning delivers ~11.4s of speech in ~950ms (about 12x faster than it
+  /// plays), every segment after the first was queued long before its
+  /// predecessor could finish. Ordering then depended on a chain of
+  /// per-segment completion events on one shared player, and when those did not
+  /// arrive in order the player was re-sourced mid-playback — the distortion,
+  /// and the many MediaPlayer instances in the device log.
+  ///
+  /// Here a segment is cut only when the player is free, so at most one is ever
+  /// in flight. The first is deliberately small (~0.5s) because that is what
+  /// buys the latency; each later one takes whatever has buffered while the
+  /// previous was sounding, which keeps the boundary count low without ever
+  /// leaving a silent gap waiting for the download.
+  Future<void> _playStreamedAudio(Stream<List<int>> audio, int sampleRate) async {
+    final leadInBytes = sampleRate; // ~0.5s at 16-bit mono
+
+    final buffer = BytesBuilder();
+    var streamDone = false;
+    Object? streamError;
+    var dataArrived = Completer<void>();
+
+    void wake() {
+      if (!dataArrived.isCompleted) dataArrived.complete();
+    }
+
+    final subscription = audio.listen(
+      (chunk) {
+        buffer.add(chunk);
+        wake();
+      },
+      onDone: () {
+        streamDone = true;
+        wake();
+      },
+      onError: (Object e) {
+        streamError = e;
+        streamDone = true;
+        wake();
+      },
+      cancelOnError: true,
+    );
 
     await _player.stop();
-    await for (final chunk in audio) {
-      pending.add(chunk);
-      final threshold = isFirst ? firstSegmentBytes : laterSegmentBytes;
-      if (pending.length >= threshold) {
-        final segment = Uint8List.fromList(pending.takeBytes());
+    var isFirst = true;
+    var segments = 0;
+    var totalBytes = 0;
+
+    try {
+      while (true) {
+        final need = isFirst ? leadInBytes : 1;
+        // Assignment and re-check are synchronous, so no callback can slip in
+        // between them and be missed.
+        while (!streamDone && buffer.length < need) {
+          dataArrived = Completer<void>();
+          if (streamDone || buffer.length >= need) break;
+          await dataArrived.future;
+        }
+        if (buffer.length == 0) {
+          if (streamDone) break;
+          continue;
+        }
+        final pcm = Uint8List.fromList(buffer.takeBytes());
         isFirst = false;
-        queue = queue.then((_) => playSegment(segment));
+        segments++;
+        totalBytes += pcm.length;
+        // Awaited: nothing else is played until this segment has finished.
+        await _playPcmSegment(pcm, sampleRate);
       }
+    } finally {
+      await subscription.cancel();
     }
-    if (pending.length > 0) {
-      final segment = Uint8List.fromList(pending.takeBytes());
-      queue = queue.then((_) => playSegment(segment));
-    }
-    await queue;
+
+    debugPrint('VOX_STREAM_PLAYBACK: segments=$segments bytes=$totalBytes '
+        'rate=$sampleRate');
+    final err = streamError;
+    if (err != null) throw err;
   }
 
   Future<void> _playAudio(Uint8List bytes) async {
