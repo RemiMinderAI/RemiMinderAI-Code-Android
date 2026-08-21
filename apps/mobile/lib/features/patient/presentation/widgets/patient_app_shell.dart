@@ -984,7 +984,13 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     u16(16);
     str('data');
     u32(pcm.length);
-    return Uint8List.fromList([...header.takeBytes(), ...pcm]);
+    // Spreading into a List<int> boxes every byte — 310k allocations for a
+    // long reply. Build the buffer directly instead.
+    final head = header.takeBytes();
+    final out = Uint8List(head.length + pcm.length);
+    out.setRange(0, head.length, head);
+    out.setRange(head.length, out.length, pcm);
+    return out;
   }
 
   static final Uint8List _ackTone = _buildAckTone();
@@ -1036,16 +1042,42 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   /// The first segment is deliberately small so speech starts as early as
   /// possible; later ones are larger to keep the joins from being audible.
   /// Plays one PCM segment and returns only when it has finished sounding.
-  Future<void> _playPcmSegment(Uint8List pcm, int sampleRate) async {
-    if (pcm.isEmpty) return;
+  int _segPlayCount = 0;
+
+  /// Writes a segment to disk and loads it into its own player, without
+  /// starting playback. The caller resumes it when the previous segment ends.
+  Future<_PreparedSegment> _prepareSegment(
+    Uint8List pcm,
+    int sampleRate,
+  ) async {
     final wav = _wavFromPcm(pcm, sampleRate);
-    final done = _player.onPlayerComplete.first;
-    await _player.play(BytesSource(wav, mimeType: 'audio/wav'));
+    final dir = await getTemporaryDirectory();
+    final file = File(
+      '${dir.path}/vox_seg_${DateTime.now().microsecondsSinceEpoch}.wav',
+    );
+    await file.writeAsBytes(wav, flush: true);
+
+    final player = AudioPlayer();
+    final done = player.onPlayerComplete.first;
+    await player.setSource(DeviceFileSource(file.path));
+    return _PreparedSegment(player: player, file: file, done: done);
+  }
+
+  Future<void> _awaitSegment(_PreparedSegment seg) async {
     try {
-      await done.timeout(VoxConfig.ttsCompletionTimeout);
+      await seg.done.timeout(VoxConfig.ttsCompletionTimeout);
     } on TimeoutException {
-      debugPrint('VOX_STREAM_SEGMENT_TIMEOUT: ${pcm.length} bytes');
+      debugPrint('VOX_STREAM_SEGMENT_TIMEOUT');
     }
+  }
+
+  Future<void> _disposeSegment(_PreparedSegment seg) async {
+    try {
+      await seg.player.dispose();
+    } catch (_) {}
+    try {
+      await seg.file.delete();
+    } catch (_) {}
   }
 
   /// Plays a Vox reply as it arrives, one segment at a time.
@@ -1097,6 +1129,7 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     var isFirst = true;
     var segments = 0;
     var totalBytes = 0;
+    _PreparedSegment? playing;
 
     try {
       while (true) {
@@ -1112,14 +1145,46 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
           if (streamDone) break;
           continue;
         }
-        final pcm = Uint8List.fromList(buffer.takeBytes());
+        // Cap each segment at ~1s. A visit summary otherwise arrives faster
+        // than it plays and lands as one 6.5s buffer, which the player
+        // mangles; small segments play cleanly.
+        final maxSegBytes = sampleRate * 2;
+        var pending = buffer.takeBytes();
+        if (pending.length > maxSegBytes) {
+          buffer.add(pending.sublist(maxSegBytes));
+          pending = pending.sublist(0, maxSegBytes);
+        }
+        final pcm = Uint8List.fromList(pending);
         isFirst = false;
         segments++;
         totalBytes += pcm.length;
-        // Awaited: nothing else is played until this segment has finished.
-        await _playPcmSegment(pcm, sampleRate);
+
+        // Prepare this segment's player NOW, while the previous one is still
+        // sounding. setSource does the expensive decode/prepare; by the time
+        // the previous segment ends, only resume() remains, so the join is
+        // inaudible. A fresh player per segment is required — reusing one
+        // corrupts every segment after the first.
+        final prepared = await _prepareSegment(pcm, sampleRate);
+
+        // Now wait for the previous segment to finish, then start this one.
+        if (playing != null) {
+          await _awaitSegment(playing);
+          await _disposeSegment(playing);
+        }
+        await prepared.player.resume();
+        playing = prepared;
+      }
+
+      // Drain the last segment.
+      if (playing != null) {
+        await _awaitSegment(playing);
+        await _disposeSegment(playing);
+        playing = null;
       }
     } finally {
+      if (playing != null) {
+        await _disposeSegment(playing);
+      }
       await subscription.cancel();
     }
 
@@ -1272,4 +1337,16 @@ NavigationItem getCurrentNavigationItem(String location) {
   } else {
     return NavigationItem.home;
   }
+}
+
+class _PreparedSegment {
+  _PreparedSegment({
+    required this.player,
+    required this.file,
+    required this.done,
+  });
+
+  final AudioPlayer player;
+  final File file;
+  final Future<void> done;
 }

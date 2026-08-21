@@ -18,6 +18,7 @@ from typing import Any, Iterator, Optional
 
 import requests
 import re
+import json
 
 from services.remivox.config import REMIVOX_OUTPUT_SAMPLE_RATE
 from services.remivox.languages import (
@@ -449,16 +450,38 @@ def stream_lightning(
         raise VoiceSynthesisError(f"Lightning stream HTTP {response.status_code}: {detail}")
 
     def _iter() -> "Iterator[bytes]":
+        # tts/live speaks Server-Sent Events, not raw audio:
+        #     event: audio
+        #     data: {"audio": "<base64 PCM>"}
+        # terminated by {"status": "200", "done": true}. Passing iter_content
+        # through directly handed SSE protocol text to the client, which wrapped
+        # it in a WAV header — the cause of the distorted playback. Decode here
+        # so callers receive the raw PCM the rest of the pipeline expects.
         first_byte_ms = None
         total = 0
         try:
-            for chunk in response.iter_content(chunk_size=chunk_size):
-                if not chunk:
+            for line in response.iter_lines():
+                if not line or not line.startswith(b"data:"):
+                    continue
+                try:
+                    frame = json.loads(line[5:].strip())
+                except (ValueError, UnicodeDecodeError):
+                    logger.warning("Lightning stream: unparseable SSE data frame")
+                    continue
+                b64 = frame.get("audio")
+                if not b64:
+                    continue  # terminal {"status", "done"} frame
+                try:
+                    pcm = base64.b64decode(b64)
+                except Exception:
+                    logger.warning("Lightning stream: undecodable audio frame")
+                    continue
+                if not pcm:
                     continue
                 if first_byte_ms is None:
                     first_byte_ms = (time.perf_counter() - started) * 1000.0
-                total += len(chunk)
-                yield chunk
+                total += len(pcm)
+                yield pcm
         finally:
             response.close()
             log_voice_operation(
