@@ -296,6 +296,73 @@ class BackendApiService {
     return json.decode(response.body) as Map<String, dynamic>;
   }
 
+  /// One Vox turn with the reply audio streamed as it is synthesized.
+  ///
+  /// Returns the turn metadata immediately (it arrives in a header, before any
+  /// audio) plus a byte stream of raw 16-bit little-endian PCM. Callers should
+  /// fall back to [askVox] on any failure — /ask is unchanged and always works.
+  Future<VoxStreamTurn> askVoxStream(
+    String? prompt, {
+    String replyLanguage = VoxConfig.defaultLanguage,
+    String timezone = VoxConfig.defaultTimezone,
+    String? audioBase64,
+    String contentType = VoxConfig.wavContentType,
+    bool autoDetectLanguage = true,
+    String? sessionId,
+  }) async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) {
+      throw Exception('Authentication required. Please log in again.');
+    }
+
+    final request = http.Request(
+      'POST',
+      Uri.parse('${Environment.apiBaseUrl}${VoxConfig.askStreamPath}'),
+    )
+      ..headers.addAll({
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      })
+      ..body = json.encode({
+        if (prompt != null && prompt.trim().isNotEmpty) 'prompt': prompt.trim(),
+        'reply_language': replyLanguage,
+        'timezone': timezone,
+        if (audioBase64 != null && audioBase64.isNotEmpty)
+          'audio_base64': audioBase64,
+        'content_type': contentType,
+        'auto_detect_language': autoDetectLanguage,
+        if (sessionId != null && sessionId.trim().isNotEmpty)
+          'session_id': sessionId.trim(),
+      });
+
+    final streamed = await http.Client().send(request);
+    if (streamed.statusCode != 200) {
+      final body = await streamed.stream.bytesToString();
+      String message = 'Vox is not available right now. Please try again.';
+      try {
+        final decoded = json.decode(body);
+        final detail = decoded is Map ? decoded['detail'] : null;
+        if (detail is String && detail.isNotEmpty) message = detail;
+      } catch (_) {}
+      throw Exception(message);
+    }
+
+    final rawMeta = streamed.headers['x-vox-meta'];
+    if (rawMeta == null || rawMeta.isEmpty) {
+      throw Exception('Vox stream response was missing its metadata header.');
+    }
+    final meta = json.decode(utf8.decode(base64Decode(rawMeta)))
+        as Map<String, dynamic>;
+    final sampleRate =
+        int.tryParse(streamed.headers['x-vox-sample-rate'] ?? '') ?? 24000;
+
+    return VoxStreamTurn(
+      data: meta,
+      sampleRate: sampleRate,
+      audio: streamed.stream,
+    );
+  }
+
   Future<Map<String, dynamic>> translateVoxTurn({
     String? text,
     String? audioBase64,
@@ -603,4 +670,19 @@ class BackendApiService {
       return false;
     }
   }
+}
+/// A Vox turn whose reply audio arrives progressively.
+///
+/// [data] matches the JSON body /ask returns, so existing response handling
+/// works unchanged; [audio] carries raw PCM at [sampleRate].
+class VoxStreamTurn {
+  const VoxStreamTurn({
+    required this.data,
+    required this.sampleRate,
+    required this.audio,
+  });
+
+  final Map<String, dynamic> data;
+  final int sampleRate;
+  final Stream<List<int>> audio;
 }

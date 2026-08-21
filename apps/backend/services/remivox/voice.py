@@ -14,7 +14,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 import requests
 
@@ -34,6 +34,11 @@ LIGHTNING_PROVIDER = "lightning"
 DEFAULT_STT_URL = "https://api.smallest.ai/waves/v1/stt/?model=pulse"
 DEFAULT_TTS_URL_EN = "https://api.smallest.ai/waves/v1/lightning-v3.1/get_speech"
 DEFAULT_TTS_URL_MULTI = "https://api.smallest.ai/waves/v1/lightning-v2/get_speech"
+# Streaming synthesis. Unlike get_speech, time-to-first-byte here is flat
+# (~480ms measured) regardless of how long the reply is, so the caller can start
+# playback before synthesis finishes.
+DEFAULT_TTS_STREAM_URL = "https://api.smallest.ai/waves/v1/tts/live"
+DEFAULT_TTS_STREAM_MODEL = "lightning_v3.1"
 
 
 class VoiceConfigError(Exception):
@@ -309,6 +314,95 @@ def transcribe_pulse(
         error=last_error or "stt_failed",
     )
     raise VoiceTranscriptionError(last_error or "Could not transcribe audio.")
+
+
+def stream_lightning(
+    text: str,
+    *,
+    language: str = DEFAULT_REMIVOX_LANGUAGE,
+    chunk_size: int = 8192,
+) -> "Iterator[bytes]":
+    """
+    Yield raw PCM as Lightning produces it.
+
+    Time-to-first-byte does not grow with reply length, which is the whole point:
+    a long visit summary starts speaking as fast as a short confirmation.
+
+    Raises VoiceSynthesisError before yielding anything if the request fails, so
+    callers can fall back to the non-streaming path while it is still possible to
+    change the response shape.
+    """
+    api_key = _api_key()
+    if not api_key:
+        raise VoiceConfigError("SmallestAI API key not configured.")
+
+    requested = normalize_language_code(language)
+    url = (os.getenv("SMALLESTAI_TTS_STREAM_URL") or DEFAULT_TTS_STREAM_URL).strip()
+    payload = {
+        "text": text,
+        "voice_id": (os.getenv("SMALLESTAI_VOICE_ID") or "olivia").strip(),
+        "sample_rate": stream_sample_rate(),
+        "speed": 0.95,
+        "language": requested,
+        # PCM has no per-chunk framing, so chunks concatenate cleanly on the
+        # client. wav/mp3 would need reassembly before playback.
+        "output_format": "pcm",
+        "model": (
+            os.getenv("SMALLESTAI_TTS_STREAM_MODEL") or DEFAULT_TTS_STREAM_MODEL
+        ).strip(),
+    }
+
+    started = time.perf_counter()
+    try:
+        response = requests.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            stream=True,
+            timeout=45,
+        )
+    except Exception as exc:
+        raise VoiceSynthesisError(f"Lightning stream request failed: {exc}") from exc
+
+    if response.status_code >= 400:
+        detail = response.text[:200]
+        response.close()
+        raise VoiceSynthesisError(f"Lightning stream HTTP {response.status_code}: {detail}")
+
+    def _iter() -> "Iterator[bytes]":
+        first_byte_ms = None
+        total = 0
+        try:
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                if not chunk:
+                    continue
+                if first_byte_ms is None:
+                    first_byte_ms = (time.perf_counter() - started) * 1000.0
+                total += len(chunk)
+                yield chunk
+        finally:
+            response.close()
+            log_voice_operation(
+                provider=LIGHTNING_PROVIDER,
+                operation="tts_stream",
+                input_language=requested,
+                output_language=requested,
+                latency_ms=first_byte_ms or 0.0,
+                success=total > 0,
+                extra={"bytes": total, "ttfb_ms": round(first_byte_ms or 0.0)},
+            )
+
+    return _iter()
+
+
+def stream_sample_rate() -> int:
+    try:
+        return int(os.getenv("SMALLESTAI_SAMPLE_RATE") or REMIVOX_OUTPUT_SAMPLE_RATE)
+    except (TypeError, ValueError):
+        return REMIVOX_OUTPUT_SAMPLE_RATE
 
 
 def synthesize_lightning(

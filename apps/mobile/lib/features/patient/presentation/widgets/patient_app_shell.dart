@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -105,6 +106,11 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   static const int _pipecatMicChunkBytes = VoxConfig.inputChunkBytes;
 
   final AudioPlayer _player = AudioPlayer();
+  /// Separate from [_player] so the acknowledgement cue can never interrupt or
+  /// be interrupted by the spoken response.
+  final AudioPlayer _cuePlayer = AudioPlayer();
+  bool _voxRecording = false;
+  bool _voxThinking = false;
   final AudioRecorder _recorder = AudioRecorder();
   final BackendApiService _backendApi = BackendApiService();
   bool _usePipecatStream = VoxConfig.usePipecatStream;
@@ -138,6 +144,8 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     if (_pipecatWaiting) return 'Thinking';
     if (_pipecatActive) return 'Listening';
     if (_liveActive) return 'Live';
+    if (_voxRecording) return 'Listening';
+    if (_voxThinking) return 'Thinking';
     if (_awaitingFollowUp) return 'Wait';
     return 'Ask';
   }
@@ -145,12 +153,15 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   String get _voxStatusBottom {
     if (_pipecatWaiting) return 'Please wait';
     if (_voiceLiveActive) return 'Tap stop';
+    if (_voxRecording) return 'speak now';
+    if (_voxThinking) return 'one moment';
     if (_awaitingFollowUp) return 'reply';
     return 'me';
   }
 
   @override
   void dispose() {
+    _disposeCuePlayer();
     _pipecatSilenceTimer?.cancel();
     _pipecatSpeechResetTimer?.cancel();
     final micSubscription = _pipecatMicSubscription;
@@ -585,10 +596,18 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
       setState(() => _awaitingFollowUp = true);
     }
 
+    if (mounted) setState(() => _voxRecording = true);
     final initialClip = await _recordPromptClip(
       listenFor: listenFor,
       requireSpeech: isFollowUp,
     );
+    if (mounted) setState(() => _voxRecording = false);
+    if (initialClip != null) {
+      // Recording has stopped and the network round-trip is about to begin —
+      // this is the exact moment the silence used to start.
+      _playAckTone();
+      if (mounted) setState(() => _voxThinking = true);
+    }
 
     if (initialClip == null) {
       if (isFollowUp) {
@@ -607,15 +626,34 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
 
     var clip = initialClip;
     for (var turn = 0; turn < VoxConfig.maxCareAskTurns; turn++) {
-      final data = await BackendApiService().askVox(
-        null,
-        replyLanguage: lang,
-        timezone: tz,
-        audioBase64: clip.base64,
-        contentType: clip.contentType,
-        autoDetectLanguage: true,
-        sessionId: sessionId,
-      );
+      // Prefer the streaming turn so speech starts as soon as Lightning emits
+      // its first bytes. Any failure falls back to /ask, which is unchanged.
+      Map<String, dynamic> data;
+      VoxStreamTurn? streamed;
+      try {
+        streamed = await BackendApiService().askVoxStream(
+          null,
+          replyLanguage: lang,
+          timezone: tz,
+          audioBase64: clip.base64,
+          contentType: clip.contentType,
+          autoDetectLanguage: true,
+          sessionId: sessionId,
+        );
+        data = streamed.data;
+      } catch (e) {
+        debugPrint('VOX_STREAM_FALLBACK: $e');
+        streamed = null;
+        data = await BackendApiService().askVox(
+          null,
+          replyLanguage: lang,
+          timezone: tz,
+          audioBase64: clip.base64,
+          contentType: clip.contentType,
+          autoDetectLanguage: true,
+          sessionId: sessionId,
+        );
+      }
 
       final returnedSession = data['session_id']?.toString().trim();
       if (returnedSession != null && returnedSession.isNotEmpty) {
@@ -625,7 +663,11 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
       }
 
       // Wait for TTS to finish before reopening the mic.
-      await _playResponse(data);
+      if (streamed != null) {
+        await _playResponse(data, streamed: streamed);
+      } else {
+        await _playResponse(data);
+      }
 
       final action = data['action']?.toString();
       if (action == 'start_live_translate') {
@@ -659,10 +701,16 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
       // Clarification needed — keep session_id and auto-reopen mic.
       if (mounted) setState(() => _awaitingFollowUp = true);
       _snackListening('Vox is still listening…', _followUpListenFor);
+      if (mounted) setState(() => _voxRecording = true);
       final followUp = await _recordPromptClip(
         listenFor: _followUpListenFor,
         requireSpeech: true,
       );
+      if (mounted) setState(() => _voxRecording = false);
+      if (followUp != null) {
+        _playAckTone();
+        if (mounted) setState(() => _voxThinking = true);
+      }
       if (followUp == null) {
         // Server still holds this pending action; keep the session so the next
         // Vox press can answer it instead of starting a fresh conversation.
@@ -683,6 +731,8 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   /// pending confirmation (e.g. "Should I delete your Pregabalin reminder?")
   /// and the mic closed before the user answered.
   void _clearPendingSession({bool keepSession = false}) {
+    _voxRecording = false;
+    _voxThinking = false;
     if (!keepSession) {
       _voxSessionId = null;
       _voxSessionStartedAt = null;
@@ -690,7 +740,24 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
     _awaitingFollowUp = false;
   }
 
-  Future<void> _playResponse(Map<String, dynamic> data) async {
+  Future<void> _playResponse(
+    Map<String, dynamic> data, {
+    VoxStreamTurn? streamed,
+  }) async {
+    if (mounted) setState(() => _voxThinking = false);
+    if (streamed != null) {
+      final detected = data['detected_language']?.toString();
+      if (detected != null && detected.isNotEmpty) {
+        _snack('Heard ${languageLabel(normalizeLanguageCode(detected))}');
+      }
+      try {
+        await _playStreamedAudio(streamed.audio, streamed.sampleRate);
+        return;
+      } catch (e) {
+        debugPrint('VOX_STREAM_PLAYBACK_ERROR: $e');
+        // Fall through to the text path below rather than losing the reply.
+      }
+    }
     final text =
         data['text']?.toString() ?? 'Vox has nothing to read right now.';
     final audio = data['audio_base64'] as String?;
@@ -856,6 +923,145 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
       });
       _snack('Vox stopped.');
     }
+  }
+
+  /// A short two-note cue, generated rather than bundled so there is no asset
+  /// to ship or localise.
+  ///
+  /// Played the instant recording stops. It does not make anything faster — it
+  /// replaces ambiguous silence with "I heard you", which is what stops an
+  /// elderly user repeating themselves into the next recording.
+  static Uint8List _buildAckTone() {
+    const sampleRate = 16000;
+    const notes = <double>[587.33, 783.99]; // D5 then G5 — soft, rising
+    const noteMs = 90;
+    const gain = 0.18; // deliberately quiet; this is a nudge, not an alert
+    final samplesPerNote = sampleRate * noteMs ~/ 1000;
+
+    final data = BytesBuilder();
+    for (var n = 0; n < notes.length; n++) {
+      for (var i = 0; i < samplesPerNote; i++) {
+        // Raised-cosine envelope: without it the note edges click.
+        final envelope = 0.5 * (1 - math.cos(2 * math.pi * i / samplesPerNote));
+        final value = math.sin(2 * math.pi * notes[n] * i / sampleRate) *
+            envelope *
+            gain;
+        final sample = (value * 32767).round().clamp(-32768, 32767);
+        data.addByte(sample & 0xFF);
+        data.addByte((sample >> 8) & 0xFF);
+      }
+    }
+    final pcm = data.takeBytes();
+
+    final header = BytesBuilder();
+    void str(String v) => header.add(v.codeUnits);
+    void u32(int v) => header.add([
+          v & 0xFF,
+          (v >> 8) & 0xFF,
+          (v >> 16) & 0xFF,
+          (v >> 24) & 0xFF,
+        ]);
+    void u16(int v) => header.add([v & 0xFF, (v >> 8) & 0xFF]);
+    str('RIFF');
+    u32(36 + pcm.length);
+    str('WAVE');
+    str('fmt ');
+    u32(16);
+    u16(1); // PCM
+    u16(1); // mono
+    u32(sampleRate);
+    u32(sampleRate * 2);
+    u16(2);
+    u16(16);
+    str('data');
+    u32(pcm.length);
+    return Uint8List.fromList([...header.takeBytes(), ...pcm]);
+  }
+
+  static final Uint8List _ackTone = _buildAckTone();
+
+  /// Fire-and-forget: the turn must never wait on the cue.
+  void _playAckTone() {
+    unawaited(() async {
+      try {
+        await _cuePlayer.stop();
+        await _cuePlayer.play(BytesSource(_ackTone, mimeType: 'audio/wav'));
+      } catch (_) {
+        // A missing cue is cosmetic — never let it break the turn.
+      }
+    }());
+  }
+
+  void _disposeCuePlayer() {
+    unawaited(_cuePlayer.dispose());
+  }
+
+  /// Wraps raw PCM in a WAV header so it can be handed to the player as a
+  /// self-contained segment.
+  static Uint8List _wavFromPcm(Uint8List pcm, int sampleRate) {
+    final header = BytesBuilder();
+    void str(String v) => header.add(v.codeUnits);
+    void u32(int v) => header.add(
+        [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF]);
+    void u16(int v) => header.add([v & 0xFF, (v >> 8) & 0xFF]);
+    str('RIFF');
+    u32(36 + pcm.length);
+    str('WAVE');
+    str('fmt ');
+    u32(16);
+    u16(1);
+    u16(1);
+    u32(sampleRate);
+    u32(sampleRate * 2);
+    u16(2);
+    u16(16);
+    str('data');
+    u32(pcm.length);
+    return Uint8List.fromList([...header.takeBytes(), ...pcm]);
+  }
+
+  /// Plays a Vox reply as it arrives.
+  ///
+  /// Audio is buffered into segments and played back to back rather than
+  /// sample-by-sample: the player needs a complete container per play() call.
+  /// The first segment is deliberately small so speech starts as early as
+  /// possible; later ones are larger to keep the joins from being audible.
+  Future<void> _playStreamedAudio(Stream<List<int>> audio, int sampleRate) async {
+    const bytesPerSecond0 = 2; // 16-bit mono
+    final firstSegmentBytes = sampleRate * bytesPerSecond0 ~/ 2; // ~0.5s
+    final laterSegmentBytes = sampleRate * bytesPerSecond0 * 2; // ~2s
+
+    final pending = BytesBuilder();
+    var isFirst = true;
+    Future<void> queue = Future<void>.value();
+
+    Future<void> playSegment(Uint8List pcm) async {
+      if (pcm.isEmpty) return;
+      final wav = _wavFromPcm(pcm, sampleRate);
+      final done = _player.onPlayerComplete.first;
+      await _player.play(BytesSource(wav, mimeType: 'audio/wav'));
+      try {
+        await done.timeout(VoxConfig.ttsCompletionTimeout);
+      } on TimeoutException {
+        // Keep going — a missed completion event must not strand the turn.
+      }
+    }
+
+    await _player.stop();
+    await for (final chunk in audio) {
+      pending.add(chunk);
+      final threshold = isFirst ? firstSegmentBytes : laterSegmentBytes;
+      if (pending.length >= threshold) {
+        final segment = Uint8List.fromList(pending.takeBytes());
+        isFirst = false;
+        queue = queue.then((_) => playSegment(segment));
+      }
+    }
+    if (pending.length > 0) {
+      final segment = Uint8List.fromList(pending.takeBytes());
+      queue = queue.then((_) => playSegment(segment));
+    }
+    await queue;
   }
 
   Future<void> _playAudio(Uint8List bytes) async {
