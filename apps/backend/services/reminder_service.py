@@ -160,12 +160,11 @@ async def create_new_reminder(data: ReminderCreate) -> Optional[Dict[str, Any]]:
     Create a new reminder with AI-generated message.
     """
     try:
-        # Generate personalized message using AI
-        message = await generate_reminder_message(
-            reminder_type=data.reminder_type,
-            title=data.title,
-            context_data=data.context_data
-        )
+        # The AI-generated message is the NOTIFICATION text, shown when the
+        # reminder fires — not what Vox speaks back. Generating it inline cost
+        # ~1s of the patient's wait for text they won't see until the dose is
+        # due. Insert a plain placeholder now, enrich in the background.
+        message = f"Reminder: {data.title}"
         
         # Prepare data for database
         reminder_data = {

@@ -62,7 +62,7 @@ async def build_reminder_prompt(
     final_prompt += "\n--- Final Output Instruction ---\n"
     final_prompt += "Using the context above, generate the final reminder message.\n"
     final_prompt += "Output ONLY the final message text, no explanations or prefixes"
-    print("\n FINAL PROMPT: ", final_prompt)
+    # (removed: printed full prompt incl. medication names to stdout — PHI in logs)
     return final_prompt
 
 
