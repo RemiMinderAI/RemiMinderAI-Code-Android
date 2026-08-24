@@ -75,6 +75,10 @@ def _serialize_status(row) -> dict:
         "remivox_interaction_count": int(row.remivox_interaction_count or 0),
         "subscription_source": row.subscription_source,
         "revenuecat_entitlement_active": bool(row.revenuecat_entitlement_active),
+        "vox_period_start": row.vox_period_start.isoformat()
+        if getattr(row, "vox_period_start", None)
+        else None,
+        "vox_period_count": int(getattr(row, "vox_period_count", 0) or 0),
     }
 
 
@@ -298,14 +302,23 @@ def remivox_test_mode_enabled(*, firebase_uid: Optional[str] = None) -> bool:
             )
             return False
 
+    # Fail closed. An empty allowlist used to mean "bypass for everyone", so a
+    # single cleared env var — exactly what --set-env-vars does to unlisted
+    # names — would silently hand every user unlimited Vox with no error and no
+    # log line. The bypass now requires someone to be named explicitly.
     allowlist = os.getenv("REMIVOX_TEST_MODE_UIDS", "").strip()
-    if allowlist:
-        allowed = {part.strip() for part in allowlist.split(",") if part.strip()}
-        if not firebase_uid or firebase_uid not in allowed:
-            logger.warning(
-                "REMIVOX_TEST_MODE active but uid not in REMIVOX_TEST_MODE_UIDS; denying bypass"
-            )
-            return False
+    allowed = {part.strip() for part in allowlist.split(",") if part.strip()}
+    if not allowed:
+        logger.error(
+            "REMIVOX_TEST_MODE is set but REMIVOX_TEST_MODE_UIDS is empty — "
+            "denying bypass (quotas stay enforced)"
+        )
+        return False
+    if not firebase_uid or firebase_uid not in allowed:
+        logger.warning(
+            "REMIVOX_TEST_MODE active but uid not in REMIVOX_TEST_MODE_UIDS; denying bypass"
+        )
+        return False
     return True
 
 
@@ -322,19 +335,33 @@ def vox_globally_enabled() -> bool:
     return raw not in {"0", "false", "no"}
 
 
-def _vox_quota_snapshot(row, now: Optional[datetime] = None) -> dict:
-    """Current usage position for a user row, without deciding access."""
+def _vox_quota_snapshot(status: dict, now: Optional[datetime] = None) -> dict:
+    """
+    Current usage position, derived from the already-fetched subscription status.
+
+    Deliberately takes the status dict rather than re-reading the user row:
+    get_subscription_status has already paid for that query (and cached it), and
+    this runs in the voice path where a second round-trip is pure latency.
+    """
     reference = now or _utcnow()
-    plan = _normalize_plan(row.plan)
+    plan = _normalize_plan(status.get("plan"))
 
     if plan == PLAN_PREMIUM:
-        anchor = getattr(row, "vox_period_start", None)
+        raw_anchor = status.get("vox_period_start")
+        anchor = None
+        if isinstance(raw_anchor, datetime):
+            anchor = raw_anchor
+        elif isinstance(raw_anchor, str) and raw_anchor:
+            try:
+                anchor = datetime.fromisoformat(raw_anchor.replace("Z", "+00:00"))
+            except ValueError:
+                anchor = None
+        if anchor is not None and anchor.tzinfo is None:
+            anchor = anchor.replace(tzinfo=timezone.utc)
+
         period_start = current_period_start(anchor, reference)
-        stored_anchor = anchor.replace(tzinfo=timezone.utc) if (
-            anchor is not None and anchor.tzinfo is None
-        ) else anchor
-        rolled = stored_anchor is None or period_start != stored_anchor
-        used = 0 if rolled else int(getattr(row, "vox_period_count", 0) or 0)
+        rolled = anchor is None or period_start != anchor
+        used = 0 if rolled else int(status.get("vox_period_count") or 0)
         return {
             "scope": "premium_period",
             "limit": PREMIUM_VOX_LIMIT,
@@ -345,16 +372,22 @@ def _vox_quota_snapshot(row, now: Optional[datetime] = None) -> dict:
             "period_rolled": rolled,
         }
 
-    used = int(row.remivox_interaction_count or 0)
-    trial_end = row.trial_end_date
-    if trial_end is not None and trial_end.tzinfo is None:
-        trial_end = trial_end.replace(tzinfo=timezone.utc)
+    used = int(status.get("remivox_interaction_count") or 0)
+    raw_end = status.get("trial_end_date")
+    trial_end = None
+    if isinstance(raw_end, datetime):
+        trial_end = raw_end
+    elif isinstance(raw_end, str) and raw_end:
+        try:
+            trial_end = datetime.fromisoformat(raw_end.replace("Z", "+00:00"))
+        except ValueError:
+            trial_end = None
     return {
         "scope": "trial_total",
         "limit": TRIAL_VOX_LIMIT,
         "used": used,
         "remaining": trial_remaining(used),
-        "period_start": row.trial_start_date,
+        "period_start": status.get("trial_start_date"),
         "resets_at": trial_end,
         "period_rolled": False,
     }
@@ -434,13 +467,7 @@ async def enforce_remivox_access(firebase_uid: str) -> dict:
     status = await get_subscription_status(firebase_uid)
     plan = status["plan"]
 
-    engine = get_cloud_sql_engine()
-    with engine.connect() as conn:
-        row = _fetch_user_subscription_row(conn, firebase_uid=firebase_uid)
-    if not row:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    quota = _vox_quota_snapshot(row)
+    quota = _vox_quota_snapshot(status)
     status = {
         **status,
         "vox_quota": {
@@ -507,7 +534,7 @@ async def record_vox_use(firebase_uid: str) -> None:
                 return
             plan = _normalize_plan(row.plan)
             if plan == PLAN_PREMIUM:
-                quota = _vox_quota_snapshot(row)
+                quota = _vox_quota_snapshot(_serialize_status(row))
                 conn.execute(
                     text("""
                         UPDATE users

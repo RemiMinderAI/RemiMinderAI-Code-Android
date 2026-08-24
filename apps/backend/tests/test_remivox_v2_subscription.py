@@ -36,7 +36,10 @@ class RemiVoxTestModeFlagTests(unittest.TestCase):
             clear=False,
         ):
             os.environ.pop("REMIVOX_TEST_MODE_UIDS", None)
-            self.assertTrue(remivox_test_mode_enabled(firebase_uid="tester-1"))
+            # Behaviour deliberately inverted: an empty allowlist used to mean
+            # "everyone", which made unlimited Vox one cleared env var away.
+            # The bypass now requires an explicitly named uid.
+            self.assertFalse(remivox_test_mode_enabled(firebase_uid="tester-1"))
 
     def test_ignored_in_production_without_override(self):
         with patch.dict(

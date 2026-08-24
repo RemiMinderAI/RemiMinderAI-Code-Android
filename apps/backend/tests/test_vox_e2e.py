@@ -866,6 +866,44 @@ async def case_31(s):
             os.environ["REMIVOX_ENABLED"] = prior
 
 
+async def case_32(s):
+    """The test-mode bypass fails closed when the allowlist is empty."""
+    import os
+    from services.subscription_service import remivox_test_mode_enabled
+
+    keys = ("REMIVOX_TEST_MODE", "REMIVOX_TEST_MODE_ALLOW_IN_PROD",
+            "REMIVOX_TEST_MODE_UIDS", "APP_ENV")
+    prior = {k: os.environ.get(k) for k in keys}
+    try:
+        os.environ["REMIVOX_TEST_MODE"] = "true"
+        os.environ["REMIVOX_TEST_MODE_ALLOW_IN_PROD"] = "true"
+        os.environ["APP_ENV"] = "production"
+
+        # The dangerous case: flag on, allowlist gone. Must NOT grant bypass —
+        # otherwise one cleared env var disables quotas for every user.
+        os.environ.pop("REMIVOX_TEST_MODE_UIDS", None)
+        expect(not remivox_test_mode_enabled(firebase_uid="anyone"),
+               "empty allowlist must deny bypass")
+        os.environ["REMIVOX_TEST_MODE_UIDS"] = "   "
+        expect(not remivox_test_mode_enabled(firebase_uid="anyone"),
+               "whitespace-only allowlist must deny bypass")
+
+        # Named testers still work — the workflow is preserved.
+        os.environ["REMIVOX_TEST_MODE_UIDS"] = "tester-a,tester-b"
+        expect(remivox_test_mode_enabled(firebase_uid="tester-a"),
+               "named uid must still bypass")
+        expect(not remivox_test_mode_enabled(firebase_uid="someone-else"),
+               "unnamed uid must not bypass")
+        expect(not remivox_test_mode_enabled(firebase_uid=None),
+               "missing uid must not bypass")
+    finally:
+        for k, v in prior.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
 CASES = [
     ("01 create daily medication", case_01),
     ("02 create daily, spoken 8:30 PM", case_02),
@@ -898,6 +936,7 @@ CASES = [
     ("29 premium window rolls in whole 30d steps", case_29),
     ("30 trial allowance is 15", case_30),
     ("31 kill switch absolute, defaults on", case_31),
+    ("32 test-mode bypass fails closed", case_32),
 ]
 
 
