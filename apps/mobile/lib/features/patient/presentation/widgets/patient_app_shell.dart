@@ -110,6 +110,12 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   /// be interrupted by the spoken response.
   final AudioPlayer _cuePlayer = AudioPlayer();
   bool _voxRecording = false;
+  /// Server-controlled: the kill switch or an exhausted quota hides the button.
+  /// Starts true so a slow first fetch does not flash the FAB out of existence.
+  bool _voxAvailable = true;
+  String? _voxUnavailableReason;
+  String? _voxUnavailableMessage;
+  bool _voxUpgradeAvailable = false;
   bool _voxThinking = false;
   final AudioRecorder _recorder = AudioRecorder();
   final BackendApiService _backendApi = BackendApiService();
@@ -160,6 +166,41 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   }
 
   @override
+  @override
+  void initState() {
+    super.initState();
+    // Fire and forget: the button renders immediately and corrects itself if
+    // the server says Vox is off or the allowance is spent.
+    unawaited(_refreshVoxAvailability());
+  }
+
+  Future<void> _refreshVoxAvailability() async {
+    final info = await BackendApiService().fetchVoxAvailability();
+    if (!mounted) return;
+    setState(() {
+      _voxAvailable = info['available'] != false;
+      _voxUnavailableReason = info['reason']?.toString();
+      _voxUnavailableMessage = info['message']?.toString();
+      _voxUpgradeAvailable = info['upgrade_available'] == true;
+    });
+  }
+
+  /// Trial exhausted is a conversion moment; a paying customer at their monthly
+  /// cap must never be shown a paywall — there is nothing for them to buy.
+  Future<void> _handleVoxUnavailable() async {
+    final message = _voxUnavailableMessage ??
+        'Vox is not available right now.';
+    if (_voxUpgradeAvailable) {
+      await showUpgradePromptSheet(
+        context,
+        reason: UpgradePromptReason.trialExpired,
+        screen: 'patient_shell_vox_quota',
+      );
+      return;
+    }
+    _snack(message, duration: const Duration(seconds: 6));
+  }
+
   void dispose() {
     _disposeCuePlayer();
     _pipecatSilenceTimer?.cancel();
@@ -243,6 +284,10 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   }
 
   Future<void> _handleTap() async {
+    if (!_voxAvailable) {
+      await _handleVoxUnavailable();
+      return;
+    }
     if (_pipecatActive) {
       await _stopPipecatStream();
       return;
@@ -285,6 +330,9 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
       } else {
         _snack(message);
       }
+      // A refusal may mean the allowance just ran out — re-read availability so
+      // the button reflects it without needing an app restart.
+      unawaited(_refreshVoxAvailability());
       // Keep the session id when a clarification/confirmation is still pending.
       _clearPendingSession(keepSession: _awaitingFollowUp);
     } finally {
@@ -1208,6 +1256,12 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
 
   @override
   Widget build(BuildContext context) {
+    // Kill switch: Vox is off server-side, so there is nothing to explain and
+    // nothing to buy — remove it. An exhausted allowance is different: the
+    // button stays so tapping it can say why, and offer the upgrade.
+    if (!_voxAvailable && _voxUnavailableReason == 'vox_disabled') {
+      return const SizedBox.shrink();
+    }
     return GestureDetector(
       onTap: _handleTap,
       child: Stack(

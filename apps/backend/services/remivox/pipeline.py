@@ -249,6 +249,9 @@ async def run_care_turn(
         "entities": intent_result.entities,
         "success": action_result.success,
         "nlu_source": nlu.get("source"),
+        # Billing needs to tell a user-caused refusal (no_match) apart from our
+        # own failure (create_failed); action + success alone cannot.
+        "message_key": action_result.message_key,
     }
 
 

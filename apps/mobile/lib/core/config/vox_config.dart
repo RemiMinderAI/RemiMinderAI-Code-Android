@@ -7,6 +7,7 @@ abstract final class VoxConfig {
   static const String todayPath = '/api/remivox/today';
   static const String askPath = '/api/remivox/ask';
   static const String askStreamPath = '/api/remivox/ask/stream';
+  static const String availabilityPath = '/api/remivox/availability';
   static const String translateTurnPath = '/api/remivox/translate-turn';
 
   static const String defaultLanguage = kDefaultLanguageCode;

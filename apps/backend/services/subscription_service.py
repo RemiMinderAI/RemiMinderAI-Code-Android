@@ -8,6 +8,18 @@ from sqlalchemy import text
 
 from services.cloud_sql_engine import get_cloud_sql_engine
 from services.cache_service import get, set, invalidate
+from services.vox_quota import (
+    PREMIUM_VOX_LIMIT,
+    REASON_PREMIUM_EXHAUSTED,
+    REASON_TRIAL_EXHAUSTED,
+    REASON_TRIAL_EXPIRED,
+    REASON_VOX_DISABLED,
+    TRIAL_VOX_LIMIT,
+    current_period_start,
+    period_resets_at,
+    premium_remaining,
+    trial_remaining,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +116,8 @@ def _fetch_user_subscription_row(conn, *, firebase_uid: Optional[str] = None, us
             text("""
                 SELECT id, firebase_uid, plan, trial_start_date, trial_end_date, summary_count,
                        remivox_interaction_count, subscription_source,
-                       revenuecat_entitlement_active
+                       revenuecat_entitlement_active,
+                       vox_period_start, vox_period_count
                 FROM users
                 WHERE firebase_uid = :firebase_uid
                 LIMIT 1
@@ -116,7 +129,8 @@ def _fetch_user_subscription_row(conn, *, firebase_uid: Optional[str] = None, us
             text("""
                 SELECT id, firebase_uid, plan, trial_start_date, trial_end_date, summary_count,
                        remivox_interaction_count, subscription_source,
-                       revenuecat_entitlement_active
+                       revenuecat_entitlement_active,
+                       vox_period_start, vox_period_count
                 FROM users
                 WHERE id = CAST(:user_id AS uuid)
                 LIMIT 1
@@ -295,15 +309,102 @@ def remivox_test_mode_enabled(*, firebase_uid: Optional[str] = None) -> bool:
     return True
 
 
+def vox_globally_enabled() -> bool:
+    """
+    Server-side kill switch (REMIVOX_ENABLED). Defaults ON.
+
+    Vox is about to reach elderly users at a scale we cannot rehearse, and an
+    iOS review cycle has taken months before. Being able to turn it off without
+    shipping a build is what makes releasing it a reversible decision, so this
+    is deliberately absolute — it applies to test-mode accounts too.
+    """
+    raw = os.getenv("REMIVOX_ENABLED", "true").strip().lower()
+    return raw not in {"0", "false", "no"}
+
+
+def _vox_quota_snapshot(row, now: Optional[datetime] = None) -> dict:
+    """Current usage position for a user row, without deciding access."""
+    reference = now or _utcnow()
+    plan = _normalize_plan(row.plan)
+
+    if plan == PLAN_PREMIUM:
+        anchor = getattr(row, "vox_period_start", None)
+        period_start = current_period_start(anchor, reference)
+        stored_anchor = anchor.replace(tzinfo=timezone.utc) if (
+            anchor is not None and anchor.tzinfo is None
+        ) else anchor
+        rolled = stored_anchor is None or period_start != stored_anchor
+        used = 0 if rolled else int(getattr(row, "vox_period_count", 0) or 0)
+        return {
+            "scope": "premium_period",
+            "limit": PREMIUM_VOX_LIMIT,
+            "used": used,
+            "remaining": premium_remaining(used),
+            "period_start": period_start,
+            "resets_at": period_resets_at(period_start),
+            "period_rolled": rolled,
+        }
+
+    used = int(row.remivox_interaction_count or 0)
+    trial_end = row.trial_end_date
+    if trial_end is not None and trial_end.tzinfo is None:
+        trial_end = trial_end.replace(tzinfo=timezone.utc)
+    return {
+        "scope": "trial_total",
+        "limit": TRIAL_VOX_LIMIT,
+        "used": used,
+        "remaining": trial_remaining(used),
+        "period_start": row.trial_start_date,
+        "resets_at": trial_end,
+        "period_rolled": False,
+    }
+
+
+def _vox_denied(reason: str, status_code: int, message: str, quota: dict, plan: str):
+    """
+    Build the refusal.
+
+    upgrade_available is the field the client keys on: a trial user who has run
+    out is a conversion moment, a Premium user who has run out already pays and
+    must never be shown a paywall.
+    """
+    resets_at = quota.get("resets_at")
+    return HTTPException(
+        status_code=status_code,
+        detail={
+            "code": reason,
+            "feature": "remivox",
+            "plan": plan,
+            "limit": quota.get("limit", 0),
+            "used": quota.get("used", 0),
+            "remaining": 0,
+            "resets_at": resets_at.isoformat() if isinstance(resets_at, datetime) else None,
+            "upgrade_available": reason in {REASON_TRIAL_EXHAUSTED, REASON_TRIAL_EXPIRED},
+            "message": message,
+        },
+    )
+
+
 async def enforce_remivox_access(firebase_uid: str) -> dict:
     """
-    Vox follows the same access model as the rest of RemiMinder:
-    available during the 14-day trial and for Premium; locked after trial
-    until the user subscribes. No separate Vox interaction quota.
+    Gate Vox on the kill switch, then the subscription, then the usage quota.
 
-    Developer bypass: REMIVOX_TEST_MODE (see remivox_test_mode_enabled).
-    Subscription enforcement remains unchanged when bypass is OFF.
+    Returns the subscription status plus a "vox_quota" block so the caller can
+    tell the cases apart without a second query. Raises HTTPException when Vox
+    is not available.
+
+    Developer bypass: REMIVOX_TEST_MODE (see remivox_test_mode_enabled) skips the
+    quota entirely — unchanged.
     """
+    if not vox_globally_enabled():
+        raise _vox_denied(
+            REASON_VOX_DISABLED,
+            503,
+            "Vox is temporarily unavailable. Everything else keeps working.",
+            {"limit": 0, "used": 0, "resets_at": None},
+            PLAN_FREE,
+        )
+
     if remivox_test_mode_enabled(firebase_uid=firebase_uid):
         logger.warning(
             "REMIVOX_TEST_MODE enabled — bypassing remivox access gate for uid=%s",
@@ -320,28 +421,119 @@ async def enforce_remivox_access(firebase_uid: str) -> dict:
             "remivox_interaction_count": 0,
             "subscription_source": "remivox_test_mode",
             "revenuecat_entitlement_active": True,
+            "vox_quota": {
+                "scope": "unlimited",
+                "limit": 0,
+                "used": 0,
+                "remaining": -1,
+                "resets_at": None,
+                "unlimited": True,
+            },
         }
 
     status = await get_subscription_status(firebase_uid)
     plan = status["plan"]
-    allowed = plan == PLAN_PREMIUM or (
-        plan == PLAN_TRIAL and status["trial_active"]
-    )
-    if allowed:
-        return status
-    raise HTTPException(
-        status_code=402,
-        detail={
-            "code": "premium_required",
-            "feature": "remivox",
-            "plan": plan,
-            "limit": 0,
-            "message": (
-                "Your 14-day trial has ended. Subscribe to RemiMinderAI Premium "
-                "to keep using all features, including Vox."
-            ),
+
+    engine = get_cloud_sql_engine()
+    with engine.connect() as conn:
+        row = _fetch_user_subscription_row(conn, firebase_uid=firebase_uid)
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    quota = _vox_quota_snapshot(row)
+    status = {
+        **status,
+        "vox_quota": {
+            "scope": quota["scope"],
+            "limit": quota["limit"],
+            "used": quota["used"],
+            "remaining": quota["remaining"],
+            "resets_at": quota["resets_at"].isoformat()
+            if isinstance(quota["resets_at"], datetime)
+            else None,
+            "unlimited": False,
         },
+    }
+
+    if plan == PLAN_PREMIUM:
+        if quota["remaining"] <= 0:
+            resets = quota["resets_at"]
+            when = resets.strftime("the %d")+ resets.strftime(" of %B") if isinstance(resets, datetime) else "soon"
+            raise _vox_denied(
+                REASON_PREMIUM_EXHAUSTED,
+                429,
+                f"You've reached this month's Vox limit. It resets on {when}.",
+                quota,
+                plan,
+            )
+        return status
+
+    if plan == PLAN_TRIAL and status["trial_active"]:
+        if quota["remaining"] <= 0:
+            raise _vox_denied(
+                REASON_TRIAL_EXHAUSTED,
+                402,
+                f"You've used all {TRIAL_VOX_LIMIT} Vox commands in your trial. "
+                "Upgrade to keep using voice.",
+                quota,
+                plan,
+            )
+        return status
+
+    raise _vox_denied(
+        REASON_TRIAL_EXPIRED,
+        402,
+        "Your 14-day trial has ended. Subscribe to RemiMinderAI Premium "
+        "to keep using all features, including Vox.",
+        quota,
+        plan,
     )
+
+
+async def record_vox_use(firebase_uid: str) -> None:
+    """
+    Consume one Vox use. Called only for turns that completed a user intent.
+
+    Never raises: a counter write must not turn a reply the user already heard
+    into an error.
+    """
+    if not firebase_uid or remivox_test_mode_enabled(firebase_uid=firebase_uid):
+        return
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.begin() as conn:
+            row = _fetch_user_subscription_row(conn, firebase_uid=firebase_uid)
+            if not row:
+                return
+            plan = _normalize_plan(row.plan)
+            if plan == PLAN_PREMIUM:
+                quota = _vox_quota_snapshot(row)
+                conn.execute(
+                    text("""
+                        UPDATE users
+                        SET vox_period_start = :period_start,
+                            vox_period_count = :next_count
+                        WHERE id = :user_id
+                    """),
+                    {
+                        "period_start": quota["period_start"],
+                        "next_count": quota["used"] + 1,
+                        "user_id": row.id,
+                    },
+                )
+            else:
+                conn.execute(
+                    text("""
+                        UPDATE users
+                        SET remivox_interaction_count =
+                            COALESCE(remivox_interaction_count, 0) + 1
+                        WHERE id = :user_id
+                    """),
+                    {"user_id": row.id},
+                )
+        invalidate(f"subscription_status:{firebase_uid}")
+    except Exception as exc:
+        logger.warning("record_vox_use failed: %s", type(exc).__name__)
 
 
 async def enforce_caregiver_invite_limit(patient_id: str) -> None:

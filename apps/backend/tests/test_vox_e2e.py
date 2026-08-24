@@ -755,6 +755,117 @@ async def case_26(s):
     expect("don't see" in text or "do not see" in text, f"reply={out['text']!r}")
 
 
+# ---------------------------------------------------------------------------
+# Usage quota (services/vox_quota.py). These exercise the real rules directly —
+# the counting decision is pure, so it is tested without a DB.
+# ---------------------------------------------------------------------------
+
+def _turn(action, success, message_key, pending=None):
+    payload = {"pending": pending} if pending else {}
+    return {"action": action, "success": success,
+            "message_key": message_key, "action_payload": payload}
+
+
+async def case_27(s):
+    """A multi-turn intent costs exactly one use, not one per turn."""
+    from services.vox_quota import is_billable_turn
+
+    # "Set a reminder for Metoprolol" -> asks time
+    t1 = _turn("clarify", True, "clarify_missing_slots",
+               pending={"intent": "CREATE_REMINDER"})
+    # "8 PM" -> asks frequency
+    t2 = _turn("clarify", True, "clarify_missing_slots",
+               pending={"intent": "CREATE_REMINDER"})
+    # "every day" -> created
+    t3 = _turn("create_reminder", True, "created")
+
+    charged = [is_billable_turn(t) for t in (t1, t2, t3)]
+    expect(charged == [False, False, True],
+           f"3-turn intent should charge once at the end, got {charged}")
+
+
+async def case_28(s):
+    """Our own failures are free; user-caused refusals are not."""
+    from services.vox_quota import is_billable_turn
+
+    free = {
+        "LLM fell back to UNKNOWN": _turn("unknown_intent", False, "unknown_intent"),
+        "create failed internally": _turn("create_reminder", False, "create_failed"),
+        "checkin failed": _turn("complete_reminder", False, "checkin_failed"),
+        "gave up after clarifications": _turn("restart_flow", False, "restart_flow"),
+        "pressed Vox, said nothing": _turn("briefing", True, "briefing"),
+        "user cancelled": _turn("cancel_action", True, "cancelled"),
+    }
+    for label, turn in free.items():
+        expect(not is_billable_turn(turn), f"must NOT charge: {label}")
+
+    charged = {
+        "no_match": _turn("delete_reminder", False, "no_match"),
+        "time_mismatch": _turn("delete_reminder", False, "time_mismatch"),
+        "medical advice refusal": _turn("medical_advice_refusal", True,
+                                        "medical_advice_refusal"),
+    }
+    for label, turn in charged.items():
+        expect(is_billable_turn(turn), f"must charge (user-caused): {label}")
+
+
+async def case_29(s):
+    """Premium window rolls in whole 30-day steps, keeping the reset day stable."""
+    from datetime import datetime, timedelta, timezone
+    from services.vox_quota import (PREMIUM_PERIOD, current_period_start,
+                                    period_resets_at, premium_remaining)
+
+    anchor = datetime(2026, 1, 14, 9, 0, tzinfo=timezone.utc)
+
+    inside = current_period_start(anchor, anchor + timedelta(days=29))
+    expect(inside == anchor, f"still in period 1: {inside}")
+
+    nxt = current_period_start(anchor, anchor + timedelta(days=31))
+    expect(nxt == anchor + PREMIUM_PERIOD, f"rolled one period: {nxt}")
+
+    # Away for two months: reset day must not drift to "now".
+    late = current_period_start(anchor, anchor + timedelta(days=75))
+    expect(late == anchor + PREMIUM_PERIOD * 2,
+           f"whole periods only, got {late}")
+    expect((late - anchor).days % 30 == 0, "anchor must stay on the 30-day grid")
+    expect(period_resets_at(late) == late + PREMIUM_PERIOD, "reset is start+30d")
+
+    expect(premium_remaining(299) == 1, "299 used -> 1 left")
+    expect(premium_remaining(300) == 0, "300 used -> blocked")
+    expect(premium_remaining(400) == 0, "never negative")
+
+
+async def case_30(s):
+    """Trial allowance is 15 total, and the 16th is refused."""
+    from services.vox_quota import TRIAL_VOX_LIMIT, trial_remaining
+
+    expect(TRIAL_VOX_LIMIT == 15, f"trial limit is 15, got {TRIAL_VOX_LIMIT}")
+    expect(trial_remaining(14) == 1, "14 used -> 1 left")
+    expect(trial_remaining(15) == 0, "15 used -> exhausted")
+    expect(trial_remaining(99) == 0, "never negative")
+
+
+async def case_31(s):
+    """The kill switch is absolute and defaults to on."""
+    import os
+    from services.subscription_service import vox_globally_enabled
+
+    prior = os.environ.get("REMIVOX_ENABLED")
+    try:
+        os.environ.pop("REMIVOX_ENABLED", None)
+        expect(vox_globally_enabled(), "defaults ON when unset")
+        for off in ("false", "FALSE", "0", "no"):
+            os.environ["REMIVOX_ENABLED"] = off
+            expect(not vox_globally_enabled(), f"{off!r} must disable Vox")
+        os.environ["REMIVOX_ENABLED"] = "true"
+        expect(vox_globally_enabled(), "'true' re-enables")
+    finally:
+        if prior is None:
+            os.environ.pop("REMIVOX_ENABLED", None)
+        else:
+            os.environ["REMIVOX_ENABLED"] = prior
+
+
 CASES = [
     ("01 create daily medication", case_01),
     ("02 create daily, spoken 8:30 PM", case_02),
@@ -782,6 +893,11 @@ CASES = [
     ("24 colliding titles + time -> right one", case_24),
     ("25 colliding titles, no time -> asks", case_25),
     ("26 stated time matches nothing -> says so", case_26),
+    ("27 multi-turn intent costs one use", case_27),
+    ("28 our failures free, user refusals charged", case_28),
+    ("29 premium window rolls in whole 30d steps", case_29),
+    ("30 trial allowance is 15", case_30),
+    ("31 kill switch absolute, defaults on", case_31),
 ]
 
 

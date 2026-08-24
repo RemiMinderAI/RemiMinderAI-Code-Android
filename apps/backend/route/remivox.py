@@ -74,8 +74,10 @@ from services.remivox_languages import (
     language_display_name,
     normalize_language_code,
 )
+from services.vox_quota import is_billable_turn
 from services.subscription_service import (
     enforce_remivox_access,
+    record_vox_use,
 )
 from services.remivox.pipecat_processor import RemiVoxProcessor
 
@@ -472,6 +474,46 @@ async def remivox_ask(
         auto_detect_language=bool(request.auto_detect_language),
         session_id=request.session_id,
     )
+
+
+@router.get("/availability")
+async def remivox_availability(
+    current_user: dict = Depends(get_current_user_jwt),
+):
+    """
+    Can this user use Vox right now, and how much is left?
+
+    Deliberately cheap — no STT, no LLM, no TTS — because the client calls it to
+    decide whether to show the Vox button at all. Returns 200 in every case;
+    "available" carries the answer, so the client never has to treat a normal
+    "you're out of uses" as a network error.
+    """
+    firebase_uid = current_user.get("sub")
+    if not firebase_uid:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    try:
+        status = await enforce_remivox_access(firebase_uid)
+    except HTTPException as exc:
+        detail = exc.detail if isinstance(exc.detail, dict) else {}
+        return {
+            "available": False,
+            "reason": detail.get("code"),
+            "message": detail.get("message"),
+            "remaining": detail.get("remaining", 0),
+            "limit": detail.get("limit", 0),
+            "resets_at": detail.get("resets_at"),
+            "upgrade_available": bool(detail.get("upgrade_available")),
+        }
+    quota = status.get("vox_quota") or {}
+    return {
+        "available": True,
+        "reason": None,
+        "message": None,
+        "remaining": quota.get("remaining", -1),
+        "limit": quota.get("limit", 0),
+        "resets_at": quota.get("resets_at"),
+        "upgrade_available": False,
+    }
 
 
 @router.post("/ask/stream")

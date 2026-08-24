@@ -296,6 +296,32 @@ class BackendApiService {
     return json.decode(response.body) as Map<String, dynamic>;
   }
 
+  /// Whether Vox is usable right now, and how much allowance is left.
+  ///
+  /// Cheap by design — the app calls this to decide whether to show the Vox
+  /// button. Returns unavailable rather than throwing when the server says no,
+  /// so a normal "out of uses" is never confused with a network failure.
+  Future<Map<String, dynamic>> fetchVoxAvailability() async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) {
+      return {'available': false, 'reason': 'unauthenticated'};
+    }
+    try {
+      final response = await http.get(
+        Uri.parse('${Environment.apiBaseUrl}${VoxConfig.availabilityPath}'),
+        headers: {'Authorization': 'Bearer $accessToken'},
+      );
+      if (response.statusCode != 200) {
+        // Unknown server state: fail open so a transient blip does not hide the
+        // button. The turn itself is still gated server-side.
+        return {'available': true, 'reason': 'unknown'};
+      }
+      return json.decode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      return {'available': true, 'reason': 'unreachable'};
+    }
+  }
+
   /// One Vox turn with the reply audio streamed as it is synthesized.
   ///
   /// Returns the turn metadata immediately (it arrives in a header, before any
