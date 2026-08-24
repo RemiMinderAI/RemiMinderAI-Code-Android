@@ -528,7 +528,19 @@ async def _call_gemini(user_message: str) -> dict[str, Any]:
             f"LLM returned empty text (finish_reason={finish_reason})"
         )
     try:
-        return json.loads(cleaned)
+        parsed = json.loads(cleaned)
+        # Attach token counts so unit cost is measured, not estimated. Counts
+        # only — never prompt or response content. cached_content_token_count
+        # matters: our system prompt is identical every call, so Gemini's
+        # implicit caching bills much of the input at a reduced rate.
+        meta = getattr(response, "usage_metadata", None)
+        if meta is not None and isinstance(parsed, dict):
+            parsed["_usage"] = {
+                "prompt": getattr(meta, "prompt_token_count", None),
+                "output": getattr(meta, "candidates_token_count", None),
+                "cached": getattr(meta, "cached_content_token_count", None),
+            }
+        return parsed
     except json.JSONDecodeError as exc:
         if finish_reason == "MAX_TOKENS":
             logger.warning(
@@ -584,12 +596,19 @@ async def extract_care_intent(
             )
         )
         result = normalize_extraction(payload, timezone_name=timezone_name, now=now)
+        # Token counts, so unit cost is measured rather than estimated.
+        # Counts only — no prompt or response content (PHI).
+        usage = payload.get("_usage") if isinstance(payload, dict) else None
         logger.info(
-            "VOX_NLU llm intent=%s confidence=%.2f fields=%s latency_ms=%d",
+            "VOX_NLU llm intent=%s confidence=%.2f fields=%s latency_ms=%d "
+            "tokens_in=%s tokens_out=%s tokens_cached=%s",
             result["intent"],
             result["confidence"],
             _present_fields(result["entities"]),
             int((time.monotonic() - started) * 1000),
+            (usage or {}).get("prompt", "?"),
+            (usage or {}).get("output", "?"),
+            (usage or {}).get("cached", "?"),
         )
         return result
     except asyncio.TimeoutError:
