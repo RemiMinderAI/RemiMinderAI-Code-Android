@@ -53,7 +53,7 @@ class _PatientAppShellState extends State<PatientAppShell> {
             child: widget.child,
           ),
 
-          if (widget.routes == null && widget.currentItem.index == 0) // Vox re-enabled for testing
+          if (widget.routes == null && widget.currentItem.index == 0) // Patient home only
             Positioned(
               right: 56,
               bottom: bottomInset + 102,
@@ -157,11 +157,21 @@ class _VoxButtonBodyState extends State<_VoxButtonBody>
     return 'Ask';
   }
 
+  /// True whenever the button is mid-interaction, where the status wording is
+  /// long enough that a third line would overflow the 72px circle.
+  bool get _voxLabelSuppressed =>
+      _pipecatWaiting ||
+      _pipecatPlaying ||
+      _voiceLiveActive ||
+      _voxRecording ||
+      _voxThinking ||
+      _awaitingFollowUp;
+
   String get _voxStatusBottom {
-    if (_pipecatWaiting) return 'Please wait';
+    if (_pipecatWaiting) return 'wait';
     if (_voiceLiveActive) return 'Tap stop';
     if (_voxRecording) return 'speak now';
-    if (_voxThinking) return 'one moment';
+    if (_voxThinking) return 'a moment';
     if (_awaitingFollowUp) return 'reply';
     return 'me';
   }
@@ -1310,17 +1320,24 @@ class _VoxButtonBodyState extends State<_VoxButtonBody>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'Vox',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'Poppins',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
+                // At rest the button reads Vox / Ask / me — three short lines
+                // that fit. Active states use longer wording ("Listening" /
+                // "speak now"), so the name is dropped: the user is looking at
+                // the button they just tapped and does not need reminding what
+                // it is called.
+                if (!_voxLabelSuppressed) ...[
+                  const Text(
+                    'Vox',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Poppins',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
+                  const SizedBox(height: 3),
+                ],
                 if (_pipecatPlaying) ...[
                   const Icon(
                     Icons.graphic_eq,
@@ -1348,14 +1365,24 @@ class _VoxButtonBodyState extends State<_VoxButtonBody>
                       height: 1,
                     ),
                   ),
-                  Text(
-                    _voxStatusBottom,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Poppins',
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      height: 1,
+                  // Constrained and auto-shrinking so no future wording change
+                  // can spill outside the circle. 56 leaves room for the 3px
+                  // border and a little breathing space either side.
+                  SizedBox(
+                    width: 56,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        _voxStatusBottom,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Poppins',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          height: 1,
+                        ),
+                      ),
                     ),
                   ),
                 ],
