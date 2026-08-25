@@ -238,7 +238,17 @@ SUMMARIES = [
 
 
 def today() -> date:
-    return datetime.now(timezone.utc).date()
+    """
+    "Today" as the USER experiences it, in TZ — not in UTC.
+
+    The pipeline is told timezone_name=TZ and resolves "tomorrow" against that.
+    Computing the expectation in UTC made this suite fail for the four hours
+    between UTC midnight and local midnight, blaming the product for the
+    harness being in the wrong timezone.
+    """
+    from zoneinfo import ZoneInfo
+
+    return datetime.now(ZoneInfo(TZ)).date()
 
 
 def next_weekday(name: str, at_hhmm: Optional[str] = None) -> date:

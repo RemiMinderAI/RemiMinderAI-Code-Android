@@ -1078,6 +1078,12 @@ async def _remivox_prepare(
         text = result["text"]
         action = result.get("action")
         action_payload = result.get("action_payload") or {}
+
+        # Consume one Vox use, but only for a turn that finished a user intent.
+        # Clarification turns and our own failures are free — see
+        # services/vox_quota.is_billable_turn.
+        if is_billable_turn(result):
+            await record_vox_use(firebase_uid)
         # Speak back in the language the user used.
         if lang != DEFAULT_REMIVOX_LANGUAGE:
             text = _simple_translate(
