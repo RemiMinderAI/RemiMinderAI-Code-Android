@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+
+import 'backend_api_service.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../config/environment.dart';
 
@@ -51,12 +53,34 @@ class RevenueCatService {
     }
   }
 
+  /// Report entitlement state to the backend.
+  ///
+  /// The server treats this as a claim and verifies it against RevenueCat — it
+  /// is what stops a paid subscription from living only in this process's
+  /// memory while users.plan stays TRIAL.
+  Future<void> _syncToBackend(String source, {String? productId}) async {
+    try {
+      final appUserId = await Purchases.appUserID;
+      await BackendApiService().syncSubscription(
+        premium: _isPremium,
+        appUserId: appUserId,
+        productId: productId,
+        source: source,
+      );
+    } catch (e) {
+      if (kDebugMode) print('❌ Backend subscription sync failed: $e');
+    }
+  }
+
   Future<void> refreshPremiumStatus() async {
     if (!_initialized) return;
     try {
       final info = await Purchases.getCustomerInfo();
       _isPremium = info.entitlements.active.containsKey('Premium');
       if (kDebugMode) print('🔑 Premium status: $_isPremium');
+      // Self-healing path: covers a sync that failed at purchase time, and a
+      // reinstall where the entitlement is restored silently.
+      if (_isPremium) await _syncToBackend('app_start');
     } catch (e) {
       if (kDebugMode) print('❌ RevenueCat status check failed: $e');
     }
@@ -80,6 +104,8 @@ class RevenueCatService {
     try {
       final result = await Purchases.purchasePackage(package);
       _isPremium = result.customerInfo.entitlements.active.containsKey('Premium');
+      await _syncToBackend('purchase',
+          productId: package.storeProduct.identifier);
       return _isPremium;
     } on PurchasesErrorCode catch (e) {
       if (e == PurchasesErrorCode.purchaseCancelledError) {
@@ -99,6 +125,7 @@ class RevenueCatService {
     try {
       final info = await Purchases.restorePurchases();
       _isPremium = info.entitlements.active.containsKey('Premium');
+      await _syncToBackend('restore');
     } catch (e) {
       if (kDebugMode) print('❌ Restore failed: $e');
     }

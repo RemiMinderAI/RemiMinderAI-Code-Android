@@ -296,6 +296,43 @@ class BackendApiService {
     return json.decode(response.body) as Map<String, dynamic>;
   }
 
+  /// Tell the backend about a purchase or restore.
+  ///
+  /// [premium] is a HINT only — the server re-checks it against RevenueCat
+  /// before changing anyone's plan, so a client claim alone cannot grant access.
+  Future<Map<String, dynamic>> syncSubscription({
+    required bool premium,
+    String? appUserId,
+    String? productId,
+    String? source,
+  }) async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) return {'ok': false, 'reason': 'unauthenticated'};
+    try {
+      final response = await http.post(
+        Uri.parse('${Environment.apiBaseUrl}/api/subscription/revenuecat/sync'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'premium': premium,
+          if (appUserId != null) 'app_user_id': appUserId,
+          if (productId != null) 'product_id': productId,
+          if (source != null) 'source': source,
+        }),
+      );
+      if (response.statusCode != 200) {
+        return {'ok': false, 'reason': 'http_${response.statusCode}'};
+      }
+      return json.decode(response.body) as Map<String, dynamic>;
+    } catch (e) {
+      // Non-fatal: the webhook and the app-start re-sync both cover this.
+      debugPrint('SUBSCRIPTION_SYNC_FAILED: $e');
+      return {'ok': false, 'reason': 'unreachable'};
+    }
+  }
+
   /// Whether Vox is usable right now, and how much allowance is left.
   ///
   /// Cheap by design — the app calls this to decide whether to show the Vox

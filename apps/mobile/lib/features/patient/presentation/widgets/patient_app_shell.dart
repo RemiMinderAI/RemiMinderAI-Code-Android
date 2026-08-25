@@ -218,6 +218,9 @@ class _VoxButtonBodyState extends State<_VoxButtonBody>
         reason: UpgradePromptReason.trialExpired,
         screen: 'patient_shell_vox_quota',
       );
+      // If they subscribed, RevenueCatService has already told the backend.
+      // Re-read availability so Vox unlocks now rather than at next cold start.
+      await _refreshVoxAvailability();
       return;
     }
     _snack(message, duration: const Duration(seconds: 6));

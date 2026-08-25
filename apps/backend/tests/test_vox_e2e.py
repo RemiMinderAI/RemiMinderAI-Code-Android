@@ -351,7 +351,7 @@ def _mock_table() -> dict[str, dict]:
                          "time": "20:00"},
             "confidence": 0.85,
         },
-        "Set a reminder for Gonarex": {
+        "Set a medication reminder for Gonarex": {
             "intent": "CREATE_REMINDER",
             "entities": {"title": "Gonarex", "reminder_type": "medication"},
             "confidence": 0.9,
@@ -603,7 +603,7 @@ async def case_09(s):
 
 
 async def case_10(s):
-    out = await say("Set a reminder for Gonarex", session=s)
+    out = await say("Set a medication reminder for Gonarex", session=s)
     expect(not STORE.created, "no create yet")
     expect("time" in out["text"].lower(), f"ask time: {out['text']!r}")
 
@@ -705,7 +705,7 @@ async def case_20(s):
 
 async def case_21(s):
     """Two unanswered clarification rounds, then Vox restarts the request."""
-    out = await say("Set a reminder for Gonarex", session=s)
+    out = await say("Set a medication reminder for Gonarex", session=s)
     expect("time" in out["text"].lower(), f"round 1: {out['text']!r}")
 
     # Unintelligible, and not confusable with "never mind" — this case is about
@@ -914,6 +914,92 @@ async def case_32(s):
                 os.environ[k] = v
 
 
+# ---------------------------------------------------------------------------
+# RevenueCat: webhook semantics, auth and idempotency. Pure functions, no DB.
+# ---------------------------------------------------------------------------
+
+async def case_33(s):
+    """Webhook auth fails closed and only accepts the configured token."""
+    import os
+    from services.revenuecat import webhook_authorized
+
+    prior = os.environ.get("REVENUECAT_WEBHOOK_TOKEN")
+    try:
+        os.environ.pop("REVENUECAT_WEBHOOK_TOKEN", None)
+        expect(not webhook_authorized("Bearer anything"),
+               "no configured token must reject everything")
+        os.environ["REVENUECAT_WEBHOOK_TOKEN"] = "s3cret-token"
+        expect(not webhook_authorized(None), "missing header rejected")
+        expect(not webhook_authorized(""), "empty header rejected")
+        expect(not webhook_authorized("Bearer wrong"), "wrong token rejected")
+        expect(webhook_authorized("Bearer s3cret-token"), "bearer form accepted")
+        expect(webhook_authorized("s3cret-token"), "bare token accepted")
+    finally:
+        if prior is None:
+            os.environ.pop("REVENUECAT_WEBHOOK_TOKEN", None)
+        else:
+            os.environ["REVENUECAT_WEBHOOK_TOKEN"] = prior
+
+
+async def case_34(s):
+    """Event types map to the right access transition."""
+    from services.revenuecat import premium_after_event
+
+    for kind in ("INITIAL_PURCHASE", "RENEWAL", "PRODUCT_CHANGE", "UNCANCELLATION"):
+        expect(premium_after_event(kind, {}) is True, f"{kind} must grant access")
+    for kind in ("EXPIRATION", "REFUND"):
+        expect(premium_after_event(kind, {}) is False, f"{kind} must revoke access")
+    # CANCELLATION means "will not renew" — access runs to the paid-for date.
+    # Revoking here would cut off time the user already paid for.
+    expect(premium_after_event("CANCELLATION", {}) is None,
+           "CANCELLATION must not revoke immediately")
+    expect(premium_after_event("BILLING_ISSUE", {}) is None,
+           "BILLING_ISSUE is a retry, not a revocation")
+    expect(premium_after_event("SOMETHING_NEW", {}) is None,
+           "unknown event types must not change the plan")
+
+
+async def case_35(s):
+    """Entitlement is read from RevenueCat's shape, expiry respected."""
+    from datetime import datetime, timedelta, timezone
+    from services.revenuecat import entitlement_active
+
+    future = (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()
+    past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    expect(entitlement_active({"entitlements": {"Premium": {"expires_date": future}}}),
+           "unexpired Premium is active")
+    expect(not entitlement_active({"entitlements": {"Premium": {"expires_date": past}}}),
+           "expired Premium is not active")
+    expect(entitlement_active({"entitlements": {"Premium": {"expires_date": None}}}),
+           "lifetime entitlement is active")
+    expect(not entitlement_active({"entitlements": {}}), "no entitlement -> inactive")
+    expect(not entitlement_active({}), "empty subscriber -> inactive")
+
+
+async def case_36(s):
+    """An unverifiable claim must not upgrade anyone by default."""
+    import os
+    from services.revenuecat import allow_unverified, secret_key
+
+    prior_key = os.environ.get("REVENUECAT_SECRET_KEY")
+    prior_allow = os.environ.get("REVENUECAT_ALLOW_UNVERIFIED")
+    try:
+        os.environ.pop("REVENUECAT_SECRET_KEY", None)
+        os.environ.pop("REVENUECAT_ALLOW_UNVERIFIED", None)
+        expect(secret_key() is None, "no key configured")
+        expect(not allow_unverified(),
+               "unverified upgrades must be OFF unless explicitly enabled")
+        os.environ["REVENUECAT_ALLOW_UNVERIFIED"] = "true"
+        expect(allow_unverified(), "explicit opt-in is honoured")
+    finally:
+        for k, v in (("REVENUECAT_SECRET_KEY", prior_key),
+                     ("REVENUECAT_ALLOW_UNVERIFIED", prior_allow)):
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
 CASES = [
     ("01 create daily medication", case_01),
     ("02 create daily, spoken 8:30 PM", case_02),
@@ -947,6 +1033,10 @@ CASES = [
     ("30 trial allowance is 15", case_30),
     ("31 kill switch absolute, defaults on", case_31),
     ("32 test-mode bypass fails closed", case_32),
+    ("33 webhook auth fails closed", case_33),
+    ("34 event types map to right transition", case_34),
+    ("35 entitlement expiry respected", case_35),
+    ("36 unverified upgrades off by default", case_36),
 ]
 
 

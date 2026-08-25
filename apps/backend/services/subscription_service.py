@@ -187,6 +187,14 @@ async def sync_revenuecat_status(
         if next_plan == PLAN_TRIAL:
             next_plan = _expire_trial_if_needed(conn, str(row.id), next_plan, row.trial_end_date)
 
+        # Start the Vox 30-day window at the moment of upgrade so it tracks the
+        # billing date. Only on a genuine transition into PREMIUM (or a missing
+        # anchor) — resetting on every sync call would let a user refresh their
+        # own allowance by replaying the endpoint.
+        starting_period = premium and (
+            current_plan != PLAN_PREMIUM
+            or getattr(row, "vox_period_start", None) is None
+        )
         conn.execute(
             text("""
                 UPDATE users
@@ -194,7 +202,11 @@ async def sync_revenuecat_status(
                     revenuecat_app_user_id = COALESCE(:app_user_id, revenuecat_app_user_id),
                     revenuecat_entitlement_active = :premium,
                     subscription_source = COALESCE(:source, subscription_source),
-                    subscription_updated_at = now()
+                    subscription_updated_at = now(),
+                    vox_period_start = CASE WHEN :starting_period
+                        THEN now() ELSE vox_period_start END,
+                    vox_period_count = CASE WHEN :starting_period
+                        THEN 0 ELSE vox_period_count END
                 WHERE id = CAST(:user_id AS uuid)
             """),
             {
@@ -202,6 +214,7 @@ async def sync_revenuecat_status(
                 "app_user_id": app_user_id,
                 "premium": premium,
                 "source": source or ("play_store" if product_id else None),
+                "starting_period": bool(starting_period),
                 "user_id": str(row.id),
             },
         )
