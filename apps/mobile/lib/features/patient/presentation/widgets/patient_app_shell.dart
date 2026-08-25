@@ -96,7 +96,8 @@ class _VoxButtonBody extends StatefulWidget {
   State<_VoxButtonBody> createState() => _VoxButtonBodyState();
 }
 
-class _VoxButtonBodyState extends State<_VoxButtonBody> {
+class _VoxButtonBodyState extends State<_VoxButtonBody>
+    with WidgetsBindingObserver {
   static const Duration _initialListenFor =
       VoxConfig.initialListenTimeout;
   static const Duration _followUpListenFor =
@@ -169,9 +170,20 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Fire and forget: the button renders immediately and corrects itself if
     // the server says Vox is off or the allowance is spent.
     unawaited(_refreshVoxAvailability());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // A subscription bought while the app was backgrounded — or a period that
+    // rolled over — should take effect on return, not on next cold start.
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshVoxAvailability());
+    }
   }
 
   Future<void> _refreshVoxAvailability() async {
@@ -202,6 +214,7 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
   }
 
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _disposeCuePlayer();
     _pipecatSilenceTimer?.cancel();
     _pipecatSpeechResetTimer?.cancel();
@@ -285,8 +298,15 @@ class _VoxButtonBodyState extends State<_VoxButtonBody> {
 
   Future<void> _handleTap() async {
     if (!_voxAvailable) {
-      await _handleVoxUnavailable();
-      return;
+      // _voxAvailable is read at launch and may be stale — most importantly for
+      // someone who has just subscribed. Re-ask before refusing, so paying and
+      // remaining locked out is impossible.
+      await _refreshVoxAvailability();
+      if (!mounted) return;
+      if (!_voxAvailable) {
+        await _handleVoxUnavailable();
+        return;
+      }
     }
     if (_pipecatActive) {
       await _stopPipecatStream();
