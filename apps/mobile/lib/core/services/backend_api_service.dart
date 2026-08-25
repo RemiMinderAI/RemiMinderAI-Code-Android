@@ -316,7 +316,9 @@ class BackendApiService {
         // button. The turn itself is still gated server-side.
         return {'available': true, 'reason': 'unknown'};
       }
-      return json.decode(response.body) as Map<String, dynamic>;
+      final parsed = json.decode(response.body) as Map<String, dynamic>;
+      debugPrint('VOX_AVAILABILITY: $parsed');
+      return parsed;
     } catch (_) {
       return {'available': true, 'reason': 'unreachable'};
     }
