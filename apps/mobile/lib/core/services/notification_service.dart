@@ -588,12 +588,29 @@ class NotificationService {
     final notificationId = _stableNotificationId(reminderId);
     await _notifications.cancel(notificationId);
 
+    // A time picked earlier today is in the past by the time we schedule it,
+    // and zonedSchedule throws "Must be a date in the future". The row still
+    // saved, so the user saw their reminder in the list and got no alert —
+    // silent failure of the app's core function. Roll to the next real
+    // occurrence instead, matching what the backend already does for
+    // Vox-created reminders so the two paths agree.
+    final effectiveTime = _nextOccurrence(
+      scheduledTime,
+      isRecurring: isRecurring,
+      recurrencePattern: recurrencePattern,
+    );
+    if (effectiveTime == null) {
+      debugPrint('Notification not scheduled: no future occurrence for '
+          '$reminderId (pattern=$recurrencePattern)');
+      return;
+    }
+
     if (isRecurring) {
       await scheduleRecurringReminder(
         notificationId: notificationId,
         title: title,
         body: body,
-        firstReminderTime: scheduledTime,
+        firstReminderTime: effectiveTime,
         medicationId: reminderId,
         recurrencePattern: recurrencePattern,
       );
@@ -602,10 +619,61 @@ class NotificationService {
         notificationId: notificationId,
         title: title,
         body: body,
-        scheduledTime: scheduledTime,
+        scheduledTime: effectiveTime,
         medicationId: reminderId,
       );
     }
+  }
+
+  /// The next occurrence of [scheduled] that is still in the future.
+  ///
+  /// A one-off whose time has already passed rolls to tomorrow rather than
+  /// being rejected: the alternative is a reminder the user created and never
+  /// hears. Recurring reminders advance by their own step so a daily 8am
+  /// created at 9am fires tomorrow morning, not never.
+  /// Visible for testing: the roll-forward that stops zonedSchedule throwing.
+  @visibleForTesting
+  static DateTime? nextOccurrenceForTest(
+    DateTime scheduled, {
+    required bool isRecurring,
+    required String recurrencePattern,
+    DateTime? now,
+  }) =>
+      _computeNextOccurrence(scheduled,
+          recurrencePattern: recurrencePattern, now: now ?? DateTime.now());
+
+  DateTime? _nextOccurrence(
+    DateTime scheduled, {
+    required bool isRecurring,
+    required String recurrencePattern,
+  }) {
+    return _computeNextOccurrence(scheduled,
+        recurrencePattern: recurrencePattern, now: DateTime.now());
+  }
+
+  /// Pure so it can be exercised directly; no plugin, no clock of its own.
+  static DateTime? _computeNextOccurrence(
+    DateTime scheduled, {
+    required String recurrencePattern,
+    required DateTime now,
+  }) {
+    // A small margin: a time one second away cannot be scheduled reliably.
+    final earliest = now.add(const Duration(seconds: 30));
+    if (scheduled.isAfter(earliest)) return scheduled;
+
+    final step = switch (recurrencePattern) {
+      'weekly' => const Duration(days: 7),
+      'twice' || 'twice_daily' => const Duration(hours: 12),
+      _ => const Duration(days: 1),
+    };
+
+    var next = scheduled;
+    // Bounded so a bad date can never spin: a year of steps is far more than
+    // any real reminder needs.
+    for (var i = 0; i < 400 && !next.isAfter(earliest); i++) {
+      next = next.add(step);
+    }
+    return next.isAfter(earliest) ? next : null;
   }
 
   Future<void> cancelFromReminderId(String reminderId) async {

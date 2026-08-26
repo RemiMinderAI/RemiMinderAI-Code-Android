@@ -156,6 +156,14 @@ RULES:
 10. "title" is the subject only — never include the time, day, or frequency in it.
     "Doctor appointment with Dr. Gubbala on Thursday at 3 PM" -> title="Doctor
     appointment with Dr. Gubbala", doctor_name="Dr. Gubbala", day_of_week="thursday".
+11a. Weekday sets: "weekdays" / "every weekday" / "on weekdays" / "Monday to
+    Friday" -> frequency="custom", custom_days=["monday","tuesday","wednesday",
+    "thursday","friday"]. "weekends" / "weekends only" / "on the weekend" ->
+    frequency="custom", custom_days=["saturday","sunday"].
+11b. Spacings we cannot store yet — "every other day", "every 3 days", "every
+    other week", "every other Monday" — must NOT be forced into interval_hours
+    or custom_days. Leave frequency null so the assistant asks, rather than
+    silently creating a schedule the patient did not ask for.
 11. A bare deletion phrase with no subject ("delete everything", "remove them all")
     is DELETE_REMINDER with title=null — never assume which reminder is meant.
 12. If the transcript is empty, silent, or unintelligible, use intent=UNKNOWN with

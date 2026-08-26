@@ -324,7 +324,10 @@ def transcribe_pulse(
 # else, so the spoken form has to be right. Applied to both the streaming and
 # non-streaming paths so they can never drift apart.
 
-_VITAMIN_RE = re.compile(r"\b([A-K])(\d{1,2})\b")
+# "B12" / "b12" / "B-12" / "B 12" all mean the same vitamin. Speech-to-text
+# and the LLM both preserve whatever the user said, so the hyphenated and
+# lowercase forms reached TTS unspoken — "Vitamin B-12" was read as letters.
+_VITAMIN_RE = re.compile(r"\b([A-Ka-k])[\s-]?(\d{1,2})\b")
 _DOSE_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*(mg|mcg|ug|ml|g|iu)\b", re.IGNORECASE)
 # Capture a trailing meridiem so "9:00 AM" becomes "nine AM", not
 # "nine o'clock AM" — nobody says the latter.

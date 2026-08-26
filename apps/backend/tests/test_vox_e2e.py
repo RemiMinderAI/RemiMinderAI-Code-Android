@@ -438,6 +438,26 @@ def _mock_table() -> dict[str, dict]:
                          "time": "03:00"},
             "confidence": 0.95,
         },
+        "Set a reminder for Metoprolol at 8 AM on weekdays": {
+            "intent": "CREATE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication",
+                         "time": "08:00", "frequency": "custom",
+                         "custom_days": ["monday","tuesday","wednesday","thursday","friday"]},
+            "confidence": 0.95,
+        },
+        "Add Vitamin D at 9 AM on weekends": {
+            "intent": "CREATE_REMINDER",
+            "entities": {"title": "Vitamin D", "reminder_type": "medication",
+                         "time": "09:00", "frequency": "custom",
+                         "custom_days": ["saturday","sunday"]},
+            "confidence": 0.95,
+        },
+        "Set a reminder for Metoprolol at 8 AM every other day": {
+            "intent": "CREATE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication",
+                         "time": "08:00", "frequency": None},
+            "confidence": 0.7,
+        },
         "Pregavelin at eighty thirty PM everyday": {
             "intent": "CREATE_REMINDER",
             "entities": {"title": "Pregabalin", "reminder_type": "medication",
@@ -1000,6 +1020,81 @@ async def case_36(s):
                 os.environ[k] = v
 
 
+async def case_37(s):
+    """B12 is spoken as "B twelve" in every written form the LLM produces."""
+    from services.remivox.voice import normalize_for_speech
+
+    # The failing form on device: the LLM preserves the user's hyphen.
+    expect("B twelve" in normalize_for_speech("Vitamin B-12"),
+           "hyphenated B-12 must be spoken")
+    expect("b twelve" in normalize_for_speech("vitamin b12"),
+           "lowercase b12 must be spoken")
+    expect("B twelve" in normalize_for_speech("Vitamin B12"), "plain B12")
+    expect("B twelve" in normalize_for_speech("Vitamin B 12"), "spaced B 12")
+    got = normalize_for_speech("Vitamin B12 at 8:30 PM")
+    expect(got == "Vitamin B twelve at eight thirty PM", f"full reply: {got!r}")
+    # Must not mangle ordinary numbers.
+    for untouched in ("Metoprolol 50", "Take 2 tablets"):
+        expect(normalize_for_speech(untouched) == untouched,
+               f"must not rewrite {untouched!r}")
+
+
+async def case_38(s):
+    """A not-yet-due reply states the fact and asks nothing unanswerable."""
+    from services.remivox.response.builder import _text_for
+    from services.remivox.intents.models import VoxIntent
+    from services.remivox.actions.types import ActionResult
+
+    payload = {"title": "Metoprolol", "due_local": "tomorrow at 10 PM"}
+    text = _text_for("not_due_yet", VoxIntent.COMPLETE_REMINDER, payload,
+                     ActionResult(success=False, action="complete_reminder",
+                                  message_key="not_due_yet", payload=payload))
+    expect("tomorrow at 10 PM" in text, f"must say when it IS due: {text!r}")
+    expect("?" not in text,
+           f"must not ask a question nothing can answer: {text!r}")
+
+
+async def case_39(s):
+    """Bare "yes" with nothing pending says so, rather than generic help."""
+    out = await say("Yes", session=s)
+    text = out["text"].lower()
+    expect("waiting for confirmation" in text, f"reply={out['text']!r}")
+    expect("i can set reminders" not in text,
+           f"must not fall back to generic help: {out['text']!r}")
+
+
+async def case_40(s):
+    """"weekdays" and "weekends" map to the right custom_days."""
+    out = await say("Set a reminder for Metoprolol at 8 AM on weekdays", session=s)
+    expect(out["intent"] == "CREATE_REMINDER", f"intent={out['intent']}")
+    r = only_created()
+    expect(r.recurrence == "custom", f"recurrence={r.recurrence}")
+    expect(r.custom_days == ["monday", "tuesday", "wednesday", "thursday", "friday"],
+           f"weekdays -> {r.custom_days}")
+
+    STORE.reset()
+    out = await say("Add Vitamin D at 9 AM on weekends", session=s + "-we")
+    r = only_created()
+    expect(r.recurrence == "custom", f"recurrence={r.recurrence}")
+    expect(r.custom_days == ["saturday", "sunday"], f"weekends -> {r.custom_days}")
+
+
+async def case_41(s):
+    """An unsupported spacing must not become a nonsensical recurrence."""
+    out = await say("Set a reminder for Metoprolol at 8 AM every other day", session=s)
+    if STORE.created:
+        r = STORE.created[0]
+        # If it created anything, it must not have invented a schedule: 48h in
+        # interval_hours, or weekday sets the user never named.
+        expect(r.recurrence != "interval" or (r.interval_hours or 0) <= 24,
+               f"must not store an out-of-range interval: {r.interval_hours}")
+        expect(r.recurrence != "custom" or not r.custom_days,
+               f"must not invent custom_days: {r.custom_days}")
+    else:
+        expect("?" in out["text"] or "how often" in out["text"].lower(),
+               f"should ask rather than guess: {out['text']!r}")
+
+
 CASES = [
     ("01 create daily medication", case_01),
     ("02 create daily, spoken 8:30 PM", case_02),
@@ -1037,6 +1132,11 @@ CASES = [
     ("34 event types map to right transition", case_34),
     ("35 entitlement expiry respected", case_35),
     ("36 unverified upgrades off by default", case_36),
+    ("37 B12 spoken in every written form", case_37),
+    ("38 not-due reply asks nothing unanswerable", case_38),
+    ("39 bare yes with nothing pending", case_39),
+    ("40 weekdays / weekends map to custom_days", case_40),
+    ("41 unsupported spacing not stored as nonsense", case_41),
 ]
 
 

@@ -219,11 +219,18 @@ def _text_for(
         return "Could you share a bit more detail?"
 
     if key == "not_due_yet":
+        # Deliberately NOT a question. The previous copy asked "did you mean
+        # today's?" but nothing held pending state to receive the answer, so a
+        # "yes" fell through to UNKNOWN and the user got generic help text after
+        # a specific exchange. Never ask what the system cannot act on.
         title = payload.get("title") or "That reminder"
         due = payload.get("due_local")
         if due:
-            return f"{title} isn't due until {due} — did you mean today's?"
-        return f"{title} isn't due yet — did you mean a different one?"
+            return (
+                f"{title} isn't due until {due}, so I haven't marked it done. "
+                "You can mark it done once it's due."
+            )
+        return f"{title} isn't due yet, so I haven't marked it done."
 
     if key == "time_mismatch":
         title = payload.get("title") or "that"

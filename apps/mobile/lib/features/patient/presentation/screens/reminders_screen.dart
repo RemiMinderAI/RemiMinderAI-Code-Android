@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/utils/reminder_action_error.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -1591,23 +1593,18 @@ class _RemindersScreenState extends State<RemindersScreen>
           );
           return;
         }
-        // 409 = reminder not due yet. Say when, don't just fail.
+        // 409 = reminder not due yet. Shared with reminder_detail_screen so the
+        // two cannot drift apart again.
         if (response.statusCode == 409 && mounted) {
-          String msg = 'This reminder isn\'t due yet.';
-          try {
-            final detail = jsonDecode(response.body)['detail'];
-            if (detail is Map && detail['error'] == 'reminder_not_due') {
-              final when = detail['scheduled_time']?.toString();
-              final parsed = when != null ? DateTime.tryParse(when) : null;
-              if (parsed != null) {
-                msg = 'Not due until ${LocaleFormat.time(context, parsed.toLocal())}.';
-              } else if (detail['message'] != null) {
-                msg = detail['message'].toString();
-              }
-            }
-          } catch (_) {}
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(msg)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(reminderActionMessage(
+                context,
+                statusCode: response.statusCode,
+                body: response.body,
+              )),
+            ),
+          );
           return;
         }
         throw Exception('Failed (${response.statusCode})');

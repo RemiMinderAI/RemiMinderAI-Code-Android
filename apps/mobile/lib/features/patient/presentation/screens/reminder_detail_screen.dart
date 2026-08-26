@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../../../../core/utils/reminder_action_error.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -76,7 +78,19 @@ class _ReminderDetailScreenState extends State<ReminderDetailScreen> {
         },
       );
       if (res.statusCode != 200) {
-        throw Exception('Action failed');
+        // A not-yet-due reminder is a deliberate refusal, not a failure — say
+        // when it IS due instead of "Action Failed".
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(reminderActionMessage(
+              context,
+              statusCode: res.statusCode,
+              body: res.body,
+            )),
+          ),
+        );
+        return;
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
