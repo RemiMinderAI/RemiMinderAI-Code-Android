@@ -54,9 +54,9 @@ async def create_reminder(data: dict) -> Optional[Dict[str, Any]]:
             text("""
                 INSERT INTO reminders
                 (user_id, visit_id, reminder_type, title, message, scheduled_time, timezone,
-                 recurrence, interval_hours, custom_days, status)
+                 recurrence, interval_hours, custom_days, interval_count, status)
                 VALUES (:user_id, :visit_id, :reminder_type, :title, :message, :scheduled_time, :timezone,
-                        :recurrence, :interval_hours, :custom_days, :status)
+                        :recurrence, :interval_hours, :custom_days, :interval_count, :status)
                 RETURNING *
             """),
             {
@@ -70,6 +70,7 @@ async def create_reminder(data: dict) -> Optional[Dict[str, Any]]:
                 "recurrence": data.get("recurrence", "once"),
                 "interval_hours": data.get("interval_hours"),
                 "custom_days": data.get("custom_days"),
+                "interval_count": data.get("interval_count") or 1,
                 "status": "pending",
             },
         )
@@ -562,19 +563,31 @@ def next_recurrence_time(
     *,
     interval_hours: Optional[int] = None,
     custom_days: Optional[List[str]] = None,
+    interval_count: Optional[int] = None,
 ) -> Optional[datetime]:
     """
     When the next instance of a recurring reminder is due.
+
+    interval_count is "every N of the base period": daily+2 is every other day,
+    weekly+2 every other week, custom(monday)+2 every other Monday. It defaults
+    to 1, so a row without it behaves exactly as before.
 
     Returns None when the reminder does not recur (or the recurrence is not
     actionable, e.g. "custom" with no weekdays stored).
     """
     recurrence = (recurrence or "").strip().lower()
+    try:
+        every = int(interval_count or 1)
+    except (TypeError, ValueError):
+        every = 1
+    # Clamp rather than trust: the DB CHECK bounds this, but this function is
+    # also called with values straight off a dict.
+    every = max(1, min(60, every))
 
     if recurrence == "daily":
-        return original_time + timedelta(days=1)
+        return original_time + timedelta(days=every)
     if recurrence == "weekly":
-        return original_time + timedelta(weeks=1)
+        return original_time + timedelta(weeks=every)
     if recurrence in {"twice", "twice_daily"}:
         # AM half -> PM half the same day; PM half -> AM half the next day.
         return original_time + timedelta(hours=12)
@@ -596,7 +609,12 @@ def next_recurrence_time(
         current = original_time.weekday()
         # Days until the next selected weekday, wrapping to next week.
         deltas = [(day - current) % 7 or 7 for day in wanted]
-        return original_time + timedelta(days=min(deltas))
+        nxt = original_time + timedelta(days=min(deltas))
+        if every > 1:
+            # "every other Monday": skip whole weeks, not whole days, or a
+            # multi-day set would drift off its chosen weekdays entirely.
+            nxt += timedelta(weeks=every - 1)
+        return nxt
     return None
 
 
@@ -611,12 +629,14 @@ async def create_recurring_reminder(original_reminder: dict) -> Optional[Dict[st
 
     interval_hours = original_reminder.get("interval_hours")
     custom_days = original_reminder.get("custom_days")
+    interval_count = original_reminder.get("interval_count") or 1
 
     next_time = next_recurrence_time(
         original_time,
         original_reminder.get("recurrence"),
         interval_hours=interval_hours,
         custom_days=custom_days,
+        interval_count=interval_count,
     )
     if next_time is None:
         return None  # No recurrence
@@ -633,6 +653,7 @@ async def create_recurring_reminder(original_reminder: dict) -> Optional[Dict[st
         "recurrence": original_reminder["recurrence"],
         "interval_hours": interval_hours,
         "custom_days": list(custom_days) if custom_days else None,
+        "interval_count": interval_count,
         "status": "pending"
     }
 
@@ -642,9 +663,9 @@ async def create_recurring_reminder(original_reminder: dict) -> Optional[Dict[st
             text("""
                 INSERT INTO reminders
                 (user_id, visit_id, reminder_type, title, message, scheduled_time, timezone,
-                 recurrence, interval_hours, custom_days, status)
+                 recurrence, interval_hours, custom_days, interval_count, status)
                 VALUES (:user_id, :visit_id, :reminder_type, :title, :message, :scheduled_time, :timezone,
-                        :recurrence, :interval_hours, :custom_days, :status)
+                        :recurrence, :interval_hours, :custom_days, :interval_count, :status)
                 RETURNING *
             """),
             new_reminder_data,

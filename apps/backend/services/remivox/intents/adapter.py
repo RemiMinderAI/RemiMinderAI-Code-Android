@@ -57,6 +57,7 @@ def _create_entities(entities: dict[str, Any]) -> dict[str, Any]:
         "date": entities.get("date"),
         "day_of_week": entities.get("day_of_week"),
         "interval_hours": entities.get("interval_hours"),
+        "interval_count": entities.get("interval_count"),
         "custom_days": entities.get("custom_days"),
         "doctor_name": entities.get("doctor_name"),
     }

@@ -177,6 +177,7 @@ async def create_new_reminder(data: ReminderCreate) -> Optional[Dict[str, Any]]:
             "timezone": data.timezone,
             "recurrence": data.recurrence,
             "interval_hours": data.interval_hours,
+            "interval_count": getattr(data, "interval_count", 1) or 1,
             "custom_days": list(data.custom_days) if data.custom_days else None,
         }
         

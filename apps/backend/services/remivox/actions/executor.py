@@ -371,6 +371,7 @@ async def _create_reminder(
         )
     interval_hours = entities.get("interval_hours")
     custom_days = entities.get("custom_days") or None
+    interval_count = int(entities.get("interval_count") or 1)
     try:
         scheduled = _scheduled_from_parts(
             str(time_hhmm),
@@ -387,6 +388,7 @@ async def _create_reminder(
                 timezone=timezone_name or "UTC",
                 recurrence=frequency,  # type: ignore[arg-type]
                 interval_hours=interval_hours,
+                interval_count=interval_count,
                 custom_days=custom_days,
                 context_data={"source": "remivox_v2"},
             )
@@ -409,6 +411,7 @@ async def _create_reminder(
                 "time": time_hhmm,
                 "frequency": frequency,
                 "interval_hours": interval_hours,
+                "interval_count": interval_count,
                 "custom_days": custom_days,
                 "date": entities.get("date"),
                 "day_of_week": entities.get("day_of_week"),

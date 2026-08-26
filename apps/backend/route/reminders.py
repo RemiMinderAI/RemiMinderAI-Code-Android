@@ -466,6 +466,11 @@ async def mark_complete(
         import traceback as tb
         try:
             reminder = await complete_reminder(reminder_id, internal_id, action)
+        except ReminderNotDueError:
+            # Expected refusal, handled below as a 409. Logging it here at ERROR
+            # with a traceback made a routine "not due yet" look like a crash in
+            # the logs — misleading anyone triaging, and noisy at volume.
+            raise
         except Exception as inner:
             logger.error(f"mark_complete inner error: {inner}\n{''.join(tb.format_exc())}")
             raise

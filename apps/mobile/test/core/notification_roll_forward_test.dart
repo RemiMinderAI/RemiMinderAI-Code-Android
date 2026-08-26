@@ -52,6 +52,41 @@ void main() {
       expect(next, DateTime(2026, 9, 2, 8, 0));
     });
 
+    test('every-other-day steps 2 days, not 1', () {
+      // The over-medication case: a daily step here would fire twice as often
+      // as prescribed.
+      final next = NotificationService.nextOccurrenceForTest(
+        DateTime(2026, 8, 26, 8, 0),
+        isRecurring: true,
+        recurrencePattern: 'daily',
+        now: now,
+        intervalCount: 2,
+      );
+      expect(next, DateTime(2026, 8, 28, 8, 0));
+    });
+
+    test('every-other-week steps 14 days', () {
+      final next = NotificationService.nextOccurrenceForTest(
+        DateTime(2026, 8, 26, 8, 0),
+        isRecurring: true,
+        recurrencePattern: 'weekly',
+        now: now,
+        intervalCount: 2,
+      );
+      expect(next, DateTime(2026, 9, 9, 8, 0));
+    });
+
+    test('intervalCount 1 is unchanged from before', () {
+      final next = NotificationService.nextOccurrenceForTest(
+        DateTime(2026, 8, 26, 8, 0),
+        isRecurring: true,
+        recurrencePattern: 'daily',
+        now: now,
+        intervalCount: 1,
+      );
+      expect(next, DateTime(2026, 8, 27, 8, 0));
+    });
+
     test('a long-past time still lands in the future', () {
       final next = NotificationService.nextOccurrenceForTest(
         DateTime(2026, 1, 1, 8, 0),

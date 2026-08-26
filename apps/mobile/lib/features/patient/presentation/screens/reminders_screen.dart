@@ -904,6 +904,13 @@ class _RemindersScreenState extends State<RemindersScreen>
         final reminderId = data['id']?.toString() ??
             DateTime.now().millisecondsSinceEpoch.toString();
         final serverMessage = data['message']?.toString().trim();
+        // From the stored row, not the picker: whatever the server persisted is
+        // what the schedule must match.
+        final rawInterval = data['interval_count'];
+        final intervalCount = (rawInterval is int
+                ? rawInterval
+                : int.tryParse(rawInterval?.toString() ?? '')) ??
+            1;
 
         // Schedule local notification immediately
         try {
@@ -915,6 +922,7 @@ class _RemindersScreenState extends State<RemindersScreen>
             reminderType: type,
             isRecurring: recurrence != 'once',
             recurrencePattern: recurrence,
+            intervalCount: intervalCount,
             notificationBody: (serverMessage != null && serverMessage.isNotEmpty)
                 ? serverMessage
                 : null,

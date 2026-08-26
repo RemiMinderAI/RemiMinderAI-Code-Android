@@ -20,6 +20,8 @@ class ReminderCreate(BaseModel):
     recurrence: Recurrence = "once"
     # recurrence="interval" -> every N hours; recurrence="custom" -> named weekdays
     interval_hours: Optional[int] = Field(default=None, ge=1, le=24)
+    # "every N of the base period"; 1 = current behaviour for every existing row.
+    interval_count: int = Field(default=1, ge=1, le=60)
     custom_days: Optional[List[str]] = None
     context_data: Optional[dict] = None  # For AI: {medication_list: [...], task_type: "bp_check"}
 
@@ -53,6 +55,7 @@ class ReminderResponse(BaseModel):
     timezone: str = "UTC"
     recurrence: Optional[str] = None
     interval_hours: Optional[int] = None
+    interval_count: Optional[int] = None
     custom_days: Optional[List[str]] = None
     
     # Status

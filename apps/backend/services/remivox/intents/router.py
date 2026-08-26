@@ -156,6 +156,14 @@ def _extract_create_entities(text: str) -> dict[str, Any]:
 
 
 _STT_CORRECTIONS = {
+    # "Mark done" is regularly transcribed as something else entirely, and the
+    # result was Vox asking what time to set a reminder for — silently turning
+    # a completion into a creation.
+    "marked on": "mark done",
+    "mark down": "mark done",
+    "market on": "mark done",
+    "marked one": "mark done",
+    "marked done": "mark done",
     "smooth": "snooze",
     "news": "snooze",
     "snoops": "snooze",
@@ -166,13 +174,24 @@ _STT_CORRECTIONS = {
     "reminds": "reminder",
 }
 
+# Multi-word mishears must be replaced before the word-by-word pass, which
+# splits on spaces and so could never match a two-word key.
+_STT_PHRASE_CORRECTIONS = {
+    k: v for k, v in _STT_CORRECTIONS.items() if " " in k
+}
+_STT_WORD_CORRECTIONS = {
+    k: v for k, v in _STT_CORRECTIONS.items() if " " not in k
+}
+
+
 def _correct_stt(text: str) -> str:
     """Fix common Deepgram mishears for action words."""
-    words = text.split()
-    corrected = []
-    for w in words:
-        corrected.append(_STT_CORRECTIONS.get(w.lower(), w))
-    return " ".join(corrected)
+    out = text
+    for phrase, replacement in _STT_PHRASE_CORRECTIONS.items():
+        out = re.sub(rf"\b{re.escape(phrase)}\b", replacement, out, flags=re.IGNORECASE)
+    return " ".join(
+        _STT_WORD_CORRECTIONS.get(w.lower(), w) for w in out.split()
+    )
 
 
 def route_intent(

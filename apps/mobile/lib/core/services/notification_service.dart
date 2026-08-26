@@ -362,8 +362,23 @@ class NotificationService {
     required DateTime firstReminderTime,
     required String medicationId,
     required String recurrencePattern,
+    int intervalCount = 1,
   }) async {
     DateTimeComponents? matchTime;
+
+    // "Every other day" has NO DateTimeComponents equivalent. Falling through to
+    // DateTimeComponents.time would repeat it DAILY — twice the prescribed
+    // frequency, which in a medication app is worse than not firing at all.
+    // Schedule this occurrence only and let the backend push drive the rest.
+    if (intervalCount > 1) {
+      return _scheduleSingleOccurrence(
+        notificationId: notificationId,
+        title: title,
+        body: body,
+        when: firstReminderTime,
+        medicationId: medicationId,
+      );
+    }
 
     switch (recurrencePattern) {
       case 'daily':
@@ -556,6 +571,24 @@ class NotificationService {
     }
   }
 
+  /// One notification, no repeat. Used where a repeating rule would fire more
+  /// often than the patient was prescribed.
+  Future<void> _scheduleSingleOccurrence({
+    required int notificationId,
+    required String title,
+    required String body,
+    required DateTime when,
+    required String medicationId,
+  }) async {
+    await scheduleMedicationReminder(
+      notificationId: notificationId,
+      title: title,
+      body: body,
+      scheduledTime: when,
+      medicationId: medicationId,
+    );
+  }
+
   Future<void> scheduleFromReminderData({
     required String reminderId,
     required String medicationName,
@@ -564,6 +597,7 @@ class NotificationService {
     required String reminderType,
     bool isRecurring = false,
     String recurrencePattern = 'once',
+    int intervalCount = 1,
     String? notificationBody,
   }) async {
     if (!_isInitialized) await initialize();
@@ -598,6 +632,7 @@ class NotificationService {
       scheduledTime,
       isRecurring: isRecurring,
       recurrencePattern: recurrencePattern,
+      intervalCount: intervalCount,
     );
     if (effectiveTime == null) {
       debugPrint('Notification not scheduled: no future occurrence for '
@@ -613,6 +648,7 @@ class NotificationService {
         firstReminderTime: effectiveTime,
         medicationId: reminderId,
         recurrencePattern: recurrencePattern,
+        intervalCount: intervalCount,
       );
     } else {
       await scheduleMedicationReminder(
@@ -638,17 +674,23 @@ class NotificationService {
     required bool isRecurring,
     required String recurrencePattern,
     DateTime? now,
+    int intervalCount = 1,
   }) =>
       _computeNextOccurrence(scheduled,
-          recurrencePattern: recurrencePattern, now: now ?? DateTime.now());
+          recurrencePattern: recurrencePattern,
+          now: now ?? DateTime.now(),
+          intervalCount: intervalCount);
 
   DateTime? _nextOccurrence(
     DateTime scheduled, {
     required bool isRecurring,
     required String recurrencePattern,
+    int intervalCount = 1,
   }) {
     return _computeNextOccurrence(scheduled,
-        recurrencePattern: recurrencePattern, now: DateTime.now());
+        recurrencePattern: recurrencePattern,
+        now: DateTime.now(),
+        intervalCount: intervalCount);
   }
 
   /// Pure so it can be exercised directly; no plugin, no clock of its own.
@@ -656,15 +698,17 @@ class NotificationService {
     DateTime scheduled, {
     required String recurrencePattern,
     required DateTime now,
+    int intervalCount = 1,
   }) {
     // A small margin: a time one second away cannot be scheduled reliably.
     final earliest = now.add(const Duration(seconds: 30));
     if (scheduled.isAfter(earliest)) return scheduled;
 
+    final every = intervalCount < 1 ? 1 : intervalCount;
     final step = switch (recurrencePattern) {
-      'weekly' => const Duration(days: 7),
+      'weekly' => Duration(days: 7 * every),
       'twice' || 'twice_daily' => const Duration(hours: 12),
-      _ => const Duration(days: 1),
+      _ => Duration(days: every),
     };
 
     var next = scheduled;

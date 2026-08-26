@@ -77,6 +77,7 @@ _ENTITY_KEYS = (
     "day_of_week",
     "frequency",
     "interval_hours",
+    "interval_count",
     "custom_days",
     "doctor_name",
     "new_time",
@@ -122,6 +123,7 @@ Analyze the transcript and return ONLY valid JSON (no markdown, no explanation):
     "day_of_week": string | null,
     "frequency": "once" | "daily" | "weekly" | "twice_daily" | "interval" | "custom" | null,
     "interval_hours": number | null,
+    "interval_count": number | null,
     "custom_days": [string] | null,
     "doctor_name": string | null,
     "new_time": "HH:MM" | null,
@@ -156,6 +158,49 @@ RULES:
 10. "title" is the subject only — never include the time, day, or frequency in it.
     "Doctor appointment with Dr. Gubbala on Thursday at 3 PM" -> title="Doctor
     appointment with Dr. Gubbala", doctor_name="Dr. Gubbala", day_of_week="thursday".
+11c. FREQUENCY VOCABULARY. Map generously; users do not speak canonically.
+    Every N days -> frequency="daily", interval_count=N:
+      "every other day", "every second day", "alternate days", "on alternate
+      days", "every two days", "every 2 days", "every 3 days", "every third
+      day", "once every 3 days", "every 10 days".
+    Every N weeks -> frequency="weekly", interval_count=N:
+      "every other week", "every second week", "fortnightly", "every two
+      weeks", "every 2 weeks", "every 3 weeks".
+    Interval on a named day -> frequency="custom", custom_days=[that day],
+      interval_count=N: "every other Monday", "every second Tuesday",
+      "alternate Fridays".
+    Named days -> frequency="custom", custom_days=[...]:
+      "Mondays", "every Monday", "on Mondays", "Monday Wednesday Friday",
+      "MWF", "Tuesdays and Thursdays", "Tues/Thurs".
+    Weekday sets -> frequency="custom": "weekdays", "every weekday", "on
+      weekdays", "Monday to Friday", "Mon-Fri", "working days" -> Mon..Fri;
+      "weekends", "on weekends", "weekends only", "Saturday and Sunday" ->
+      Sat,Sun.
+    Daily variants -> frequency="daily", interval_count=1:
+      "daily", "every day", "each day", "once a day", "once daily", "every
+      single day".
+    Hourly -> frequency="interval", interval_hours=N:
+      "every 4 hours", "every four hours", "every 6 hours", "hourly"/"every
+      hour" (interval_hours=1).
+    Times of day imply DAILY but state no clock time: "every morning", "every
+      night", "every evening", "mornings and evenings", "with breakfast", "at
+      bedtime" -> frequency="daily", time=null. Still ask for the time.
+
+11d. AMBIGUOUS FREQUENCIES — set frequency=null and let the assistant ask.
+    Never pick the more likely reading; an ambiguous frequency is missing
+    information, exactly like a missing time:
+      "biweekly" (twice a week, or every two weeks?)
+      "every few days", "a couple of times a week"
+      "monthly" (every 4 weeks, or the same date each month?)
+      "four times a day" (every 6 hours, or 4 chosen times?)
+    "as needed" / "PRN" is not a schedule at all — use intent=UNKNOWN so the
+    assistant can say so, rather than inventing a recurrence.
+
+11e. CANNOT BE STORED — set frequency=null rather than approximating:
+    "every 90 minutes" and any sub-hour spacing (interval_hours is whole hours);
+    "every other month"; "the 1st of each month". Rounding these silently would
+    schedule a medication at the wrong frequency.
+
 11a. Weekday sets: "weekdays" / "every weekday" / "on weekdays" / "Monday to
     Friday" -> frequency="custom", custom_days=["monday","tuesday","wednesday",
     "thursday","friday"]. "weekends" / "weekends only" / "on the weekend" ->
@@ -168,7 +213,13 @@ RULES:
     is DELETE_REMINDER with title=null — never assume which reminder is meant.
 12. If the transcript is empty, silent, or unintelligible, use intent=UNKNOWN with
     confidence <= 0.3. Do not guess a care action.
-13. When PENDING CONTEXT is supplied, the transcript is an ANSWER to the question
+13. When PENDING CONTEXT is supplied, the transcript is USUALLY an answer to the
+    question in that context — but NOT when it plainly states a different
+    action. "mark done X", "cancel X", "delete X", "snooze X" are new intents
+    even mid-clarification; classify them as such and ignore the pending
+    create. Treating "mark done vitamin D3" as the answer to "what time?" turns
+    a completion into a reminder the user never asked for.
+    Otherwise, the transcript is an ANSWER to the question
     in that context. Merge: repeat the values already in the pending context and
     add the newly stated one. A bare "8 PM" answering "what time?" means
     intent=CREATE_REMINDER with the pending title plus time="20:00".
@@ -313,6 +364,22 @@ def _coerce_interval_hours(value: Any) -> Optional[int]:
     return None
 
 
+def _coerce_interval_count(value: Any) -> Optional[int]:
+    """
+    "Every N of the base period". Bounded to match the DB CHECK (1..60) so a
+    mistranscribed number cannot schedule a reminder years out; out-of-range
+    returns None, which makes the caller treat the frequency as unstated and
+    ask, rather than silently storing something the user did not say.
+    """
+    if value is None:
+        return None
+    try:
+        count = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    return count if 1 <= count <= 60 else None
+
+
 def _coerce_frequency(value: Any) -> Optional[str]:
     if value is None:
         return None
@@ -374,6 +441,7 @@ def normalize_extraction(
         "day_of_week": _coerce_weekday(raw_entities.get("day_of_week")),
         "frequency": _coerce_frequency(raw_entities.get("frequency")),
         "interval_hours": _coerce_interval_hours(raw_entities.get("interval_hours")),
+        "interval_count": _coerce_interval_count(raw_entities.get("interval_count")),
         "custom_days": _coerce_custom_days(raw_entities.get("custom_days")),
         "doctor_name": _clean_title(raw_entities.get("doctor_name")),
         "new_time": _coerce_time(raw_entities.get("new_time")),
@@ -398,6 +466,22 @@ def normalize_extraction(
         entities["frequency"] = None
     if entities["frequency"] == "custom" and not entities["custom_days"]:
         entities["frequency"] = None
+    # An interval_count only means something on a period-based recurrence.
+    # "every other day" is daily+2; on a one-off it is meaningless.
+    if entities["interval_count"] and entities["frequency"] not in {
+        "daily", "weekly", "custom"
+    }:
+        entities["interval_count"] = None
+    # A count the model could not bound (e.g. "every few days") arrives as None
+    # while frequency says daily — that would silently become plain daily, which
+    # is MORE often than asked. Drop the frequency so the assistant asks.
+    if (
+        raw_entities.get("interval_count") is not None
+        and entities["interval_count"] is None
+        and entities["frequency"] in {"daily", "weekly", "custom"}
+    ):
+        entities["frequency"] = None
+
     if entities["custom_days"] and len(entities["custom_days"]) == 1:
         # "every Tuesday" is a weekly reminder, not a custom set.
         entities["frequency"] = "weekly"
@@ -665,6 +749,7 @@ def regex_fallback(
         "day_of_week": None,
         "frequency": _coerce_frequency(legacy.get("frequency")),
         "interval_hours": None,
+        "interval_count": None,
         "custom_days": None,
         "doctor_name": None,
         "new_time": None,

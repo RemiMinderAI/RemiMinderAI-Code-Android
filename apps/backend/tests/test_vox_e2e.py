@@ -458,6 +458,34 @@ def _mock_table() -> dict[str, dict]:
                          "time": "08:00", "frequency": None},
             "confidence": 0.7,
         },
+        "Set a reminder for Metoprolol at 8 AM every other day": {
+            "intent": "CREATE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication",
+                         "time": "08:00", "frequency": "daily", "interval_count": 2},
+            "confidence": 0.95,
+        },
+        "Set a reminder for Metoprolol at 8 AM biweekly": {
+            "intent": "CREATE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication",
+                         "time": "08:00", "frequency": None},
+            "confidence": 0.6,
+        },
+        "Set a reminder for Metoprolol at 8 AM every few days": {
+            "intent": "CREATE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication",
+                         "time": "08:00", "frequency": None},
+            "confidence": 0.6,
+        },
+        "Mark done Metoprolol": {
+            "intent": "COMPLETE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication"},
+            "confidence": 0.95,
+        },
+        "I took my Ibuprofen": {
+            "intent": "COMPLETE_REMINDER",
+            "entities": {"title": "Ibuprofen", "reminder_type": "medication"},
+            "confidence": 0.95,
+        },
         "Pregavelin at eighty thirty PM everyday": {
             "intent": "CREATE_REMINDER",
             "entities": {"title": "Pregabalin", "reminder_type": "medication",
@@ -1095,6 +1123,79 @@ async def case_41(s):
                f"should ask rather than guess: {out['text']!r}")
 
 
+async def case_42(s):
+    """interval_count reaches the DB and the next occurrence is 48h, not 24h."""
+    from datetime import datetime, timezone
+    from services.db_reminders import next_recurrence_time
+
+    out = await say("Set a reminder for Metoprolol at 8 AM every other day", session=s)
+    expect(out["intent"] == "CREATE_REMINDER", f"intent={out['intent']}")
+    r = only_created()
+    expect(r.recurrence == "daily", f"recurrence={r.recurrence}")
+    expect(r.interval_count == 2, f"interval_count={r.interval_count}")
+    expect(local_hhmm(r.scheduled_time) == "08:00", f"time={local_hhmm(r.scheduled_time)}")
+
+    # The safety property: the NEXT dose must be 48h out, not 24h.
+    nxt = next_recurrence_time(r.scheduled_time, r.recurrence,
+                               interval_count=r.interval_count)
+    gap = (nxt - r.scheduled_time).total_seconds() / 3600
+    expect(gap == 48, f"next dose {gap}h after this one, expected 48")
+
+
+async def case_43(s):
+    """Ambiguous or unstorable frequencies are asked about, never guessed."""
+    for phrase in ("biweekly", "every few days"):
+        STORE.reset()
+        out = await say(f"Set a reminder for Metoprolol at 8 AM {phrase}",
+                        session=f"{s}-{phrase[:6]}")
+        if STORE.created:
+            r = STORE.created[0]
+            # If it created anything it must not have invented a spacing.
+            expect(r.interval_count == 1 and r.recurrence in {"daily", "once"},
+                   f"{phrase!r} invented recurrence={r.recurrence} "
+                   f"interval_count={r.interval_count}")
+        else:
+            expect("?" in out["text"], f"{phrase!r} should ask: {out['text']!r}")
+
+
+async def case_44(s):
+    """An existing row without interval_count behaves exactly as before."""
+    from datetime import datetime, timezone
+    from services.db_reminders import next_recurrence_time
+
+    t = datetime(2026, 9, 1, 8, 0, tzinfo=timezone.utc)
+    for recurrence, expected_days in (("daily", 1), ("weekly", 7)):
+        legacy = next_recurrence_time(t, recurrence)  # no interval_count at all
+        explicit = next_recurrence_time(t, recurrence, interval_count=1)
+        expect((legacy - t).days == expected_days,
+               f"legacy {recurrence} moved {(legacy - t).days}d")
+        expect(legacy == explicit, "absent interval_count must equal 1")
+
+
+async def case_45(s):
+    """"Marked on X" is a completion, not a request to create a reminder."""
+    from services.remivox.intents.router import _correct_stt
+
+    expect(_correct_stt("Marked on vitamin D3") == "mark done vitamin D3",
+           "STT phrase correction must fire")
+
+    out = await say("Mark done Metoprolol", session=s, reminders=reminders_fixture())
+    expect(STORE.completed == ["r-metoprolol"], f"completed={STORE.completed}")
+    text = out["text"].lower()
+    expect("what time" not in text and "time should i" not in text,
+           f"a completion must never ask for a time: {out['text']!r}")
+
+
+async def case_46(s):
+    """Mark done on an unresolvable title says so, and does not ask for a time."""
+    out = await say("I took my Ibuprofen", session=s, reminders=reminders_fixture())
+    expect(not STORE.completed, f"must not complete something else: {STORE.completed}")
+    text = out["text"].lower()
+    expect("what time" not in text, f"must not ask for a time: {out['text']!r}")
+    expect("couldn't find" in text or "could not find" in text or "which" in text,
+           f"should say it could not find it: {out['text']!r}")
+
+
 CASES = [
     ("01 create daily medication", case_01),
     ("02 create daily, spoken 8:30 PM", case_02),
@@ -1137,6 +1238,11 @@ CASES = [
     ("39 bare yes with nothing pending", case_39),
     ("40 weekdays / weekends map to custom_days", case_40),
     ("41 unsupported spacing not stored as nonsense", case_41),
+    ("42 every other day -> interval_count=2, 48h gap", case_42),
+    ("43 ambiguous frequency asks, never guesses", case_43),
+    ("44 legacy rows unchanged without interval_count", case_44),
+    ("45 'marked on X' completes, never creates", case_45),
+    ("46 unresolvable mark-done says so", case_46),
 ]
 
 

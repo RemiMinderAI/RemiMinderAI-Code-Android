@@ -104,6 +104,15 @@ class ReminderNotificationSync {
     }
   }
 
+  /// interval_count from the API row; 1 when absent so older payloads and
+  /// existing reminders behave exactly as before.
+  static int _intervalCountOf(Map<String, dynamic> r) {
+    final raw = r['interval_count'];
+    final parsed = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+    if (parsed == null || parsed < 1) return 1;
+    return parsed > 60 ? 60 : parsed;
+  }
+
   static String _formatShortTime(DateTime dt) {
     final h = dt.hour;
     final m = dt.minute.toString().padLeft(2, '0');
@@ -193,6 +202,9 @@ class ReminderNotificationSync {
         reminderType: reminderType,
         isRecurring: isRecurring,
         recurrencePattern: recurrence.isEmpty ? 'once' : recurrence,
+        // Without this, "every other day" would schedule as a plain daily
+        // repeat — twice the prescribed frequency.
+        intervalCount: _intervalCountOf(r),
         notificationBody:
             description.isNotEmpty ? description : null,
       );
