@@ -346,9 +346,13 @@ async def ensure_user_exists(
             full_name = firebase_name.strip()
 
         conn.execute(
+            # See auth_gateway: trial dates are set at creation so there is
+            # no window where a new user reads as having no trial.
             text("""
-                INSERT INTO users (firebase_uid, email, full_name, role, is_active)
-                VALUES (:firebase_uid, :email, :full_name, :role, true)
+                INSERT INTO users (firebase_uid, email, full_name, role, is_active,
+                                   trial_start_date, trial_end_date)
+                VALUES (:firebase_uid, :email, :full_name, :role, true,
+                        NOW(), NOW() + INTERVAL '14 days')
             """),
             {
                 "firebase_uid": firebase_uid,

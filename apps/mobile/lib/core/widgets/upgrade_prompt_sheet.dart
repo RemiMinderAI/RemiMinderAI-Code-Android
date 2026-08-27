@@ -27,7 +27,7 @@ extension UpgradePromptReasonCopy on UpgradePromptReason {
       case UpgradePromptReason.summaryLimit:
         return 'Keep your visit summaries going';
       case UpgradePromptReason.voxLocked:
-        return 'Your trial has ended';
+        return 'Voice commands used up';
       case UpgradePromptReason.caregiverLimit:
         return 'Invite more caregivers';
       case UpgradePromptReason.trialExpired:
@@ -40,7 +40,10 @@ extension UpgradePromptReasonCopy on UpgradePromptReason {
       case UpgradePromptReason.summaryLimit:
         return "You've used your free doctor visit summaries. Upgrade to RemiMinderAI Premium to continue organizing your healthcare.";
       case UpgradePromptReason.voxLocked:
-        return 'Your 14-day trial has ended. Subscribe to RemiMinderAI Premium to keep using all features, including all features.';
+        // The trial has NOT ended here — only the Vox allowance is spent.
+        // Saying otherwise tells a user on day two that they have lost
+        // summaries and caregivers, which still work.
+        return "You've used all 15 voice commands in your trial. Everything else keeps working — upgrade to keep talking to Vox.";
       case UpgradePromptReason.caregiverLimit:
         return 'Premium lets you invite more caregivers so your loved ones can stay connected to your care.';
       case UpgradePromptReason.trialExpired:

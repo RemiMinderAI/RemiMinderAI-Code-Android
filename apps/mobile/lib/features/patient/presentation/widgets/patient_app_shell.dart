@@ -214,9 +214,16 @@ class _VoxButtonBodyState extends State<_VoxButtonBody>
     final message = _voxUnavailableMessage ??
         'Vox is not available right now.';
     if (_voxUpgradeAvailable) {
+      // Two different situations reach here and they must not share copy.
+      // A spent Vox allowance during a live trial is NOT an expired trial —
+      // summaries, caregivers and reminders all still work, and telling the
+      // user otherwise makes a working app look broken.
+      final reason = _voxUnavailableReason == 'trial_expired'
+          ? UpgradePromptReason.trialExpired
+          : UpgradePromptReason.voxLocked;
       await showUpgradePromptSheet(
         context,
-        reason: UpgradePromptReason.trialExpired,
+        reason: reason,
         screen: 'patient_shell_vox_quota',
       );
       // If they subscribed, RevenueCatService has already told the backend.

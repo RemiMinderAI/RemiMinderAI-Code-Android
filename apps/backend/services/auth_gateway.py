@@ -389,7 +389,19 @@ def _get_or_create_firebase_user(engine, firebase_uid: str, email: str) -> str:
     try:
         with engine.connect() as conn:
             result = conn.execute(
-                text("INSERT INTO users (firebase_uid, email, role) VALUES (:firebase_uid, :email, :role) RETURNING id"),
+                # Trial dates are set here, not backfilled on first read.
+                # Backfilling left a window between signup and the first
+                # status read where trial_end_date was NULL, so trial_active
+                # computed false and a brand-new user was told their trial
+                # had ended. TRIAL_DAYS = 14; inlined as SQL to avoid an
+                # import cycle with subscription_service.
+                text("""
+                    INSERT INTO users (firebase_uid, email, role,
+                                       trial_start_date, trial_end_date)
+                    VALUES (:firebase_uid, :email, :role,
+                            NOW(), NOW() + INTERVAL '14 days')
+                    RETURNING id
+                """),
                 {"firebase_uid": firebase_uid, "email": email, "role": "user"}
             )
             new_user_row = result.fetchone()
