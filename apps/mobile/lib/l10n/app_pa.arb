@@ -751,5 +751,11 @@
     }
   },
   "authenticationErrorLoginAgain": "ਪ੍ਰਮਾਣੀਕਰਨ ਗਲਤੀ। ਦੁਬਾਰਾ ਲੌਗ ਇਨ ਕਰੋ।",
-  "stopRecordingMessage": "Are you sure you want to stop recording? This action cannot be undone."
+  "stopRecordingMessage": "Are you sure you want to stop recording? This action cannot be undone.",
+  "voxConsentTitle": "ਆਵਾਜ਼ ਵਰਤਣ ਤੋਂ ਪਹਿਲਾਂ",
+  "voxConsentBody": "ਜਦੋਂ ਤੁਸੀਂ Vox ਨਾਲ ਗੱਲ ਕਰਦੇ ਹੋ, ਤੁਹਾਡੀ ਰਿਕਾਰਡਿੰਗ ਉਹਨਾਂ ਸੇਵਾਵਾਂ ਨੂੰ ਭੇਜੀ ਜਾਂਦੀ ਹੈ ਜੋ ਇਸਨੂੰ ਲਿਖਤ ਵਿੱਚ ਬਦਲਦੀਆਂ ਹਨ, ਸਮਝਦੀਆਂ ਹਨ ਕਿ ਤੁਸੀਂ ਕੀ ਮੰਗਿਆ, ਅਤੇ ਜਵਾਬ ਬੋਲ ਕੇ ਸੁਣਾਉਂਦੀਆਂ ਹਨ।",
+  "voxConsentHealthNote": "ਇਸ ਵਿੱਚ ਦਵਾਈਆਂ ਦੇ ਨਾਮ, ਡਾਕਟਰਾਂ ਦੇ ਨਾਮ ਅਤੇ ਸਿਹਤ ਸੰਬੰਧੀ ਜਾਣਕਾਰੀ ਸ਼ਾਮਲ ਹੋ ਸਕਦੀ ਹੈ।",
+  "voxConsentCheckbox": "ਮੈਂ ਸਮਝਦਾ/ਸਮਝਦੀ ਹਾਂ ਅਤੇ ਸਹਿਮਤੀ ਦਿੰਦਾ/ਦਿੰਦੀ ਹਾਂ",
+  "voxConsentNotNow": "ਹੁਣੇ ਨਹੀਂ",
+  "voxConsentContinue": "ਜਾਰੀ ਰੱਖੋ"
 }

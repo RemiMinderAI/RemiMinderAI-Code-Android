@@ -751,5 +751,11 @@
       }
     }
   },
-  "authenticationErrorLoginAgain": "Authentication error. Please log in again."
+  "authenticationErrorLoginAgain": "Authentication error. Please log in again.",
+  "voxConsentTitle": "Before you use voice",
+  "voxConsentBody": "When you speak to Vox, your recording is sent to services that turn it into text, work out what you asked for, and speak the reply back to you.",
+  "voxConsentHealthNote": "This may include medication names, doctor names, and health information.",
+  "voxConsentCheckbox": "I understand and consent to this",
+  "voxConsentNotNow": "Not now",
+  "voxConsentContinue": "Continue"
 }

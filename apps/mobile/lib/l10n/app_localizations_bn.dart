@@ -1379,4 +1379,24 @@ class AppLocalizationsBn extends AppLocalizations {
   @override
   String get authenticationErrorLoginAgain =>
       'প্রমাণীকরণ ত্রুটি। আবার লগ ইন করুন।';
+
+  @override
+  String get voxConsentTitle => 'ভয়েস ব্যবহারের আগে';
+
+  @override
+  String get voxConsentBody =>
+      'আপনি যখন Vox-এর সঙ্গে কথা বলেন, আপনার রেকর্ডিং এমন পরিষেবাগুলিতে পাঠানো হয় যেগুলি সেটিকে লেখায় রূপান্তর করে, আপনি কী চেয়েছেন তা বোঝে এবং উত্তরটি বলে শোনায়।';
+
+  @override
+  String get voxConsentHealthNote =>
+      'এতে ওষুধের নাম, চিকিৎসকের নাম এবং স্বাস্থ্য সম্পর্কিত তথ্য থাকতে পারে।';
+
+  @override
+  String get voxConsentCheckbox => 'আমি বুঝেছি এবং সম্মতি দিচ্ছি';
+
+  @override
+  String get voxConsentNotNow => 'এখন নয়';
+
+  @override
+  String get voxConsentContinue => 'চালিয়ে যান';
 }

@@ -602,5 +602,11 @@
     }
   },
   "authenticationErrorLoginAgain": "Erro de autenticação. Faça login novamente.",
-  "stopRecordingMessage": "Are you sure you want to stop recording? This action cannot be undone."
+  "stopRecordingMessage": "Are you sure you want to stop recording? This action cannot be undone.",
+  "voxConsentTitle": "Antes de usar a voz",
+  "voxConsentBody": "Quando você fala com o Vox, sua gravação é enviada a serviços que a transformam em texto, entendem o que você pediu e falam a resposta de volta.",
+  "voxConsentHealthNote": "Isso pode incluir nomes de medicamentos, nomes de médicos e informações de saúde.",
+  "voxConsentCheckbox": "Eu entendo e dou meu consentimento",
+  "voxConsentNotNow": "Agora não",
+  "voxConsentContinue": "Continuar"
 }

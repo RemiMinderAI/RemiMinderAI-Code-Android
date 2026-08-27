@@ -1385,4 +1385,24 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get authenticationErrorLoginAgain =>
       'प्रमाणीकरण त्रुटि। कृपया फिर से लॉग इन करें।';
+
+  @override
+  String get voxConsentTitle => 'आवाज़ का उपयोग करने से पहले';
+
+  @override
+  String get voxConsentBody =>
+      'जब आप Vox से बात करते हैं, तो आपकी रिकॉर्डिंग उन सेवाओं को भेजी जाती है जो उसे टेक्स्ट में बदलती हैं, समझती हैं कि आपने क्या माँगा, और उत्तर बोलकर सुनाती हैं।';
+
+  @override
+  String get voxConsentHealthNote =>
+      'इसमें दवाओं के नाम, डॉक्टरों के नाम और स्वास्थ्य संबंधी जानकारी शामिल हो सकती है।';
+
+  @override
+  String get voxConsentCheckbox => 'मैं समझता/समझती हूँ और सहमति देता/देती हूँ';
+
+  @override
+  String get voxConsentNotNow => 'अभी नहीं';
+
+  @override
+  String get voxConsentContinue => 'जारी रखें';
 }

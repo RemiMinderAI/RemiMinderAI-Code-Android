@@ -1392,4 +1392,24 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get authenticationErrorLoginAgain =>
       'Erro de autenticação. Faça login novamente.';
+
+  @override
+  String get voxConsentTitle => 'Antes de usar a voz';
+
+  @override
+  String get voxConsentBody =>
+      'Quando você fala com o Vox, sua gravação é enviada a serviços que a transformam em texto, entendem o que você pediu e falam a resposta de volta.';
+
+  @override
+  String get voxConsentHealthNote =>
+      'Isso pode incluir nomes de medicamentos, nomes de médicos e informações de saúde.';
+
+  @override
+  String get voxConsentCheckbox => 'Eu entendo e dou meu consentimento';
+
+  @override
+  String get voxConsentNotNow => 'Agora não';
+
+  @override
+  String get voxConsentContinue => 'Continuar';
 }

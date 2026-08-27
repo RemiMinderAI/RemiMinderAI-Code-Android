@@ -1399,4 +1399,25 @@ class AppLocalizationsPa extends AppLocalizations {
   @override
   String get authenticationErrorLoginAgain =>
       'ਪ੍ਰਮਾਣੀਕਰਨ ਗਲਤੀ। ਦੁਬਾਰਾ ਲੌਗ ਇਨ ਕਰੋ।';
+
+  @override
+  String get voxConsentTitle => 'ਆਵਾਜ਼ ਵਰਤਣ ਤੋਂ ਪਹਿਲਾਂ';
+
+  @override
+  String get voxConsentBody =>
+      'ਜਦੋਂ ਤੁਸੀਂ Vox ਨਾਲ ਗੱਲ ਕਰਦੇ ਹੋ, ਤੁਹਾਡੀ ਰਿਕਾਰਡਿੰਗ ਉਹਨਾਂ ਸੇਵਾਵਾਂ ਨੂੰ ਭੇਜੀ ਜਾਂਦੀ ਹੈ ਜੋ ਇਸਨੂੰ ਲਿਖਤ ਵਿੱਚ ਬਦਲਦੀਆਂ ਹਨ, ਸਮਝਦੀਆਂ ਹਨ ਕਿ ਤੁਸੀਂ ਕੀ ਮੰਗਿਆ, ਅਤੇ ਜਵਾਬ ਬੋਲ ਕੇ ਸੁਣਾਉਂਦੀਆਂ ਹਨ।';
+
+  @override
+  String get voxConsentHealthNote =>
+      'ਇਸ ਵਿੱਚ ਦਵਾਈਆਂ ਦੇ ਨਾਮ, ਡਾਕਟਰਾਂ ਦੇ ਨਾਮ ਅਤੇ ਸਿਹਤ ਸੰਬੰਧੀ ਜਾਣਕਾਰੀ ਸ਼ਾਮਲ ਹੋ ਸਕਦੀ ਹੈ।';
+
+  @override
+  String get voxConsentCheckbox =>
+      'ਮੈਂ ਸਮਝਦਾ/ਸਮਝਦੀ ਹਾਂ ਅਤੇ ਸਹਿਮਤੀ ਦਿੰਦਾ/ਦਿੰਦੀ ਹਾਂ';
+
+  @override
+  String get voxConsentNotNow => 'ਹੁਣੇ ਨਹੀਂ';
+
+  @override
+  String get voxConsentContinue => 'ਜਾਰੀ ਰੱਖੋ';
 }

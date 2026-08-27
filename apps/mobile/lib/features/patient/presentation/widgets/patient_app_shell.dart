@@ -19,6 +19,7 @@ import '../../../../core/services/backend_api_service.dart';
 import '../../../../core/widgets/upgrade_prompt_sheet.dart';
 import '../services/vox_live_session.dart';
 import 'rounded_navigation_bar.dart';
+import 'vox_consent_dialog.dart';
 
 /// App shell that wraps all patient screens with a floating bottom navigation bar
 class PatientAppShell extends StatefulWidget {
@@ -330,6 +331,13 @@ class _VoxButtonBodyState extends State<_VoxButtonBody>
       return;
     }
     if (_busy) return;
+
+    // Ask before the first word is recorded. Placed after the stop-and-cancel
+    // paths above so ending a session never prompts, and before every branch
+    // that opens the microphone — a decline must cost exactly what not tapping
+    // the button costs: nothing recorded, nothing sent, no allowance used.
+    if (!await ensureVoxConsent(context)) return;
+    if (!mounted) return;
 
     if (_usePipecatStream) {
       setState(() => _busy = true);

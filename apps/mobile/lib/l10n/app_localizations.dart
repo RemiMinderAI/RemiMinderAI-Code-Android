@@ -2615,6 +2615,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Authentication error. Please log in again.'**
   String get authenticationErrorLoginAgain;
+
+  /// No description provided for @voxConsentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Before you use voice'**
+  String get voxConsentTitle;
+
+  /// No description provided for @voxConsentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When you speak to Vox, your recording is sent to services that turn it into text, work out what you asked for, and speak the reply back to you.'**
+  String get voxConsentBody;
+
+  /// No description provided for @voxConsentHealthNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This may include medication names, doctor names, and health information.'**
+  String get voxConsentHealthNote;
+
+  /// No description provided for @voxConsentCheckbox.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand and consent to this'**
+  String get voxConsentCheckbox;
+
+  /// No description provided for @voxConsentNotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get voxConsentNotNow;
+
+  /// No description provided for @voxConsentContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get voxConsentContinue;
 }
 
 class _AppLocalizationsDelegate

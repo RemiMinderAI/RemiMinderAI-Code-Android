@@ -1392,4 +1392,24 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get authenticationErrorLoginAgain => 'પ્રમાણીકરણ ભૂલ. ફરી લૉગ ઇન કરો.';
+
+  @override
+  String get voxConsentTitle => 'અવાજનો ઉપયોગ કરતાં પહેલાં';
+
+  @override
+  String get voxConsentBody =>
+      'તમે જ્યારે Vox સાથે વાત કરો છો, ત્યારે તમારું રેકોર્ડિંગ એવી સેવાઓને મોકલવામાં આવે છે જે તેને લખાણમાં ફેરવે છે, તમે શું પૂછ્યું તે સમજે છે અને જવાબ બોલીને સંભળાવે છે.';
+
+  @override
+  String get voxConsentHealthNote =>
+      'તેમાં દવાઓનાં નામ, ડૉક્ટરોનાં નામ અને આરોગ્ય સંબંધિત માહિતી હોઈ શકે છે.';
+
+  @override
+  String get voxConsentCheckbox => 'હું સમજું છું અને સંમતિ આપું છું';
+
+  @override
+  String get voxConsentNotNow => 'હમણાં નહીં';
+
+  @override
+  String get voxConsentContinue => 'ચાલુ રાખો';
 }

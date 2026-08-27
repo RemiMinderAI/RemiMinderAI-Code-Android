@@ -1398,4 +1398,24 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get authenticationErrorLoginAgain =>
       'அங்கீகார பிழை. மீண்டும் உள்நுழையவும்.';
+
+  @override
+  String get voxConsentTitle => 'குரலைப் பயன்படுத்தும் முன்';
+
+  @override
+  String get voxConsentBody =>
+      'நீங்கள் Vox-உடன் பேசும்போது, உங்கள் பதிவு அதை உரையாக மாற்றும், நீங்கள் கேட்டதைப் புரிந்துகொள்ளும், பதிலைப் பேசிக் கேட்கச் செய்யும் சேவைகளுக்கு அனுப்பப்படுகிறது.';
+
+  @override
+  String get voxConsentHealthNote =>
+      'இதில் மருந்துகளின் பெயர்கள், மருத்துவர்களின் பெயர்கள் மற்றும் உடல்நலத் தகவல்கள் இருக்கலாம்.';
+
+  @override
+  String get voxConsentCheckbox => 'நான் புரிந்துகொண்டேன், சம்மதிக்கிறேன்';
+
+  @override
+  String get voxConsentNotNow => 'இப்போது வேண்டாம்';
+
+  @override
+  String get voxConsentContinue => 'தொடரவும்';
 }

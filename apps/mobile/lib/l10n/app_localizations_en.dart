@@ -1380,4 +1380,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authenticationErrorLoginAgain =>
       'Authentication error. Please log in again.';
+
+  @override
+  String get voxConsentTitle => 'Before you use voice';
+
+  @override
+  String get voxConsentBody =>
+      'When you speak to Vox, your recording is sent to services that turn it into text, work out what you asked for, and speak the reply back to you.';
+
+  @override
+  String get voxConsentHealthNote =>
+      'This may include medication names, doctor names, and health information.';
+
+  @override
+  String get voxConsentCheckbox => 'I understand and consent to this';
+
+  @override
+  String get voxConsentNotNow => 'Not now';
+
+  @override
+  String get voxConsentContinue => 'Continue';
 }
