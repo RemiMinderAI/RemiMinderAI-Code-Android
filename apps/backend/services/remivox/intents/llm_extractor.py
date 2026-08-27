@@ -83,6 +83,8 @@ _ENTITY_KEYS = (
     "new_time",
     "new_frequency",
     "time_ambiguous",
+    "frequency_ambiguous",
+    "schedule_unsupported",
     "minutes",
 )
 
@@ -128,7 +130,9 @@ Analyze the transcript and return ONLY valid JSON (no markdown, no explanation):
     "doctor_name": string | null,
     "new_time": "HH:MM" | null,
     "new_frequency": string | null,
-    "time_ambiguous": boolean
+    "time_ambiguous": boolean,
+    "frequency_ambiguous": string | null,
+    "schedule_unsupported": boolean
   },
   "confidence": 0.0-1.0
 }
@@ -155,9 +159,20 @@ RULES:
 8. Multi-intent utterances: pick the PRIMARY intent.
 9. Confirmations: "yes"/"yeah"/"correct"/"go ahead" -> intent=CONFIRM.
    "no"/"cancel that"/"never mind" -> intent=CANCEL.
+9b. reminder_type: if the user SAYS "task" ("create a task", "set a task"),
+    reminder_type="task" even when the subject mentions an appointment. If they
+    say "appointment", or name a doctor/clinic/dentist visit, it is
+    "appointment" — never "medication". Only use "medication" for a drug, a
+    dose, a vitamin or a supplement.
 10. "title" is the subject only — never include the time, day, or frequency in it.
     "Doctor appointment with Dr. Gubbala on Thursday at 3 PM" -> title="Doctor
     appointment with Dr. Gubbala", doctor_name="Dr. Gubbala", day_of_week="thursday".
+10a. Strip the instruction phrase from the title. "Set a task to pick up lab
+    results" -> title="pick up lab results", NOT "task to pick up lab results".
+    The same for "remind me to", "set a reminder for", "create a task for",
+    "I need to". Speech recognition also mangles the leading word — "tax to
+    pick up..." is "task to pick up..." — so drop a leading "tax to" / "task
+    to" the same way rather than keeping it in the title.
 11c. FREQUENCY VOCABULARY. Map generously; users do not speak canonically.
     Every N days -> frequency="daily", interval_count=N:
       "every other day", "every second day", "alternate days", "on alternate
@@ -186,15 +201,23 @@ RULES:
       night", "every evening", "mornings and evenings", "with breakfast", "at
       bedtime" -> frequency="daily", time=null. Still ask for the time.
 
-11d. AMBIGUOUS FREQUENCIES — set frequency=null and let the assistant ask.
-    Never pick the more likely reading; an ambiguous frequency is missing
-    information, exactly like a missing time:
-      "biweekly" (twice a week, or every two weeks?)
-      "every few days", "a couple of times a week"
-      "monthly" (every 4 weeks, or the same date each month?)
-      "four times a day" (every 6 hours, or 4 chosen times?)
-    "as needed" / "PRN" is not a schedule at all — use intent=UNKNOWN so the
-    assistant can say so, rather than inventing a recurrence.
+11d. AMBIGUOUS FREQUENCIES — set frequency=null AND set frequency_ambiguous to
+    the phrase the user said, so the assistant can ask about that specific
+    ambiguity instead of asking a generic "how often?". Never pick the more
+    likely reading; an ambiguous frequency is missing information, exactly like
+    a missing time:
+      "biweekly" -> frequency_ambiguous="biweekly" (twice a week, or every two weeks?)
+      "bimonthly" -> frequency_ambiguous="bimonthly"
+      "every few days", "a couple of times a week" -> frequency_ambiguous=<phrase>
+      "monthly" -> frequency_ambiguous="monthly" (every 4 weeks, or the same date each month?)
+      "four times a day" -> frequency_ambiguous="four times a day"
+    Keep intent=CREATE_REMINDER and every other entity you did extract.
+
+11f. NOT A SCHEDULE. "as needed", "PRN", "when I need it", "if I feel unwell"
+    describe no recurrence at all. Keep intent=CREATE_REMINDER, extract the
+    title, set frequency=null and schedule_unsupported=true. Do NOT use
+    intent=UNKNOWN: the user was understood perfectly, so telling them they
+    were not heard is wrong. The assistant explains it cannot set that.
 
 11e. CANNOT BE STORED — set frequency=null rather than approximating:
     "every 90 minutes" and any sub-hour spacing (interval_hours is whole hours);
@@ -205,10 +228,6 @@ RULES:
     Friday" -> frequency="custom", custom_days=["monday","tuesday","wednesday",
     "thursday","friday"]. "weekends" / "weekends only" / "on the weekend" ->
     frequency="custom", custom_days=["saturday","sunday"].
-11b. Spacings we cannot store yet — "every other day", "every 3 days", "every
-    other week", "every other Monday" — must NOT be forced into interval_hours
-    or custom_days. Leave frequency null so the assistant asks, rather than
-    silently creating a schedule the patient did not ask for.
 11. A bare deletion phrase with no subject ("delete everything", "remove them all")
     is DELETE_REMINDER with title=null — never assume which reminder is meant.
 12. If the transcript is empty, silent, or unintelligible, use intent=UNKNOWN with
@@ -398,13 +417,76 @@ def _coerce_frequency(value: Any) -> Optional[str]:
     return text if text in _VALID_FREQUENCIES else None
 
 
+# Instruction phrases a title should never keep. "tax to" is not a typo: it is
+# how speech recognition renders "task to", and it reached the database as the
+# stored title of a real reminder.
+_TITLE_LEAD_RE = re.compile(
+    r"^(?:please\s+)?(?:"
+    r"set\s+(?:up\s+)?(?:a\s+|an\s+)?(?:new\s+)?(?:reminder|alarm|task|appointment)"
+    r"(?:\s+(?:for|to|about))?"
+    r"|create\s+(?:a\s+|an\s+)?(?:reminder|task|appointment)(?:\s+(?:for|to|about))?"
+    r"|add\s+(?:a\s+|an\s+)?(?:reminder|task|appointment)(?:\s+(?:for|to|about))?"
+    r"|remind\s+me\s+(?:to|about|that)"
+    r"|(?:a\s+)?(?:task|tax)\s+(?:to|for|about)"
+    r"|i\s+need\s+to"
+    r")\s+",
+    re.IGNORECASE,
+)
+
+# "Doctor." from a transcript is a title, not a sentence end. Normalising it to
+# "Dr." keeps one spelling in the database instead of three.
+# The lookahead is scoped case-SENSITIVE with (?-i:...): under IGNORECASE a
+# bare [A-Z] also matches lowercase, which turned "Doctor appointment" into
+# "Dr. appointment". Only a following capitalised word is a person's name.
+_DOCTOR_RE = re.compile(r"\b(?:doctor|dr)\.?\s+(?=(?-i:[A-Z]))", re.IGNORECASE)
+
+
+def _clean_phrase(value: Any) -> Optional[str]:
+    """A short spoken phrase kept verbatim so the follow-up can quote it."""
+    if value is None:
+        return None
+    phrase = re.sub(r"\s+", " ", str(value)).strip(" .,-")
+    return phrase[:40] or None
+
+
 def _clean_title(value: Any) -> Optional[str]:
     if value is None:
         return None
     title = re.sub(r"\s+", " ", str(value)).strip(" .,-")
+    # Repeat: "set a reminder to task to X" is rare but the artefacts stack.
+    for _ in range(2):
+        stripped = _TITLE_LEAD_RE.sub("", title, count=1).strip(" .,-")
+        if stripped == title:
+            break
+        title = stripped
+    title = _DOCTOR_RE.sub("Dr. ", title)
     if len(title) < 2:
         return None
     return title[:80]
+
+
+# Words that settle reminder_type regardless of what the subject is about.
+_EXPLICIT_TYPE = (
+    ("task", re.compile(r"\b(?:a|the)?\s*task\b", re.IGNORECASE)),
+    ("appointment", re.compile(r"\bappointments?\b", re.IGNORECASE)),
+)
+
+
+def apply_explicit_type(entities: dict[str, Any], transcript: str) -> dict[str, Any]:
+    """
+    Let a spoken "task" or "appointment" decide the type, ahead of the subject.
+
+    "Create a task for Doctor appointment" is a task the user called a task; the
+    word "appointment" is only what the task is about. Checked in order so the
+    explicitly-requested container wins. Never downgrades to medication — a
+    doctor visit misfiled as medication is the failure worth preventing.
+    """
+    text = transcript or ""
+    for rtype, pattern in _EXPLICIT_TYPE:
+        if pattern.search(text):
+            entities["reminder_type"] = rtype
+            return entities
+    return entities
 
 
 def normalize_extraction(
@@ -447,6 +529,8 @@ def normalize_extraction(
         "new_time": _coerce_time(raw_entities.get("new_time")),
         "new_frequency": _coerce_frequency(raw_entities.get("new_frequency")),
         "time_ambiguous": bool(raw_entities.get("time_ambiguous")),
+        "frequency_ambiguous": _clean_phrase(raw_entities.get("frequency_ambiguous")),
+        "schedule_unsupported": bool(raw_entities.get("schedule_unsupported")),
         "minutes": None,
     }
 
@@ -688,6 +772,9 @@ async def extract_care_intent(
             )
         )
         result = normalize_extraction(payload, timezone_name=timezone_name, now=now)
+        # A spoken "task"/"appointment" settles the type deterministically, so a
+        # doctor visit cannot land in the database as a medication dose.
+        apply_explicit_type(result["entities"], text)
         # Token counts, so unit cost is measured rather than estimated.
         # Counts only — no prompt or response content (PHI).
         usage = payload.get("_usage") if isinstance(payload, dict) else None
@@ -772,6 +859,12 @@ def regex_fallback(
         entities["frequency"] = _coerce_frequency(pending.get("frequency"))
         entities["reminder_type"] = pending.get("reminder_type") or "medication"
         intent = VoxIntent(str(legacy.get("pending_intent") or VoxIntent.CREATE_REMINDER.value))
+
+    # The regex router hands back the raw spoken phrase; the LLM path cleans its
+    # title and this one never did, so the instruction words survived into the
+    # database. Same cleanup, same place in the flow.
+    entities["title"] = _clean_title(entities.get("title"))
+    apply_explicit_type(entities, transcript)
 
     out = {
         "intent": intent.value,

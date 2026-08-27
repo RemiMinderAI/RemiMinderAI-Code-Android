@@ -25,6 +25,7 @@ import json
 import os
 import sys
 import types
+from pathlib import Path
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -294,6 +295,53 @@ def _mock_table() -> dict[str, dict]:
     tomorrow = (today() + timedelta(days=1)).isoformat()
     thursday = next_weekday("thursday", "15:00").isoformat()
     return {
+        # --- iOS device-test defects. Values mirror what the live model
+        # --- actually returned, so mock exercises the same branches.
+        "the 8 AM one": {
+            "intent": "COMPLETE_REMINDER",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication",
+                         "time": "08:00"},
+            "confidence": 0.95,
+        },
+        "Set a reminder to take my pills today at 2:31 PM": {
+            "intent": "CREATE_REMINDER",
+            # No frequency: the stated date is what makes it a one-off.
+            "entities": {"title": "take my pills", "reminder_type": "medication",
+                         "time": "14:31", "date": t},
+            "confidence": 0.95,
+        },
+        "create a task for Doctor appointment tomorrow at 10 AM": {
+            "intent": "CREATE_REMINDER",
+            # The model reads the SUBJECT as an appointment; the spoken word
+            # "task" is what must win, so this is left wrong on purpose.
+            "entities": {"title": "Doctor appointment",
+                         "reminder_type": "appointment",
+                         "time": "10:00", "date": tomorrow},
+            "confidence": 0.95,
+        },
+        "Doctor appointment with Doctor Gubbala on Thursday at 3 PM": {
+            "intent": "CREATE_REMINDER",
+            "entities": {"title": "Doctor appointment with Doctor Gubbala",
+                         "reminder_type": "appointment", "time": "15:00",
+                         "date": thursday, "day_of_week": "thursday",
+                         "doctor_name": "Dr. Gubbala"},
+            "confidence": 0.98,
+        },
+        "Set a task to pick up lab results tomorrow at 10 AM": {
+            "intent": "CREATE_REMINDER",
+            "entities": {"title": "pick up lab results", "reminder_type": "task",
+                         "time": "10:00", "date": tomorrow, "frequency": "once"},
+            "confidence": 1.0,
+        },
+        "tax to pick up lab results tomorrow at 10 AM": {
+            "intent": "CREATE_REMINDER",
+            # "tax to" is how the recogniser renders "task to"; the leading
+            # phrase is left in so the title cleanup is exercised here too.
+            "entities": {"title": "tax to pick up lab results",
+                         "reminder_type": "task",
+                         "time": "10:00", "date": tomorrow},
+            "confidence": 0.92,
+        },
         "Set a reminder for Metoprolol at 10 AM every day": {
             "intent": "CREATE_REMINDER",
             "entities": {"title": "Metoprolol", "reminder_type": "medication",
@@ -455,19 +503,14 @@ def _mock_table() -> dict[str, dict]:
         "Set a reminder for Metoprolol at 8 AM every other day": {
             "intent": "CREATE_REMINDER",
             "entities": {"title": "Metoprolol", "reminder_type": "medication",
-                         "time": "08:00", "frequency": None},
-            "confidence": 0.7,
-        },
-        "Set a reminder for Metoprolol at 8 AM every other day": {
-            "intent": "CREATE_REMINDER",
-            "entities": {"title": "Metoprolol", "reminder_type": "medication",
                          "time": "08:00", "frequency": "daily", "interval_count": 2},
             "confidence": 0.95,
         },
         "Set a reminder for Metoprolol at 8 AM biweekly": {
             "intent": "CREATE_REMINDER",
             "entities": {"title": "Metoprolol", "reminder_type": "medication",
-                         "time": "08:00", "frequency": None},
+                         "time": "08:00", "frequency": None,
+                         "frequency_ambiguous": "biweekly"},
             "confidence": 0.6,
         },
         "Set a reminder for Metoprolol at 8 AM every few days": {
@@ -475,11 +518,6 @@ def _mock_table() -> dict[str, dict]:
             "entities": {"title": "Metoprolol", "reminder_type": "medication",
                          "time": "08:00", "frequency": None},
             "confidence": 0.6,
-        },
-        "Mark done Metoprolol": {
-            "intent": "COMPLETE_REMINDER",
-            "entities": {"title": "Metoprolol", "reminder_type": "medication"},
-            "confidence": 0.95,
         },
         "I took my Ibuprofen": {
             "intent": "COMPLETE_REMINDER",
@@ -495,8 +533,26 @@ def _mock_table() -> dict[str, dict]:
     }
 
 
+def _assert_no_duplicate_transcripts() -> None:
+    """
+    A repeated key in the mock table is invisible: the later one silently wins.
+
+    That is not hypothetical — two entries for the same transcript made a fix
+    look broken in mock while passing against the live model.
+    """
+    import re as _re
+
+    source = Path(__file__).read_text(encoding="utf-8")
+    body = source.split("def _mock_table(", 1)[1].split("\ndef ", 1)[0]
+    keys = _re.findall(r'^        "(.+?)": \{$', body, _re.M)
+    dupes = {k for k in keys if keys.count(k) > 1}
+    if dupes:
+        raise Failure(f"duplicate mock transcripts: {sorted(dupes)}")
+
+
 def install_mock_nlu() -> None:
     table = _mock_table()
+    _assert_no_duplicate_transcripts()
 
     async def fake_call(user_message: str) -> dict:
         # The transcript is the last line of the composed user message.
@@ -1196,6 +1252,164 @@ async def case_46(s):
            f"should say it could not find it: {out['text']!r}")
 
 
+
+# ---------------------------------------------------------------------------
+# Defects found on iOS device testing (shared backend, so Android had them too).
+# The fixture below is the reported account: a twice-daily medication produces
+# several rows with the same title, which is the normal state for anyone on a
+# morning-and-evening dose — not test pollution, and not an edge case.
+# ---------------------------------------------------------------------------
+
+def twice_daily_fixture() -> dict:
+    """Two Metoprolol doses at different times, plus a second medication."""
+    return {
+        "today": [
+            {"id": "r-met-0800", "title": "Metoprolol", "reminder_type": "medication",
+             "status": "pending", "recurrence": "daily", "timezone": TZ,
+             "scheduled_time": _at_local("08:00")},
+            {"id": "r-met-1445", "title": "Metoprolol", "reminder_type": "medication",
+             "status": "pending", "recurrence": "daily", "timezone": TZ,
+             "scheduled_time": _at_local("14:45")},
+            {"id": "r-lyrica", "title": "Lyrica", "reminder_type": "medication",
+             "status": "snoozed", "recurrence": "daily", "timezone": TZ,
+             "scheduled_time": _at_local("15:25")},
+        ],
+        "upcoming": [],
+        "past": [],
+    }
+
+
+async def case_47(s):
+    """Two same-titled doses -> asks which, and names the times that differ."""
+    out = await say("mark done Metoprolol", session=s, reminders=twice_daily_fixture())
+    expect(not STORE.completed, f"must not guess a dose: {STORE.completed}")
+    text = out["text"].lower()
+    expect("which" in text, f"should ask which: {out['text']!r}")
+    # Naming them both "Metoprolol" makes the question unanswerable.
+    expect("8 am" in text and "2:45 pm" in text,
+           f"question must name both times: {out['text']!r}")
+
+
+async def case_48(s):
+    """The answer to that question is heard, and completes the named dose."""
+    fx = twice_daily_fixture()
+    await say("mark done Metoprolol", session=s, reminders=fx)
+    await say("the 8 AM one", session=s, reminders=fx)
+    expect(STORE.completed == ["r-met-0800"],
+           f"expected the 08:00 dose, got {STORE.completed}")
+
+
+async def case_49(s):
+    """A stated action is a NEW instruction, never an answer to the question."""
+    fx = twice_daily_fixture()
+    await say("mark done Metoprolol", session=s, reminders=fx)
+    await say("mark done Lyrica", session=s, reminders=fx)
+    # The worst outcome this app can produce is logging a drug the patient did
+    # not take, so the pending Metoprolol must be untouched.
+    expect("r-met-0800" not in STORE.completed and "r-met-1445" not in STORE.completed,
+           f"pending Metoprolol must not be swallowed: {STORE.completed}")
+    expect(STORE.completed == ["r-lyrica"],
+           f"expected Lyrica only, got {STORE.completed}")
+
+
+async def case_50(s):
+    """The same instruction with nothing pending behaves identically."""
+    out = await say("mark done Lyrica", session=s, reminders=twice_daily_fixture())
+    expect(STORE.completed == ["r-lyrica"],
+           f"expected Lyrica, got {STORE.completed} (reply={out['text']!r})")
+
+
+async def case_51(s):
+    """A completion that matches no title says so and completes nothing.
+
+    Regression for the real defect: "is a medication" (+1) and "is due now" (+1)
+    reached min_score with zero title evidence, so any unmatched name resolved
+    to whichever medication was due.
+    """
+    out = await say("mark done Warfarin", session=s, reminders=twice_daily_fixture())
+    expect(not STORE.completed,
+           f"must complete nothing, completed {STORE.completed}")
+    text = out["text"].lower()
+    expect("couldn't find" in text or "could not find" in text,
+           f"should say it could not find it: {out['text']!r}")
+
+
+async def case_52(s):
+    """"every other day" needs no frequency question."""
+    out = await say("Set a reminder for Metoprolol at 8 AM every other day", session=s)
+    r = only_created()
+    expect(r.recurrence == "daily" and r.interval_count == 2,
+           f"recurrence={r.recurrence} interval_count={r.interval_count}")
+    expect("how often" not in out["text"].lower()
+           and "just once" not in out["text"].lower(),
+           f"must not ask the frequency it was told: {out['text']!r}")
+
+
+async def case_53(s):
+    """A stated date is the occurrence — do not ask how often it repeats."""
+    out = await say("Set a reminder to take my pills today at 2:31 PM", session=s)
+    expect("just once" not in out["text"].lower()
+           and "how often" not in out["text"].lower(),
+           f"a stated date already answered this: {out['text']!r}")
+    r = only_created()
+    expect(r.recurrence == "once", f"recurrence={r.recurrence}")
+    expect(local_hhmm(r.scheduled_time) == "14:31",
+           f"time={local_hhmm(r.scheduled_time)}")
+
+
+async def case_54(s):
+    """"biweekly" asks which meaning it is, and creates nothing meanwhile."""
+    out = await say("Set a reminder for Metoprolol at 8 AM biweekly", session=s)
+    expect(not STORE.created, f"must not guess a schedule: {STORE.created}")
+    text = out["text"].lower()
+    expect("twice a week" in text and "two weeks" in text,
+           f"should offer both readings: {out['text']!r}")
+
+
+async def case_55(s):
+    """"as needed" is explained, not treated as a mishearing."""
+    out = await say("Remind me to take Tylenol as needed", session=s)
+    expect(not STORE.created, f"must not create: {STORE.created}")
+    text = out["text"].lower()
+    expect("didn't catch" not in text and "did not catch" not in text,
+           f"user was understood; must not claim otherwise: {out['text']!r}")
+    expect("as-needed" in text or "as needed" in text or "set times" in text,
+           f"should explain what it cannot do: {out['text']!r}")
+
+
+async def case_56(s):
+    """A spoken "task" sets the type even when the subject is an appointment."""
+    await say("create a task for Doctor appointment tomorrow at 10 AM", session=s)
+    r = only_created()
+    expect(str(r.reminder_type) == "task", f"reminder_type={r.reminder_type}")
+
+
+async def case_57(s):
+    """An appointment is never filed as a medication dose."""
+    await say("Doctor appointment with Doctor Gubbala on Thursday at 3 PM", session=s)
+    r = only_created()
+    expect(str(r.reminder_type) == "appointment",
+           f"reminder_type={r.reminder_type}")
+    expect(str(r.reminder_type) != "medication", "a visit is not a dose")
+
+
+async def case_58(s):
+    """The instruction phrase is stripped from the title, mistranscribed or not.
+
+    "tax to pick up lab results" is what speech recognition makes of "task
+    to ..."; both reached the database with the action phrase in the title.
+    """
+    for phrase in ("Set a task to pick up lab results tomorrow at 10 AM",
+                   "tax to pick up lab results tomorrow at 10 AM"):
+        STORE.reset()
+        await say(phrase, session=f"{s}-{phrase[:6]}")
+        r = only_created()
+        title = str(r.title).lower()
+        expect("tax" not in title and not title.startswith("task"),
+               f"{phrase!r} -> title={r.title!r}")
+        expect("pick up lab results" in title, f"{phrase!r} -> title={r.title!r}")
+
+
 CASES = [
     ("01 create daily medication", case_01),
     ("02 create daily, spoken 8:30 PM", case_02),
@@ -1243,6 +1457,18 @@ CASES = [
     ("44 legacy rows unchanged without interval_count", case_44),
     ("45 'marked on X' completes, never creates", case_45),
     ("46 unresolvable mark-done says so", case_46),
+    ("47 same-titled doses -> asks which, names times", case_47),
+    ("48 answering 'the 8 AM one' completes that dose", case_48),
+    ("49 stated action is not an answer to the question", case_49),
+    ("50 mark done by name with nothing pending", case_50),
+    ("51 unmatched name completes nothing, says so", case_51),
+    ("52 every other day asks no frequency question", case_52),
+    ("53 a stated date implies once", case_53),
+    ("54 biweekly asks which meaning", case_54),
+    ("55 as needed is explained, not misheard", case_55),
+    ("56 spoken 'task' sets the type", case_56),
+    ("57 appointment never filed as medication", case_57),
+    ("58 instruction phrase stripped from title", case_58),
 ]
 
 

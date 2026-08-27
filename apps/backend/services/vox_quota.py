@@ -41,6 +41,9 @@ USER_CAUSED_REFUSALS = frozenset(
         "medical_advice_refusal",
         "not_due_yet",
         "confirm_nothing_pending",
+        # Understood exactly, and correctly refused: "as needed" is not a
+        # schedule. Vox did its job, so the turn counts.
+        "schedule_not_supported",
     }
 )
 

@@ -99,15 +99,28 @@ def apply_inferred_defaults(entities: dict[str, Any]) -> dict[str, Any]:
     """
     Fill only what is legitimately inferable from what the user already said.
 
-    Currently one rule: a task or appointment pinned to a specific day, with no
-    recurring language anywhere, is a one-off. Medication frequency is never
-    inferred — it must be stated.
+    Two rules, both inference from stated facts rather than invention:
+
+      * An explicit calendar date means one occurrence. "Remind me today at
+        2:31" names the occurrence; asking "every day or just once?" after that
+        is asking something the user already answered.
+      * A task or appointment pinned to a named day is likewise a one-off.
+
+    A weekday alone is NOT enough for a medication — "Metoprolol on Thursday"
+    could as easily be weekly — so only an actual date generalises. Where
+    nothing was stated, frequency is still never assumed.
     """
     out = dict(entities or {})
     rtype = reminder_type_of(out)
-    if rtype in {"task", "appointment"} and not out.get("frequency"):
-        if _has(out, "date") or _has(out, "day_of_week"):
+    if not out.get("frequency"):
+        if _has(out, "date"):
             out["frequency"] = "once"
+        elif rtype in {"task", "appointment"} and _has(out, "day_of_week"):
+            out["frequency"] = "once"
+    # A frequency that arrived this turn settles any earlier ambiguity, so the
+    # ambiguous-phrase marker must not survive into the next round and re-ask.
+    if out.get("frequency"):
+        out.pop("frequency_ambiguous", None)
     return out
 
 

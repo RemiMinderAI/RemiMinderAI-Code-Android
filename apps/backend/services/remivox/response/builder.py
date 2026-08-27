@@ -130,6 +130,32 @@ def _schedule_phrase(payload: dict[str, Any]) -> str:
     return at_time.strip() or "once"
 
 
+# The readings a user has to choose between, phrased as the choice itself.
+_FREQUENCY_CHOICE = {
+    "biweekly": "Just so I get it right — twice a week, or every two weeks?",
+    "bi-weekly": "Just so I get it right — twice a week, or every two weeks?",
+    "fortnightly": "Every two weeks — is that right?",
+    "bimonthly": "Twice a month, or every two months?",
+    "monthly": "Every four weeks, or the same date each month?",
+    "every few days": "How many days apart would you like it?",
+    "a couple of times a week": "Which days of the week should I remind you?",
+    "four times a day": "Every six hours, or four times you choose?",
+}
+
+
+def _candidate_labels(payload: dict[str, Any]) -> list[str]:
+    """Name each candidate with the time that separates it from its twin."""
+    names = list(payload.get("candidates") or [])
+    times = list(payload.get("candidate_times") or [])
+    labels: list[str] = []
+    for index, name in enumerate(names):
+        if not name:
+            continue
+        spoken = _speak_time(times[index]) if index < len(times) else ""
+        labels.append(f"{name} at {spoken}" if spoken else str(name))
+    return labels
+
+
 def _join_names(names: list[str]) -> str:
     clean = [n for n in names if n]
     if not clean:
@@ -204,6 +230,15 @@ def _text_for(
             if title:
                 return f"Should I remind you about {title} every day, or just once?"
             return _SLOT_PROMPTS["frequency"]
+        if slot == "frequency_choice":
+            phrase = str(pending.get("frequency_ambiguous") or "").strip().lower()
+            question = _FREQUENCY_CHOICE.get(phrase)
+            if question:
+                return question
+            spoken = phrase or "that"
+            return (
+                f"I want to get {spoken} right — how often should this repeat?"
+            )
         if slot == "interval_hours":
             return "How many hours apart should I remind you?"
         if slot == "custom_days":
@@ -247,6 +282,14 @@ def _text_for(
             return f"I don't see one at that time — you have {title} at {times}."
         return f"I don't see a {title} reminder at that time."
 
+    if key == "schedule_not_supported":
+        title = payload.get("title")
+        subject = f"for {title}" if title else "for that"
+        return (
+            f"I can't set an as-needed reminder {subject} — I can only remind "
+            "you at set times. If you'd like, tell me a time and I'll set one."
+        )
+
     if key == "restart_flow":
         return (
             "Let's start over. Tell me the full reminder — for example: "
@@ -277,9 +320,12 @@ def _text_for(
         return "I found it, but couldn't update it right now. Want to try again?"
 
     if key == "ambiguous_reminder":
-        names = _join_names(list(payload.get("candidates") or []))
-        if names:
-            return f"I found a few that might match: {names}. Which one did you mean?"
+        # Two rows both called "Metoprolol" make "which one?" unanswerable when
+        # only the names are read back. A twice-daily medication produces
+        # exactly that, so the time is the question, not a decoration.
+        labels = _candidate_labels(payload)
+        if labels:
+            return f"You have {_join_names(labels)} — which one did you mean?"
         return "I found more than one reminder that could match. Which one should I use?"
 
     if key == "no_match":

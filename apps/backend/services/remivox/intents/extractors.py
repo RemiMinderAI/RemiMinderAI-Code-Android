@@ -377,19 +377,7 @@ def score_reminders(
     lower = (hint or "").lower()
     scored: list[tuple[int, dict]] = []
     for item in active:
-        title = reminder_title(item).lower()
-        score = 0
-        # Exact title match gets highest score
-        if title.strip() == lower.strip() or title.strip() in lower:
-            score += 10
-        # Match title tokens in hint
-        for token in re.findall(r"[a-z0-9]{3,}", title):
-            if token in lower:
-                score += 2
-        # Also match hint tokens in title (reverse match)
-        for token in re.findall(r"[a-z0-9]{3,}", lower):
-            if token in title and len(token) >= 4:
-                score += 2
+        score = title_evidence(item, lower)
         if str(item.get("display_status", "")).lower() == "due now":
             score += 1
         if str(item.get("reminder_type", "")).lower() == "medication":
@@ -401,6 +389,33 @@ def score_reminders(
         scored.append((score, item))
     scored.sort(key=lambda pair: pair[0], reverse=True)
     return scored
+
+
+def title_evidence(item: dict, hint_lower: str) -> int:
+    """
+    How much of the score comes from the TITLE actually matching the hint.
+
+    Split out from the contextual bonuses because those bonuses are
+    title-independent: "is a medication" (+1) and "is due now" (+1) sum to
+    min_score on their own, so before this existed any hint whatsoever — a
+    mistranscribed drug name, a word from another sentence — resolved to
+    whichever medication happened to be due, and a completion was recorded
+    against a drug the patient never named.
+    """
+    title = reminder_title(item).lower()
+    score = 0
+    # Exact title match gets highest score
+    if title.strip() == hint_lower.strip() or title.strip() in hint_lower:
+        score += 10
+    # Match title tokens in hint
+    for token in re.findall(r"[a-z0-9]{3,}", title):
+        if token in hint_lower:
+            score += 2
+    # Also match hint tokens in title (reverse match)
+    for token in re.findall(r"[a-z0-9]{3,}", hint_lower):
+        if token in title and len(token) >= 4:
+            score += 2
+    return score
 
 
 @dataclass
@@ -425,11 +440,32 @@ def resolve_reminder(
     time_hhmm: Optional[str] = None,
     timezone_name: str = "UTC",
     min_score: int = 2,
+    require_title_evidence: bool = False,
 ) -> ReminderMatch:
-    """Resolve to a single reminder, using a stated time to break title ties."""
+    """
+    Resolve to a single reminder, using a stated time to break title ties.
+
+    With require_title_evidence, a candidate whose title contributed nothing to
+    its score is discarded before ranking. Callers set it when the user NAMED
+    something: the contextual bonuses alone reach min_score, so without this a
+    named medication that matches nothing still resolves — to the wrong dose.
+    Callers who pass no name ("mark done", with one reminder due) leave it off.
+    """
+    lower = (hint or "").lower()
+    if require_title_evidence:
+        keep = {
+            id(item)
+            for item in all_active_reminders(reminders) + _items(reminders.get("past"))
+            if title_evidence(item, lower) > 0
+        }
+        if not keep:
+            return ReminderMatch()
+
     scored = score_reminders(
         reminders, hint, time_hhmm=time_hhmm, timezone_name=timezone_name
     )
+    if require_title_evidence:
+        scored = [pair for pair in scored if id(pair[1]) in keep]
     if not scored:
         return ReminderMatch()
 
@@ -440,6 +476,7 @@ def resolve_reminder(
             item
             for score, item in score_reminders(reminders, hint)
             if score >= min_score
+            and (not require_title_evidence or title_evidence(item, lower) > 0)
         ]
         # Only meaningful when we actually know the candidates' times. Reminder
         # dicts without a scheduled_time cannot contradict a stated time, and

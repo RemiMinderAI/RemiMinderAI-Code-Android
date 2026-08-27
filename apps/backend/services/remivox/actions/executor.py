@@ -128,6 +128,30 @@ def _local_display(scheduled: Optional[datetime], item: dict) -> str:
     return f"{day} at {clock}"
 
 
+# Which intent a check-in mode resumes as, so a disambiguation answer is matched
+# against the action the user was actually in the middle of.
+_CHECKIN_INTENT = {
+    "complete": VoxIntent.COMPLETE_REMINDER.value,
+    "skip": VoxIntent.SKIP_REMINDER.value,
+    "snooze": VoxIntent.SNOOZE_REMINDER.value,
+}
+
+
+def _candidate_payload(items: list[dict], timezone_name: str) -> dict[str, Any]:
+    """
+    Candidates for a "which one?" question, with the time that tells them apart.
+
+    Two rows both called "Metoprolol" make the question unanswerable when only
+    the names are read back. The time is the one thing that distinguishes a
+    morning dose from an evening one, and it is what the patient will say in
+    reply, so it has to be in the question.
+    """
+    return {
+        "candidates": [reminder_title(i) for i in items],
+        "candidate_times": [reminder_local_hhmm(i, timezone_name) for i in items],
+    }
+
+
 def _time_mismatch_result(
     action: str,
     entities: dict[str, Any],
@@ -352,6 +376,16 @@ async def _create_reminder(
     time_hhmm = entities.get("time")
     frequency = entities.get("frequency") or "once"
     reminder_type = entities.get("reminder_type") or "medication"
+    # "As needed" names no schedule. Stop before asking for a time we would only
+    # use to build a recurrence the user never asked for.
+    if entities.get("schedule_unsupported"):
+        return ActionResult(
+            success=False,
+            action="create_reminder",
+            message_key="schedule_not_supported",
+            payload={"title": title or None},
+            clear_pending=True,
+        )
     if not title or not time_hhmm:
         missing = []
         if not title:
@@ -457,12 +491,11 @@ async def _update_reminder(
         )
     match, ambiguous = resolved.match, resolved.ambiguous
     if ambiguous:
-        names = [reminder_title(i) for i in ambiguous[:4]]
         return ActionResult(
             success=False,
             action="update_reminder",
             message_key="ambiguous_reminder",
-            payload={"candidates": names},
+            payload=_candidate_payload(ambiguous[:4], timezone_name),
             pending_intent=VoxIntent.UPDATE_REMINDER.value,
             pending_entities=entities,
             missing_slots=["reminder"],
@@ -555,6 +588,10 @@ async def _checkin(
         time_hhmm=entities.get("match_time"),
         timezone_name=timezone_name,
         min_score=2,
+        # The user named a medication: it must actually match one. Without this
+        # the "is a medication" and "is due now" bonuses reach min_score on
+        # their own and an unmatched name logs the wrong drug as taken.
+        require_title_evidence=bool(named),
     )
     if resolved.time_mismatch:
         return _time_mismatch_result(
@@ -562,11 +599,18 @@ async def _checkin(
         )
     match, ambiguous = resolved.match, resolved.ambiguous
     if ambiguous:
+        # Without pending state the question is unanswerable: the next turn
+        # arrives with no memory of what was asked, so "the 8 AM one" is a
+        # sentence about nothing. update and delete already did this; check-in
+        # asked and then discarded the context needed to hear the reply.
         return ActionResult(
             success=False,
             action=f"{mode}_reminder",
             message_key="ambiguous_reminder",
-            payload={"candidates": [reminder_title(i) for i in ambiguous[:4]]},
+            payload=_candidate_payload(ambiguous[:4], timezone_name),
+            pending_intent=_CHECKIN_INTENT.get(mode, VoxIntent.COMPLETE_REMINDER.value),
+            pending_entities=entities,
+            missing_slots=["reminder"],
         )
     if not match:
         if named:
@@ -681,7 +725,7 @@ async def _delete_reminder_flow(
             success=False,
             action="delete_reminder",
             message_key="ambiguous_reminder",
-            payload={"candidates": [reminder_title(i) for i in ambiguous[:4]]},
+            payload=_candidate_payload(ambiguous[:4], timezone_name),
             pending_intent=VoxIntent.DELETE_REMINDER.value,
             pending_entities=entities,
             missing_slots=["reminder"],

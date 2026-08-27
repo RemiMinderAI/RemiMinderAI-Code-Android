@@ -60,6 +60,7 @@ def _create_entities(entities: dict[str, Any]) -> dict[str, Any]:
         "interval_count": entities.get("interval_count"),
         "custom_days": entities.get("custom_days"),
         "doctor_name": entities.get("doctor_name"),
+        "schedule_unsupported": entities.get("schedule_unsupported"),
     }
 
 
@@ -89,6 +90,23 @@ def _update_entities(entities: dict[str, Any], raw: str) -> dict[str, Any]:
         "custom_days": entities.get("custom_days"),
         "raw_transcript": raw,
     }
+
+
+def _names_something_else(pending: dict[str, Any], title: Optional[str]) -> bool:
+    """
+    True when this turn names a DIFFERENT subject than the pending question.
+
+    "Which Metoprolol did you mean?" followed by "mark done Lyrica" is a new
+    instruction, not an answer. Merging the pending entities there would keep
+    the old title alongside the new one and act on whichever the matcher
+    preferred — which is how a completion reaches a drug the patient never
+    named. A turn that carries its own subject replaces the pending one.
+    """
+    stated = (title or "").strip().lower()
+    if not stated:
+        return False
+    prior = str(pending.get("title_hint") or pending.get("medication") or "").strip().lower()
+    return bool(prior) and stated != prior
 
 
 def to_intent_result(
@@ -136,9 +154,21 @@ def to_intent_result(
     if intent == VoxIntent.CREATE_REMINDER:
         base = pending if pending_intent == VoxIntent.CREATE_REMINDER.value else {}
         merged = apply_inferred_defaults(merge_entities(base, entities))
+        # "As needed" is understood perfectly and cannot be scheduled. Saying so
+        # is a terminal answer, not a question, and certainly not "I didn't
+        # catch that" — the user was heard, the request is simply unsupported.
+        if merged.get("schedule_unsupported"):
+            out = _create_entities(merged)
+            out["schedule_unsupported"] = True
+            return result(VoxIntent.CREATE_REMINDER, out)
         missing = validate_create(merged)
         if missing:
             slot = next_question_slot(missing)
+            # We know WHICH ambiguity this is, so ask about that rather than
+            # asking "how often?" again — repeating the generic question is what
+            # burned both clarify rounds and dumped the user into "start over".
+            if slot == "frequency" and merged.get("frequency_ambiguous"):
+                slot = "frequency_choice"
             return result(
                 VoxIntent.CLARIFY,
                 {
@@ -205,7 +235,9 @@ def to_intent_result(
             "raw_transcript": raw_transcript,
             "match_time": entities.get("time"),
         }
-        if pending_intent == intent.value:
+        if pending_intent == intent.value and not _names_something_else(pending, title):
+            # Answering the pending question ("the 8 AM one") — keep what we
+            # already know so the time has a title to select against.
             out = merge_entities(pending, out)
         return result(intent, out)
 
