@@ -105,18 +105,47 @@ def _schedule_phrase(payload: dict[str, Any]) -> str:
             return f"every {int(hours)} {unit}{starting}"
         return f"on a schedule{starting}"
 
+    # interval_count means "every N of the base period". The row is stored
+    # correctly, but reading it back as plain "every day" told the user their
+    # every-other-day reminder was daily — which reads as a bug in the app and
+    # invites them to "correct" a schedule that was already right.
+    try:
+        every_n = int(payload.get("interval_count") or 1)
+    except (TypeError, ValueError):
+        every_n = 1
+    if every_n < 1:
+        every_n = 1
+
+    def _every(period: str) -> str:
+        """'day' -> 'every day' / 'every other day' / 'every 3 days'."""
+        if every_n == 1:
+            return f"every {period}"
+        if every_n == 2:
+            return f"every other {period}"
+        return f"every {every_n} {period}s"
+
     if frequency == "custom":
         days = _speak_days(payload.get("custom_days"))
         if days:
+            if every_n == 2:
+                return f"every other {days}{at_time}"
+            if every_n > 2:
+                return f"every {every_n} weeks on {days}{at_time}"
             return f"every {days}{at_time}"
         return f"on the days you chose{at_time}"
 
     if frequency == "daily":
-        return f"every day{at_time}"
+        return f"{_every('day')}{at_time}"
 
     if frequency == "weekly":
         day = _speak_day(payload.get("day_of_week"))
-        return f"every {day}{at_time}" if day else f"every week{at_time}"
+        if day:
+            if every_n == 2:
+                return f"every other {day}{at_time}"
+            if every_n > 2:
+                return f"every {every_n} weeks on {day}{at_time}"
+            return f"every {day}{at_time}"
+        return f"{_every('week')}{at_time}"
 
     if frequency in {"twice", "twice_daily"}:
         return f"twice a day{at_time}"
