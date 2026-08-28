@@ -456,6 +456,33 @@ async def get_caregiver_dashboard_data(caregiver_id: str, user_id: str) -> Dict[
 # FCM Push Notifications
 # ============================================================================
 
+async def send_fcm_to_tokens(
+    fcm_tokens: List[str],
+    title: str,
+    body: str,
+    data: Optional[dict] = None
+) -> int:
+    """
+    Send to every device a user has registered. Returns how many were reached.
+
+    One shared fan-out rather than a loop at each call site: a patient with a
+    phone and a tablet should be reminded on both, and the last time this was
+    left to callers only one of them did it.
+
+    A single dead device does not stop the others — send_fcm_notification
+    prunes the rejected token and returns False for that one alone.
+    """
+    delivered = 0
+    for token in fcm_tokens or []:
+        if not token:
+            continue
+        if await send_fcm_notification(
+            fcm_token=token, title=title, body=body, data=data
+        ):
+            delivered += 1
+    return delivered
+
+
 async def send_fcm_notification(
     fcm_token: str,
     title: str,

@@ -6,7 +6,7 @@ from .db_reminders import (
     caregiver_alert_exists_for_context,
     create_caregiver_alert,
     get_pending_reminders_past_grace,
-    get_patient_fcm_token,
+    get_patient_fcm_tokens,
     get_reminder,
     get_patient_info,
 )
@@ -18,11 +18,13 @@ logger = logging.getLogger(__name__)
 async def _push_fcm_to_caregiver(caregiver_id: str, title: str, body: str, alert_type: str) -> None:
     """Send FCM push notification to a caregiver device if they have a registered token."""
     try:
-        from .reminder_service import send_fcm_notification
-        fcm_token = await get_patient_fcm_token(caregiver_id)
-        if fcm_token:
-            await send_fcm_notification(
-                fcm_token=fcm_token,
+        from .reminder_service import send_fcm_to_tokens
+        tokens = await get_patient_fcm_tokens(caregiver_id)
+        if tokens:
+            # A caregiver watching on a phone and a tablet needs the alert on
+            # both; picking one device is how the other went quiet.
+            await send_fcm_to_tokens(
+                fcm_tokens=tokens,
                 title=title,
                 body=body,
                 data={"type": alert_type, "deep_link": "/caregiver/alerts"},

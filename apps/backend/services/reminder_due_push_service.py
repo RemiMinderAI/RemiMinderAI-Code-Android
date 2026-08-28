@@ -10,10 +10,12 @@ from services.db_reminders import (
     create_caregiver_alert,
     get_patient_info,
     get_reminders_due_in_window,
-    get_patient_fcm_token,
+    get_patient_fcm_tokens,
+    mark_reminder_due_push_delivered,
     try_claim_reminder_due_push,
+    PUSH_RETRY_WINDOW_MINUTES,
 )
-from services.reminder_service import send_fcm_notification
+from services.reminder_service import send_fcm_to_tokens
 from services.notification_service import send_caregiver_alert_email
 
 logger = logging.getLogger(__name__)
@@ -26,7 +28,8 @@ async def process_reminder_due_push_notifications(
     """
     Find reminders due in the time window, claim idempotently, send FCM to patient + caregivers.
     """
-    stats = {"reminders_examined": 0, "patient_pushes": 0, "caregiver_pushes": 0}
+    stats = {"reminders_examined": 0, "patient_pushes": 0, "caregiver_pushes": 0,
+             "retries": 0, "abandoned": 0}
     try:
         rows = await get_reminders_due_in_window(
             past_minutes=past_minutes,
@@ -46,20 +49,38 @@ async def process_reminder_due_push_notifications(
 
         st = r.get("scheduled_time")
         try:
-            claimed = await try_claim_reminder_due_push(rid, st)
+            claim = await try_claim_reminder_due_push(rid, st)
         except Exception as e:
             logger.warning("try_claim_reminder_due_push %s: %s", rid, e)
             continue
-        if not claimed:
+        if not claim.claimed:
+            if claim.newly_abandoned:
+                # The line to grep for when someone says "I stopped getting
+                # reminders". Not "a send failed" — a dose alert never arrived,
+                # and by design will not arrive now: delivering it this late
+                # risks a second dose.
+                stats["abandoned"] += 1
+                logger.error(
+                    "MEDICATION REMINDER NOT DELIVERED: reminder_id=%s "
+                    "scheduled=%s attempts=%d — giving up after %d minutes, "
+                    "the patient was not notified",
+                    rid,
+                    st.isoformat() if hasattr(st, "isoformat") else st,
+                    claim.attempts,
+                    PUSH_RETRY_WINDOW_MINUTES,
+                )
             continue
+        if claim.attempts > 1:
+            stats["retries"] += 1
 
         title = (r.get("title") or "Reminder").strip() or "Reminder"
         body = (r.get("message") or "").strip() or f"Time for: {title}"
 
-        ptok = await get_patient_fcm_token(patient_uid)
-        if ptok:
-            ok = await send_fcm_notification(
-                fcm_token=ptok,
+        ptokens = await get_patient_fcm_tokens(patient_uid)
+        delivered = 0
+        if ptokens:
+            delivered = await send_fcm_to_tokens(
+                fcm_tokens=ptokens,
                 title=title,
                 body=body,
                 data={
@@ -69,8 +90,22 @@ async def process_reminder_due_push_notifications(
                     "deep_link": f"/patient/reminder/{rid}",
                 },
             )
-            if ok:
-                stats["patient_pushes"] += 1
+            stats["patient_pushes"] += delivered
+
+        # Only a real delivery closes the row. Anything else leaves it
+        # retryable until the window runs out, which is what turns a transient
+        # APNs failure back into a delivered reminder instead of a silent skip.
+        if delivered:
+            await mark_reminder_due_push_delivered(rid, st)
+        else:
+            logger.warning(
+                "reminder_due push not delivered yet: reminder_id=%s "
+                "attempt=%d devices=%d — will retry inside the %d-minute window",
+                rid,
+                claim.attempts,
+                len(ptokens),
+                PUSH_RETRY_WINDOW_MINUTES,
+            )
 
         try:
             caregivers = await list_patient_caregivers_for_alerts(patient_uid)
@@ -102,8 +137,8 @@ async def process_reminder_due_push_notifications(
             if not row:
                 continue
 
-            cgtok = await get_patient_fcm_token(str(cg_id))
-            if not cgtok:
+            cgtokens = await get_patient_fcm_tokens(str(cg_id))
+            if not cgtokens:
                 await send_caregiver_alert_email(
                     to_email=(cg.get("email") or "").strip(),
                     patient_name=patient_name,
@@ -113,8 +148,8 @@ async def process_reminder_due_push_notifications(
                 )
                 continue
 
-            ok = await send_fcm_notification(
-                fcm_token=cgtok,
+            cg_delivered = await send_fcm_to_tokens(
+                fcm_tokens=cgtokens,
                 title="Patient reminder due",
                 body=cg_body,
                 data={
@@ -124,8 +159,7 @@ async def process_reminder_due_push_notifications(
                     "deep_link": "/caregiver/reminders-timeline",
                 },
             )
-            if ok:
-                stats["caregiver_pushes"] += 1
+            stats["caregiver_pushes"] += cg_delivered
             await send_caregiver_alert_email(
                 to_email=(cg.get("email") or "").strip(),
                 patient_name=patient_name,

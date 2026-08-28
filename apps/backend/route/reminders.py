@@ -25,14 +25,18 @@ from services.reminder_service import (
     skip_reminder,
     get_caregiver_dashboard_data
 )
-from services.reminder_service import ReminderNotDueError, send_fcm_notification
+from services.reminder_service import (
+    ReminderNotDueError,
+    send_fcm_notification,
+    send_fcm_to_tokens,
+)
 # from services.speech_to_text_service import SpeechToTextService  # TODO: Implement this service
 from services.db_reminders import (
     get_caregiver_alerts,
     mark_alert_as_read,
     delete_caregiver_alert,
     save_fcm_token,
-    get_patient_fcm_token,
+    get_patient_fcm_tokens,
     delete_fcm_token,
 )
 from services.auth_gateway import get_current_user, get_current_user_jwt
@@ -201,10 +205,10 @@ async def create_reminder_for_patient(
         # Day 2: Auto-send push notification to patient device (non-blocking for create flow)
         # Reminder creation should succeed even if no token exists or FCM send fails.
         try:
-            fcm_token = await get_patient_fcm_token(internal_patient_id)
-            if fcm_token:
-                notification_sent = await send_fcm_notification(
-                    fcm_token=fcm_token,
+            fcm_tokens = await get_patient_fcm_tokens(internal_patient_id)
+            if fcm_tokens:
+                notification_sent = await send_fcm_to_tokens(
+                    fcm_tokens=fcm_tokens,
                     title=reminder.get("title", "Medication Reminder"),
                     body=reminder.get("message", "Time to take your medication"),
                     data={
@@ -844,12 +848,14 @@ async def send_reminder_push_notification(
                 detail="Reminder not found"
             )
 
-        fcm_token = await get_patient_fcm_token(user_id)
-        if not fcm_token:
+        fcm_tokens = await get_patient_fcm_tokens(user_id)
+        if not fcm_tokens:
             return {"success": False, "message": "No FCM token registered"}
 
-        success = await send_fcm_notification(
-            fcm_token=fcm_token,
+        # A test push should reach every device the account has registered —
+        # that is the whole point of sending one.
+        delivered = await send_fcm_to_tokens(
+            fcm_tokens=fcm_tokens,
             title=reminder.get("title", "Medication Reminder"),
             body=reminder.get("message", "Time to take your medication"),
             data={
@@ -860,7 +866,12 @@ async def send_reminder_push_notification(
             }
         )
 
-        return {"success": success, "reminder_id": reminder_id}
+        return {
+            "success": delivered > 0,
+            "reminder_id": reminder_id,
+            "devices_notified": delivered,
+            "devices_registered": len(fcm_tokens),
+        }
 
     except HTTPException:
         raise

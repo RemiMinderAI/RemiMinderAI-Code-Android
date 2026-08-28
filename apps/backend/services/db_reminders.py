@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 import uuid
@@ -473,33 +474,163 @@ async def get_reminders_due_in_window(
         return _rows_to_dicts(result.fetchall())
 
 
-async def try_claim_reminder_due_push(reminder_id: str, scheduled_time: Any) -> bool:
+# How long past the scheduled time a failed push may keep being retried.
+#
+# Bounded deliberately. An unbounded retry delivers an 8 AM dose alert at 10 AM,
+# after the patient may already have taken that dose, and a late medication
+# prompt can cause the double dose the reminder exists to prevent. For a drug,
+# late is worse than absent — so past this window the occurrence is missed and
+# nothing is ever sent for it.
+PUSH_RETRY_WINDOW_MINUTES = 10
+
+# Shortest gap between two attempts on the same occurrence.
+#
+# This is what keeps "exactly one send" true now that the row can be claimed
+# more than once. Two cron runs firing together both reach the upsert; the
+# second finds the first's attempt already recorded and backs off. Cron runs
+# about once a minute, so this blocks a duplicate without delaying a retry.
+PUSH_RETRY_MIN_SPACING_SECONDS = 30
+
+
+@dataclass
+class PushClaim:
     """
-    Idempotent insert for (reminder_id, scheduled_time). Returns True if this call won the race.
+    The outcome of trying to take responsibility for one due-time push.
+
+    claimed          -- send now; this caller holds it for this cron run
+    attempts         -- how many attempts have been made, including this one
+    newly_abandoned  -- this caller is the one that just ran out the window,
+                        and so is the one that should report the miss (exactly
+                        once, not once per cron run)
+    """
+
+    claimed: bool
+    attempts: int = 0
+    newly_abandoned: bool = False
+
+
+def _as_utc(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        st = value
+    else:
+        st = parser.parse(str(value))
+    return st.replace(tzinfo=timezone.utc) if st.tzinfo is None else st
+
+
+async def try_claim_reminder_due_push(
+    reminder_id: str,
+    scheduled_time: Any,
+    *,
+    window_minutes: int = PUSH_RETRY_WINDOW_MINUTES,
+) -> PushClaim:
+    """
+    Take the right to send this occurrence, if it is still owed and still in time.
+
+    The row records an ATTEMPT, not a success: it used to be written before the
+    send and never revisited, so a single failure cancelled the reminder for
+    good and every later run read the row as "already handled".
+
+    One statement does both the first claim and a retry, so two concurrent cron
+    runs cannot both win — the second one's ON CONFLICT finds the row already
+    bumped and returns nothing.
     """
     engine = get_cloud_sql_engine()
-    if isinstance(scheduled_time, datetime):
-        st = scheduled_time
-        if st.tzinfo is None:
-            st = st.replace(tzinfo=timezone.utc)
-    else:
-        st = parser.parse(str(scheduled_time))
-        if st.tzinfo is None:
-            st = st.replace(tzinfo=timezone.utc)
-
+    st = _as_utc(scheduled_time)
     rid = str(reminder_id).strip()
     if not rid:
-        return False
+        return PushClaim(claimed=False)
 
+    params = {
+        "rid": rid,
+        "st": st,
+        "w": int(window_minutes),
+        "gap": int(PUSH_RETRY_MIN_SPACING_SECONDS),
+    }
     with engine.begin() as conn:
         result = conn.execute(
             text("""
-                INSERT INTO reminder_due_push_log (reminder_id, scheduled_time, sent_at)
-                VALUES (CAST(:rid AS uuid), :st, NOW())
-                ON CONFLICT (reminder_id, scheduled_time) DO NOTHING
+                INSERT INTO reminder_due_push_log
+                    (reminder_id, scheduled_time, sent_at, attempts,
+                     delivered, last_attempt_at, abandoned_at)
+                VALUES (
+                    CAST(:rid AS uuid), :st, NOW(), 1, FALSE, NOW(),
+                    -- A first attempt that is ALREADY past the window is born
+                    -- abandoned. The window has to be enforced here too, not
+                    -- only on retries, or a backlogged run could deliver an
+                    -- hours-old dose alert.
+                    CASE WHEN NOW() > :st + INTERVAL '1 minute' * :w
+                         THEN NOW() ELSE NULL END
+                )
+                ON CONFLICT (reminder_id, scheduled_time) DO UPDATE
+                   SET attempts = reminder_due_push_log.attempts + 1,
+                       last_attempt_at = NOW()
+                 WHERE reminder_due_push_log.delivered = FALSE
+                   AND reminder_due_push_log.abandoned_at IS NULL
+                   AND NOW() <= reminder_due_push_log.scheduled_time
+                               + INTERVAL '1 minute' * :w
+                   AND reminder_due_push_log.last_attempt_at
+                       <= NOW() - INTERVAL '1 second' * :gap
+                RETURNING attempts, abandoned_at
+            """),
+            params,
+        )
+        row = result.fetchone()
+        if row is not None:
+            if row[1] is None:
+                return PushClaim(claimed=True, attempts=int(row[0]))
+            # Inserted already-abandoned: report the miss, never send.
+            return PushClaim(
+                claimed=False, attempts=int(row[0]), newly_abandoned=True
+            )
+
+    # Not claimed. Either it is finished, or it has just run out of time — and
+    # if it has, exactly one caller marks it so, and that caller reports it.
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("""
+                UPDATE reminder_due_push_log
+                   SET abandoned_at = NOW()
+                 WHERE reminder_id = CAST(:rid AS uuid)
+                   AND scheduled_time = :st
+                   AND delivered = FALSE
+                   AND abandoned_at IS NULL
+                   AND NOW() > scheduled_time + INTERVAL '1 minute' * :w
+                RETURNING attempts
+            """),
+            params,
+        )
+        row = result.fetchone()
+        if row is not None:
+            return PushClaim(
+                claimed=False, attempts=int(row[0]), newly_abandoned=True
+            )
+
+    return PushClaim(claimed=False)
+
+
+async def mark_reminder_due_push_delivered(
+    reminder_id: str, scheduled_time: Any
+) -> bool:
+    """
+    Record that the patient was actually reached, which ends retries.
+
+    Called only after a send succeeds. Until this runs the row stays retryable,
+    which is the whole point: a claim is no longer proof of delivery.
+    """
+    engine = get_cloud_sql_engine()
+    rid = str(reminder_id).strip()
+    if not rid:
+        return False
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("""
+                UPDATE reminder_due_push_log
+                   SET delivered = TRUE, sent_at = NOW()
+                 WHERE reminder_id = CAST(:rid AS uuid)
+                   AND scheduled_time = :st
                 RETURNING reminder_id
             """),
-            {"rid": rid, "st": st},
+            {"rid": rid, "st": _as_utc(scheduled_time)},
         )
         return result.fetchone() is not None
 
@@ -1063,12 +1194,18 @@ async def save_fcm_token(user_id: str, fcm_token: str, device_type: str = "andro
         with engine.begin() as conn:
             conn.execute(
                 text("""
+                    -- Keyed on (user_id, fcm_token): one row per DEVICE. With
+                    -- user_id alone a second device overwrote the first and
+                    -- stopped its notifications with no error anywhere. This
+                    -- must match migration 28 exactly, or a fresh environment
+                    -- silently gets the old single-device shape back.
                     CREATE TABLE IF NOT EXISTS fcm_tokens (
-                        user_id TEXT PRIMARY KEY,
+                        user_id TEXT NOT NULL,
                         fcm_token TEXT NOT NULL,
                         device_type TEXT DEFAULT 'android',
                         created_at TIMESTAMP DEFAULT NOW(),
-                        updated_at TIMESTAMP DEFAULT NOW()
+                        updated_at TIMESTAMP DEFAULT NOW(),
+                        PRIMARY KEY (user_id, fcm_token)
                     )
                 """)
             )
@@ -1078,8 +1215,10 @@ async def save_fcm_token(user_id: str, fcm_token: str, device_type: str = "andro
                 text("""
                     INSERT INTO fcm_tokens (user_id, fcm_token, device_type, updated_at)
                     VALUES (:user_id, :fcm_token, :device_type, NOW())
-                    ON CONFLICT (user_id)
-                    DO UPDATE SET fcm_token = :fcm_token, device_type = :device_type, updated_at = NOW()
+                    -- Re-registering the SAME device refreshes its row; a
+                    -- different device adds one instead of evicting the other.
+                    ON CONFLICT (user_id, fcm_token)
+                    DO UPDATE SET device_type = :device_type, updated_at = NOW()
                 """),
                 {"user_id": user_id, "fcm_token": fcm_token, "device_type": device_type}
             )
@@ -1145,10 +1284,18 @@ async def delete_fcm_token(user_id: str) -> bool:
         return False
 
 
-async def get_patient_fcm_token(user_id: str) -> Optional[str]:
+async def get_patient_fcm_tokens(user_id: str) -> List[str]:
     """
-    Get FCM token for a user.
-    user_id may be internal UUID or Firebase UID — handles both.
+    Every device registered to a user, most recently seen first.
+
+    Replaces the old singular lookup rather than sitting beside it. That one
+    returned LIMIT 1, so a patient with a phone and a tablet was reminded on
+    whichever row sorted first and the other device stayed silent — and while
+    the table's primary key was user_id alone, registering the second device
+    quietly deleted the first.
+
+    user_id may be the internal UUID or the Firebase UID; a user can have rows
+    filed under both, and all of them are theirs.
     """
     engine = get_cloud_sql_engine()
     try:
@@ -1161,21 +1308,22 @@ async def get_patient_fcm_token(user_id: str) -> Optional[str]:
                            (SELECT id::text FROM users WHERE firebase_uid = :user_id LIMIT 1),
                            (SELECT firebase_uid FROM users WHERE id::text = :user_id LIMIT 1)
                        )
-                    -- One patient can have rows under BOTH the internal UUID and
-                    -- the Firebase UID (one per device/platform). Without an
-                    -- explicit order the row returned is arbitrary, so a live
-                    -- device can be skipped in favour of a dead one.
                     ORDER BY updated_at DESC
-                    LIMIT 1
                 """),
                 {"user_id": user_id}
             )
-            row = result.fetchone()
-            if row:
-                return row[0]
-            return None
+            seen: set = set()
+            tokens: List[str] = []
+            for row in result.fetchall():
+                token = (row[0] or "").strip()
+                # The same device can be filed under both ids; send once.
+                if token and token not in seen:
+                    seen.add(token)
+                    tokens.append(token)
+            return tokens
 
     except Exception as e:
-        logger.error(f"Error getting FCM token: {str(e)}")
-        return None
+        # Type only — the message can carry the token value.
+        logger.error("Error getting FCM tokens: %s", type(e).__name__)
+        return []
 
