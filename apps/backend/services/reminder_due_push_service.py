@@ -30,7 +30,13 @@ async def process_reminder_due_push_notifications(
     # real reminder on 2026-08-28: attempts 3 and 4 logged, then
     # reminders_examined dropped to 0 and MEDICATION REMINDER NOT DELIVERED
     # never fired.
-    past_minutes: float = float(PUSH_RETRY_WINDOW_MINUTES),
+    # Deliberately WIDER than the retry window. Abandonment needs at least one
+    # cron pass where the reminder is still fetched but already past its
+    # window — if the two boundaries coincide, the row drops out of the query
+    # at the same instant it becomes abandonable and the branch never runs.
+    # Verified: with both at 10 minutes, attempts stopped at 12 and
+    # abandoned_at stayed null.
+    past_minutes: float = float(PUSH_RETRY_WINDOW_MINUTES) + 5.0,
     future_minutes: float = 2.0,
 ) -> Dict[str, int]:
     """

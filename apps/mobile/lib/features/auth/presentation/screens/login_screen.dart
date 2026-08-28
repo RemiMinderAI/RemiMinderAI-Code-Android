@@ -28,7 +28,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String _getUserFriendlyErrorMessage(dynamic error) {
     final errorString = error.toString().toLowerCase();
 
-    if (errorString.contains('account created, but we could not finish setup')) {
+    if (errorString
+        .contains('account created, but we could not finish setup')) {
       return 'Your account was created, but setup did not finish. Please sign in with your email and password.';
     }
 
@@ -209,62 +210,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Sign in with Email'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'Enter your email',
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  hintText: 'Enter your password',
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isPasswordVisible
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _isPasswordVisible = !_isPasswordVisible;
-                        if (kDebugMode) {
-                          print(
-                              '🔐 Password visibility toggled: $_isPasswordVisible');
-                        }
-                      });
-                    },
+          // Scrollable: on a small screen, or with the keyboard up, an
+          // AlertDialog caps its content height — two fields plus the
+          // Remember me row overflowed by 42px on a 5" device with nothing
+          // able to scroll.
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'Enter your email',
                   ),
+                  keyboardType: TextInputType.emailAddress,
                 ),
-                obscureText: !_isPasswordVisible,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Checkbox(
-                    value: _rememberMe,
-                    onChanged: (value) {
-                      setState(() {
-                        _rememberMe = value ?? false;
-                      });
-                    },
-                  ),
-                  Expanded(
-                    child: const Text(
-                      'Remember me',
-                      style: TextStyle(fontSize: 14),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    hintText: 'Enter your password',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                          if (kDebugMode) {
+                            print(
+                                '🔐 Password visibility toggled: $_isPasswordVisible');
+                          }
+                        });
+                      },
                     ),
                   ),
-                ],
-              ),
-            ],
+                  obscureText: !_isPasswordVisible,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                    ),
+                    Expanded(
+                      child: const Text(
+                        'Remember me',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -654,19 +661,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _signInWithApple() async {
     final selectedRole = ref.read(selectedRoleProvider);
     try {
-      await ref.read(authNotifierProvider.notifier).signInWithApple(selectedRole: selectedRole);
+      await ref
+          .read(authNotifierProvider.notifier)
+          .signInWithApple(selectedRole: selectedRole);
       final authState = ref.read(authNotifierProvider);
       if (authState.isAuthenticated) {
         final user = authState.user;
         if (mounted) {
-          final isCaregiver =
-              selectedRole == UserRole.caregiver || (user?.isCaregiver ?? false);
-          await navigateAfterAuth(GoRouter.of(context), isCaregiver: isCaregiver);
+          final isCaregiver = selectedRole == UserRole.caregiver ||
+              (user?.isCaregiver ?? false);
+          await navigateAfterAuth(GoRouter.of(context),
+              isCaregiver: isCaregiver);
         }
       } else if (authState.hasError) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(authState.errorMessage ?? 'Apple Sign-In failed')),
+            SnackBar(
+                content:
+                    Text(authState.errorMessage ?? 'Apple Sign-In failed')),
           );
         }
       }
