@@ -22,7 +22,15 @@ logger = logging.getLogger(__name__)
 
 
 async def process_reminder_due_push_notifications(
-    past_minutes: float = 2.0,
+    # The lookback has to cover the retry window, not just "recently due".
+    # At 2.0 a reminder dropped out of this query three minutes after it was
+    # due, so a failing send got four attempts instead of ten and the
+    # abandonment branch was never reached — the dose was lost silently, which
+    # is precisely what the retry logic exists to prevent. Verified against a
+    # real reminder on 2026-08-28: attempts 3 and 4 logged, then
+    # reminders_examined dropped to 0 and MEDICATION REMINDER NOT DELIVERED
+    # never fired.
+    past_minutes: float = float(PUSH_RETRY_WINDOW_MINUTES),
     future_minutes: float = 2.0,
 ) -> Dict[str, int]:
     """
