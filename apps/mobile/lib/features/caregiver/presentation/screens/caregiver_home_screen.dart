@@ -354,8 +354,6 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     );
   }
 
-  /// [value] is null when the figure is unknown — a failed fetch shows a dash,
-  /// never a zero that reads as "no patients".
   Widget _buildPatientsErrorBanner(AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 4),
@@ -390,6 +388,8 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     );
   }
 
+  /// [value] is null when the figure is unknown — a failed fetch shows a dash,
+  /// never a zero that reads as "no patients".
   Widget _summaryStat(BuildContext context, String label, int? value) {
     return Column(
       children: [
