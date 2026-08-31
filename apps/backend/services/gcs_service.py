@@ -293,3 +293,31 @@ async def upload_image(file: UploadFile, visit_id: str) -> dict:
         print(f"GCS image upload error for visit {visit_id}: {str(e)}")
         print(f"Full traceback: {error_details}")
         raise Exception(f"GCS image upload failed: {str(e)}")
+
+
+def delete_image(blob_name: str) -> bool:
+    """
+    Delete an uploaded image object.
+
+    Returns True if the object was deleted or was already absent, so a retried
+    delete does not fail on the second attempt. Raises on anything else — the
+    caller must not report a scanned document as deleted while the image is
+    still in the bucket.
+    """
+    from google.api_core.exceptions import NotFound
+
+    bucket_name = os.getenv("GCS_BUCKET_NAME")
+    if not bucket_name:
+        raise RuntimeError("GCS_BUCKET_NAME is not configured")
+
+    storage_client = _get_storage_client()
+    blob = storage_client.bucket(bucket_name).blob(blob_name)
+
+    try:
+        blob.delete()
+        logger.info("GCS_IMAGE_DELETE_SUCCESS - blob=%s", blob_name)
+        return True
+    except NotFound:
+        # Already gone: the object, not the request, is what matters.
+        logger.info("GCS_IMAGE_DELETE_ALREADY_ABSENT - blob=%s", blob_name)
+        return True

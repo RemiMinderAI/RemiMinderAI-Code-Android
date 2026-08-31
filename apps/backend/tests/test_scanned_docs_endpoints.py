@@ -131,5 +131,126 @@ class OcrTextDetailEndpoint(unittest.TestCase):
         self.assertIn("len(ocr_text)", src)
 
 
+class DeleteScannedDoc(unittest.TestCase):
+    """A visit_transcripts row carries the audio transcript alongside the scan."""
+
+    def test_route_is_registered_as_delete(self):
+        paths = {r.path: r for r in vs.router.routes if hasattr(r, "methods")}
+        self.assertIn("/api/scanned-docs/{visit_id}", paths)
+        self.assertEqual(
+            {"DELETE"}, set(paths["/api/scanned-docs/{visit_id}"].methods)
+        )
+
+    def test_the_row_is_cleared_not_deleted(self):
+        src = _source_of(vs.delete_scanned_doc)
+        self.assertIn("UPDATE visit_transcripts", src)
+        # Dropping the row would destroy the recording of a visit the patient
+        # only wanted a scan removed from.
+        self.assertNotIn("DELETE FROM visit_transcripts", src)
+        self.assertNotIn("DELETE FROM visits", src)
+
+    def test_audio_columns_survive(self):
+        src = _source_of(vs.delete_scanned_doc)
+        after = src[src.index("UPDATE visit_transcripts"):]
+        update = after[:after.index("WHERE")]
+        self.assertTrue(update.strip(), "failed to isolate the SET clause")
+        for cleared in ("image_url", "image_metadata", "ocr_text", "ocr_status"):
+            self.assertIn(cleared, update, cleared)
+        for kept in ("transcript_text", "audio_url"):
+            self.assertNotIn(kept, update, kept)
+
+    def test_ocr_status_is_not_set_null(self):
+        # The column is NOT NULL with default 'pending'.
+        src = _source_of(vs.delete_scanned_doc)
+        self.assertIn("ocr_status = 'pending'", src)
+        self.assertNotIn("ocr_status = NULL", src)
+
+    def test_the_object_goes_before_the_row(self):
+        src = _source_of(vs.delete_scanned_doc)
+        # Clearing the row first would strand the image with no way to retry.
+        self.assertLess(
+            src.index("delete_image(blob_name)"),
+            src.index("UPDATE visit_transcripts"),
+        )
+
+    def test_it_is_scoped_to_the_owner(self):
+        src = _source_of(vs.delete_scanned_doc)
+        self.assertIn("user_id::text = :user_id", src)
+        self.assertIn('assert_patient_access(user_uuid, user_uuid, "full")', src)
+
+    def test_missing_document_is_404(self):
+        src = _source_of(vs.delete_scanned_doc)
+        self.assertIn("status_code=404", src)
+        self.assertIn("image_url IS NOT NULL", src)
+
+    def test_response_matches_what_the_client_expects(self):
+        # backend_api_service.deleteScannedDoc treats anything else as a failure.
+        self.assertIn('{"status": "ok"}', _source_of(vs.delete_scanned_doc))
+
+    def test_ocr_text_is_never_logged(self):
+        src = _source_of(vs.delete_scanned_doc)
+        self.assertNotIn("ocr_text,", src[src.index("logger.info(\"Scanned doc deleted"):])
+
+
+class DeleteImageBehaviour(unittest.TestCase):
+    """delete_image must be safe to retry."""
+
+    def setUp(self):
+        import services.gcs_service as gcs
+        self.gcs = gcs
+        self._real_client = gcs._get_storage_client
+        os.environ["GCS_BUCKET_NAME"] = "test-bucket"
+
+    def tearDown(self):
+        self.gcs._get_storage_client = self._real_client
+
+    def _install(self, on_delete):
+        calls = []
+
+        class Blob:
+            def delete(self_inner):
+                calls.append("delete")
+                if on_delete:
+                    raise on_delete
+
+        class Bucket:
+            def blob(self_inner, name):
+                calls.append(name)
+                return Blob()
+
+        class Client:
+            def bucket(self_inner, name):
+                return Bucket()
+
+        self.gcs._get_storage_client = lambda: Client()
+        return calls
+
+    def test_successful_delete_returns_true(self):
+        calls = self._install(None)
+        self.assertTrue(self.gcs.delete_image("images/v/abc.jpg"))
+        self.assertIn("images/v/abc.jpg", calls)
+
+    def test_already_absent_is_success(self):
+        from google.api_core.exceptions import NotFound
+        self._install(NotFound("gone"))
+        # A retried delete must not fail on the second attempt.
+        self.assertTrue(self.gcs.delete_image("images/v/abc.jpg"))
+
+    def test_other_failures_propagate(self):
+        from google.api_core.exceptions import Forbidden
+        self._install(Forbidden("nope"))
+        # Reporting success here would leave health data in the bucket.
+        with self.assertRaises(Forbidden):
+            self.gcs.delete_image("images/v/abc.jpg")
+
+    def test_missing_bucket_config_raises(self):
+        os.environ.pop("GCS_BUCKET_NAME", None)
+        try:
+            with self.assertRaises(RuntimeError):
+                self.gcs.delete_image("images/v/abc.jpg")
+        finally:
+            os.environ["GCS_BUCKET_NAME"] = "test-bucket"
+
+
 if __name__ == "__main__":
     unittest.main()

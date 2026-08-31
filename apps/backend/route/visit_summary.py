@@ -822,6 +822,98 @@ async def get_user_scanned_docs(user_id: str = Depends(get_user_id)):
         raise HTTPException(status_code=500, detail=f"Failed to fetch scanned docs: {str(e)}")
 
 
+@router.delete("/scanned-docs/{visit_id}")
+async def delete_scanned_doc(
+    visit_id: str,
+    user_id: str = Depends(get_user_id),
+):
+    """
+    Remove one scanned document.
+
+    Clears the image columns rather than deleting the row. A visit_transcripts
+    row carries the audio transcript alongside the scan, and a scan can attach
+    to a visit that is already in progress, so dropping the row would destroy
+    the recording of a visit the patient only wanted a scan removed from. With
+    image_url cleared the document stops appearing in /scanned-docs, which
+    filters on it.
+
+    The object is deleted from storage before the row is cleared. If that
+    fails, so does this request: a document reported as deleted while the image
+    is still in the bucket is the one outcome the patient cannot see or retry.
+    """
+    try:
+        from services.db_service import get_user_uuid
+        from services.cloud_sql_engine import get_cloud_sql_engine
+        from services.gcs_service import delete_image
+        from sqlalchemy import text
+
+        user_uuid = await get_user_uuid(user_id)
+        await assert_patient_access(user_uuid, user_uuid, "full")
+
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("""
+                    SELECT image_metadata
+                    FROM visit_transcripts
+                    WHERE visit_id::text = :visit_id
+                      AND user_id::text = :user_id
+                      AND image_url IS NOT NULL
+                    LIMIT 1
+                """),
+                {"visit_id": visit_id, "user_id": user_uuid},
+            ).fetchone()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="Scanned document not found")
+
+        m = row._mapping if hasattr(row, "_mapping") else row
+        metadata = m["image_metadata"]
+        blob_name = metadata.get("blob_name") if isinstance(metadata, dict) else None
+
+        if blob_name:
+            delete_image(blob_name)
+        else:
+            # Predates blob_name in image_metadata: the object cannot be located,
+            # but refusing would leave the patient unable to remove the document.
+            logger.warning(
+                "Scanned doc delete without blob_name visit=%s — object left in bucket",
+                visit_id,
+            )
+
+        with engine.begin() as conn:
+            result = conn.execute(
+                text("""
+                    UPDATE visit_transcripts
+                    SET image_url = NULL,
+                        image_metadata = NULL,
+                        ocr_text = NULL,
+                        ocr_status = 'pending',
+                        ocr_error = NULL,
+                        ocr_provider = NULL,
+                        ocr_metadata = NULL
+                    WHERE visit_id::text = :visit_id
+                      AND user_id::text = :user_id
+                """),
+                {"visit_id": visit_id, "user_id": user_uuid},
+            )
+
+        if result.rowcount != 1:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Expected 1 row cleared, got {result.rowcount}",
+            )
+
+        logger.info("Scanned doc deleted visit=%s blob_removed=%s", visit_id, bool(blob_name))
+        return {"status": "ok"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to delete scanned doc %s: %s", visit_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to delete scanned document: {str(e)}")
+
+
 @router.get("/caregiver/patients/{patient_id}/scanned-docs")
 async def get_caregiver_patient_scanned_docs(
     patient_id: str,
