@@ -14,6 +14,7 @@ import '../../data/services/patient_api_service.dart';
 import '../../data/models/summary_item.dart';
 import '../../../care_team/data/models/care_team_member.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../../../core/services/visit_context.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
@@ -1140,7 +1141,13 @@ class _OverviewScreenState extends State<OverviewScreen>
                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: () => context.go('/patient/visits'),
+                // /patient/visits was removed when visits_screen.dart was
+                // orphaned; these two empty-state buttons still pointed at it,
+                // so a new user's first attempt to scan hit "page not found".
+                // Same pattern as history_screen: reuse the current visit, or
+                // start one.
+                onPressed: () => context.go(
+                    '/patient/scan/${VisitContext().getCurrentVisitId() ?? VisitContext().startNewVisit()}'),
                 icon: const Icon(Icons.camera_alt_outlined),
                 label: Text(l10n.captureAndScan),
               ),
@@ -1200,7 +1207,13 @@ class _OverviewScreenState extends State<OverviewScreen>
                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: () => context.go('/patient/visits'),
+                // /patient/visits was removed when visits_screen.dart was
+                // orphaned; these two empty-state buttons still pointed at it,
+                // so a new user's first attempt to scan hit "page not found".
+                // Same pattern as history_screen: reuse the current visit, or
+                // start one.
+                onPressed: () => context.go(
+                    '/patient/scan/${VisitContext().getCurrentVisitId() ?? VisitContext().startNewVisit()}'),
                 icon: const Icon(Icons.camera_alt_outlined),
                 label: Text(l10n.captureAndScan),
               ),
