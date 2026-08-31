@@ -101,7 +101,16 @@ class BackendApiService {
     }
 
     final data = json.decode(responseBody) as Map<String, dynamic>;
-    return data['gcs_file_path'] as String;
+    // The endpoint returns image_url; it has never returned gcs_file_path, so
+    // the old cast threw "type 'Null' is not a subtype of type 'String'" on
+    // every single scan. OCR is keyed by visit id, not by this value — it is
+    // returned for display, and read defensively so a response shape change
+    // reports itself instead of crashing the scan.
+    final imageUrl = data['image_url'];
+    if (imageUrl is! String || imageUrl.isEmpty) {
+      throw Exception('Upload succeeded but returned no image URL.');
+    }
+    return imageUrl;
   }
 
   /// Trigger OCR processing for uploaded image
@@ -682,24 +691,6 @@ class BackendApiService {
       );
     }
   }
-  Future<Map<String, dynamic>> scanDocument({required String gcsFilePath}) async {
-    final accessToken = await _authService.getAccessToken();
-    if (accessToken == null) throw Exception('Authentication required');
-    final uri = Uri.parse('${Environment.apiBaseUrl}/api/scan-document');
-    final response = await http.post(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({'gcs_file_path': gcsFilePath}),
-    );
-    if (response.statusCode == 200) {
-      return json.decode(response.body) as Map<String, dynamic>;
-    }
-    throw Exception('Scan failed: ${response.statusCode}');
-  }
-
   Future<List<Map<String, dynamic>>> getCaregiverAlerts(String caregiverId) async {
     final accessToken = await _authService.getAccessToken();
     if (accessToken == null) return [];

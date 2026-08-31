@@ -56,7 +56,9 @@ class _CameraScreenState extends State<CameraScreen>
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   String? _lastCapturedImagePath;
-  String? _lastGcsFilePath;
+  /// Whether the captured page reached the server. OCR needs only the
+  /// visit id, so no path is carried around.
+  bool _imageUploaded = false;
   bool _scanConsentGiven = false;
   bool _isStartingScan = false;
 
@@ -835,64 +837,63 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
-  void _completeScan() {
-    setState(() {
-      _scanState = ScanState.processing;
-    });
+  /// Upload the captured page, and only then call the scan a success.
+  ///
+  /// This used to set ScanState.completed BEFORE attempting the upload, and on
+  /// a fixed two-second timer, so the screen showed "Scan Successful!" while the
+  /// error bar underneath said the upload had failed. Success is now claimed
+  /// only once the image is actually on the server.
+  Future<void> _completeScan() async {
+    setState(() => _scanState = ScanState.processing);
 
-    // Simulate processing time
-    Timer(const Duration(seconds: 2), () async {
+    final capturedPath = _lastCapturedImagePath;
+    if (capturedPath == null) {
       if (!mounted) return;
-      setState(() {
-        _scanState = ScanState.completed;
-        _scanResults = _generateMockResults();
-      });
+      setState(() => _scanState = ScanState.ready);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.noImageToProcess)),
+      );
+      return;
+    }
 
-      // Upload image to backend
-      if (_lastCapturedImagePath != null) {
-        try {
-          final gcsPath = await _backendApiService.uploadImage(
-            visitId: widget.visitId,
-            imageFile: File(_lastCapturedImagePath!),
-          );
-          _lastGcsFilePath = gcsPath;
-          if (!mounted) return;
-        } catch (e) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.failedToUploadImage('$e'))),
-          );
-          _lastCapturedImagePath = null;
-          return;
-        }
-      }
+    try {
+      await _backendApiService.uploadImage(
+        visitId: widget.visitId,
+        imageFile: File(capturedPath),
+      );
+      _imageUploaded = true;
+    } catch (e) {
+      if (!mounted) return;
+      // Back to ready, not completed: the page was not captured as far as the
+      // server is concerned, and offering Save would fail again downstream.
+      setState(() => _scanState = ScanState.ready);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context)!.failedToUploadImage('$e'))),
+      );
+      _lastCapturedImagePath = null;
+      return;
+    }
 
-      // Clean up the captured image file after processing/upload
-      if (_lastCapturedImagePath != null) {
-        try {
-          final file = File(_lastCapturedImagePath!);
-          if (file.existsSync()) {
-            file.deleteSync();
-          }
-        } catch (e) {
-          // Silent cleanup failure
-        }
-        _lastCapturedImagePath = null;
-      }
+    // The local copy has served its purpose once the upload succeeded.
+    try {
+      final file = File(capturedPath);
+      if (file.existsSync()) file.deleteSync();
+    } catch (_) {
+      // Silent cleanup failure
+    }
+    _lastCapturedImagePath = null;
+
+    if (!mounted) return;
+    setState(() {
+      _scanState = ScanState.completed;
+      _scanResults = {'scanMode': _selectedMode, 'uploadedAt': DateTime.now()};
     });
-  }
-
-  Map<String, dynamic> _generateMockResults() {
-    // Generate mock results based on scan mode
-    return {
-      'scanMode': _selectedMode,
-      'timestamp': DateTime.now(),
-      'confidence': 0.95,
-    };
   }
 
   void _saveScan() async {
-    if (_lastGcsFilePath == null) {
+    if (!_imageUploaded) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.noImageToProcess)),
       );
@@ -903,7 +904,11 @@ class _CameraScreenState extends State<CameraScreen>
     setState(() => _scanState = ScanState.processing);
 
     try {
-      await _backendApiService.scanDocument(gcsFilePath: _lastGcsFilePath!);
+      // OCR is keyed by visit id — the upload already recorded the image
+      // against it. The old call posted a gcs_file_path to /api/scan-document,
+      // a route that does not exist in the backend, so this step could never
+      // have succeeded even once the upload was fixed.
+      await _backendApiService.triggerOcr(visitId: widget.visitId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.documentScannedSaved)),
