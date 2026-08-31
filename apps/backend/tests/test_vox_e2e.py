@@ -23,6 +23,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 import types
 from pathlib import Path
@@ -554,14 +555,39 @@ def install_mock_nlu() -> None:
     table = _mock_table()
     _assert_no_duplicate_transcripts()
 
+    # "the 8 AM one" is an ANSWER to a disambiguation question, and the time in
+    # it depends on the fixture, which is anchored to now. Canning every
+    # possible clock time is impossible, so model the shape instead — this is
+    # what the live model returns for that phrasing (verified against it).
+    answer_re = re.compile(
+        r"^the\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s+one$", re.IGNORECASE
+    )
+
     async def fake_call(user_message: str) -> dict:
         # The transcript is the last line of the composed user message.
         transcript = user_message.rsplit("Transcript: ", 1)[-1].strip()
-        if transcript not in table:
-            raise llm_extractor.ExtractionError(
-                f"no canned NLU response for {transcript!r}"
-            )
-        return json.loads(json.dumps(table[transcript]))
+        if transcript in table:
+            return json.loads(json.dumps(table[transcript]))
+
+        match = answer_re.match(transcript)
+        if match:
+            hour = int(match.group(1)) % 12
+            if match.group(3).lower() == "pm":
+                hour += 12
+            minute = int(match.group(2) or 0)
+            return {
+                "intent": "COMPLETE_REMINDER",
+                "entities": {
+                    "title": "Metoprolol",
+                    "reminder_type": "medication",
+                    "time": f"{hour:02d}:{minute:02d}",
+                },
+                "confidence": 0.95,
+            }
+
+        raise llm_extractor.ExtractionError(
+            f"no canned NLU response for {transcript!r}"
+        )
 
     llm_extractor._call_gemini = fake_call  # type: ignore[assignment]
 
@@ -1260,19 +1286,40 @@ async def case_46(s):
 # morning-and-evening dose — not test pollution, and not an edge case.
 # ---------------------------------------------------------------------------
 
+def _hours_ago(hours: float):
+    """A UTC timestamp that is reliably in the past, whatever time it is now."""
+    return datetime.now(timezone.utc) - timedelta(hours=hours)
+
+
+def _spoken(dt) -> str:
+    """How the reply will read the time back — same formatter the builder uses."""
+    from zoneinfo import ZoneInfo
+
+    from services.remivox.response.builder import _speak_time
+
+    return _speak_time(dt.astimezone(ZoneInfo(TZ)).strftime("%H:%M")).lower()
+
+
 def twice_daily_fixture() -> dict:
-    """Two Metoprolol doses at different times, plus a second medication."""
+    """
+    Two Metoprolol doses at different times, plus a second medication.
+
+    Anchored to "hours ago" rather than fixed wall-clock times. With fixed
+    times the doses were only in the past for part of the day, so completing
+    them hit the not-due guard and these cases failed depending on when the
+    suite ran — which is worse than not having them.
+    """
     return {
         "today": [
             {"id": "r-met-0800", "title": "Metoprolol", "reminder_type": "medication",
              "status": "pending", "recurrence": "daily", "timezone": TZ,
-             "scheduled_time": _at_local("08:00")},
+             "scheduled_time": _hours_ago(6)},
             {"id": "r-met-1445", "title": "Metoprolol", "reminder_type": "medication",
              "status": "pending", "recurrence": "daily", "timezone": TZ,
-             "scheduled_time": _at_local("14:45")},
+             "scheduled_time": _hours_ago(3)},
             {"id": "r-lyrica", "title": "Lyrica", "reminder_type": "medication",
              "status": "snoozed", "recurrence": "daily", "timezone": TZ,
-             "scheduled_time": _at_local("15:25")},
+             "scheduled_time": _hours_ago(1)},
         ],
         "upcoming": [],
         "past": [],
@@ -1286,17 +1333,22 @@ async def case_47(s):
     text = out["text"].lower()
     expect("which" in text, f"should ask which: {out['text']!r}")
     # Naming them both "Metoprolol" makes the question unanswerable.
-    expect("8 am" in text and "2:45 pm" in text,
-           f"question must name both times: {out['text']!r}")
+    fx = twice_daily_fixture()
+    first = _spoken(fx["today"][0]["scheduled_time"])
+    second = _spoken(fx["today"][1]["scheduled_time"])
+    expect(first in text and second in text,
+           f"question must name both times ({first}, {second}): {out['text']!r}")
 
 
 async def case_48(s):
     """The answer to that question is heard, and completes the named dose."""
     fx = twice_daily_fixture()
     await say("mark done Metoprolol", session=s, reminders=fx)
-    await say("the 8 AM one", session=s, reminders=fx)
+    # Say the time the earlier dose is actually at, whenever the suite runs.
+    spoken = _spoken(fx["today"][0]["scheduled_time"])
+    await say(f"the {spoken} one", session=s, reminders=fx)
     expect(STORE.completed == ["r-met-0800"],
-           f"expected the 08:00 dose, got {STORE.completed}")
+           f"expected the earlier dose ({spoken}), got {STORE.completed}")
 
 
 async def case_49(s):

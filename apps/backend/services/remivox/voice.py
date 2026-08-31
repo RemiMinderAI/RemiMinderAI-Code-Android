@@ -19,6 +19,7 @@ from typing import Any, Iterator, Optional
 import requests
 import re
 import json
+from urllib.parse import quote
 
 from services.remivox.config import REMIVOX_OUTPUT_SAMPLE_RATE
 from services.remivox.languages import (
@@ -685,6 +686,7 @@ def transcribe_deepgram(
     language: str = "en",
     content_type: str = "audio/wav",
     preferred_language_fallback: str = DEFAULT_REMIVOX_LANGUAGE,
+    keyterms: Optional[list[str]] = None,
 ) -> SttResult:
     """Transcribe with Deepgram Nova-3 / Nova-3 Medical."""
     started = time.perf_counter()
@@ -707,18 +709,25 @@ def transcribe_deepgram(
         model = _deepgram_model(lang_param)
         dg_params = f"model={model}&language={lang_param}&smart_format=true&punctuate=true"
 
-    # Add keyterm prompting for medications + action words
+    # Keyterm prompting. Order matters: the caller's terms are this patient's
+    # own medications, and they are the ones worth biasing hardest — the model
+    # sees them first. Then the configured list, then the action words Vox
+    # needs to hear correctly to do anything at all.
     _ACTION_KEYTERMS = "snooze,cancel,delete,update,change,reminder,medication,schedule,reschedule,appointment"
-    keywords = os.getenv("DEEPGRAM_KEYWORDS", "")
-    if keywords:
-        keywords = keywords + ":" + _ACTION_KEYTERMS
-    else:
-        keywords = _ACTION_KEYTERMS
-    if keywords:
-        for kw in keywords.replace(":", ",").split(","):
-            kw = kw.strip()
-            if kw:
-                dg_params += f"&keyterm={kw}"
+    ordered: list[str] = list(keyterms or [])
+    ordered += [k for k in os.getenv("DEEPGRAM_KEYWORDS", "").replace(":", ",").split(",")]
+    ordered += _ACTION_KEYTERMS.split(",")
+
+    seen: set[str] = set()
+    for kw in ordered:
+        kw = (kw or "").strip()
+        if not kw or kw.lower() in seen:
+            continue
+        seen.add(kw.lower())
+        # quote() matters now that terms can contain spaces: "magnesium
+        # glycinate" unencoded produces a malformed query string, and the term
+        # is silently dropped or truncated at the space.
+        dg_params += f"&keyterm={quote(kw)}"
 
     url = f"https://api.deepgram.com/v1/listen?{dg_params}"
     headers = {

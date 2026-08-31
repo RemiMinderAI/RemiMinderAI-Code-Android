@@ -95,6 +95,37 @@ def _resolve_existing_audio_blob_name(
     )
 
 
+def _build_speech_contexts(reminders) -> list:
+    """
+    Phrase hints for RecognitionConfig, patient's own medications weighted higher.
+
+    Returns an empty list when there is nothing worth biasing, which leaves the
+    request behaving exactly as it did before.
+    """
+    from google.cloud import speech
+
+    from services.medical_vocabulary import (
+        DEFAULT_TERM_BOOST,
+        PATIENT_TERM_BOOST,
+        stt_phrases,
+    )
+
+    mine, defaults = stt_phrases(reminders)
+    contexts = []
+    if mine:
+        contexts.append(speech.SpeechContext(phrases=mine, boost=PATIENT_TERM_BOOST))
+    if defaults:
+        contexts.append(
+            speech.SpeechContext(phrases=defaults, boost=DEFAULT_TERM_BOOST)
+        )
+    logger.info(
+        "[STT] phrase hints: %d patient terms, %d default terms",
+        len(mine),
+        len(defaults),
+    )
+    return contexts
+
+
 async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str, language: str = "en") -> Dict[str, Any]:
     try:
         logger.info(f"🔍 [STT] Starting STT pipeline for visit {visit_id} with language='{language}'")
@@ -106,6 +137,19 @@ async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str, language: str
 
         # Step 2: Validate audio exists in DB (guard)
         audio_url = await get_audio_gcs_url(visit_id, user_uuid)
+
+        # Their own medication names are the highest-value hint we have, and we
+        # already know them. Never let this stop a transcription.
+        patient_reminders = []
+        try:
+            from services.db_reminders import get_all_reminders
+
+            patient_reminders = await get_all_reminders(user_uuid)
+        except Exception as exc:
+            logger.warning(
+                "[STT] could not load patient medications for hints: %s",
+                type(exc).__name__,
+            )
 
         bucket_name = os.getenv("GCS_BUCKET_NAME")
         if not bucket_name:
@@ -189,12 +233,21 @@ async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str, language: str
             "🔍 [STT] Starting Google STT long_running_recognize for visit %s", visit_id
         )
 
+        # Phrase hints. Without these the recogniser turned "Betahistine" into
+        # "Betamethasone" and "Betaseron" on separate takes of the same script —
+        # a vertigo drug read back as a corticosteroid and an MS therapy.
+        #
+        # Two contexts rather than one so the patient's own medications carry
+        # more weight than a generic list: the app already knows what they take,
+        # and that is the half that would have caught it.
+        speech_contexts = _build_speech_contexts(patient_reminders)
+
         primary_config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
             language_code=language_code,
             enable_automatic_punctuation=True,
             use_enhanced=True,
-
+            speech_contexts=speech_contexts,
             model="medical_conversation",
         )
 
@@ -217,12 +270,16 @@ async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str, language: str
             )
 
 
+            # The hints go on the fallback too. This path already runs in
+            # production whenever medical_conversation is rejected, and it drops
+            # the enhanced medical model — so it is the config that needs the
+            # vocabulary most, not least.
             fallback_config = speech.RecognitionConfig(
                 encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
                 language_code=language_code,
-
                 enable_automatic_punctuation=True,
                 use_enhanced=False,
+                speech_contexts=speech_contexts,
                 model="latest_long",
             )
             operation = speech_client.long_running_recognize(

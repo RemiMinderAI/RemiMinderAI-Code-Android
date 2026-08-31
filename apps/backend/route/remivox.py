@@ -342,6 +342,7 @@ def _pulse_transcribe(
     language: str = "multi",
     content_type: str = "audio/wav",
     preferred_language_fallback: str = DEFAULT_REMIVOX_LANGUAGE,
+    keyterms: Optional[list[str]] = None,
 ) -> tuple[str, str]:
     """
     Compatibility wrapper → Voice Layer STT (Pulse or Deepgram).
@@ -358,6 +359,7 @@ def _pulse_transcribe(
                 language=language,
                 content_type=content_type,
                 preferred_language_fallback=preferred_language_fallback,
+                keyterms=keyterms,
             )
         else:
             result = transcribe_pulse(
@@ -1030,11 +1032,16 @@ async def _remivox_prepare(
             auto_detect_language=auto_detect_language,
             preferred_language=preferred,
         )
+        # `reminders` was loaded above for this turn, so the patient's own
+        # medication names are already here — no extra query, no added latency.
+        from services.medical_vocabulary import deepgram_keyterms
+
         transcript, spoken_lang = _pulse_transcribe(
             audio_base64,
             language=stt_lang,
             content_type=content_type or "audio/wav",
             preferred_language_fallback=preferred,
+            keyterms=deepgram_keyterms(reminders),
         )
         intent_prompt = transcript
         # Restrict to Remi's supported set; fall back to preferred app language.
