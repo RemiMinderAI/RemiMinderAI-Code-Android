@@ -75,6 +75,7 @@
   "noSummariesYet": "अभी कोई सारांश नहीं",
   "summariesWillAppearHere": "आपके विज़िट सारांश यहाँ दिखेंगे",
   "failedToLoadSummaries": "सारांश लोड नहीं हो सके",
+  "failedToLoadPatients": "मरीज़ लोड नहीं हो सके",
   "retry": "पुनः प्रयास",
   "shareLabel": "साझा करें",
   "doctorVisit": "डॉक्टर विज़िट",

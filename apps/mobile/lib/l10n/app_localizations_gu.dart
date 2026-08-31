@@ -246,6 +246,9 @@ class AppLocalizationsGu extends AppLocalizations {
   String get failedToLoadSummaries => 'સારાંશ લોડ કરવામાં નિષ્ફળ';
 
   @override
+  String get failedToLoadPatients => 'દર્દીઓ લોડ કરવામાં નિષ્ફળ';
+
+  @override
   String get retry => 'ફરી પ્રયાસ કરો';
 
   @override

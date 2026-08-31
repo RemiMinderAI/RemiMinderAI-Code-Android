@@ -248,6 +248,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get failedToLoadSummaries => 'Échec du chargement des résumés';
 
   @override
+  String get failedToLoadPatients => 'Échec du chargement des patients';
+
+  @override
   String get retry => 'Réessayer';
 
   @override

@@ -75,6 +75,7 @@
   "noSummariesYet": "Noch keine Zusammenfassungen",
   "summariesWillAppearHere": "Ihre Besuchszusammenfassungen erscheinen hier",
   "failedToLoadSummaries": "Zusammenfassungen konnten nicht geladen werden",
+  "failedToLoadPatients": "Patienten konnten nicht geladen werden",
   "retry": "Erneut versuchen",
   "shareLabel": "Teilen",
   "doctorVisit": "Arztbesuch",

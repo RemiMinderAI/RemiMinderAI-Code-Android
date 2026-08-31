@@ -249,6 +249,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Zusammenfassungen konnten nicht geladen werden';
 
   @override
+  String get failedToLoadPatients => 'Patienten konnten nicht geladen werden';
+
+  @override
   String get retry => 'Erneut versuchen';
 
   @override

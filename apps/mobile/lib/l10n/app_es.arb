@@ -75,6 +75,7 @@
   "noSummariesYet": "Sin resúmenes aún",
   "summariesWillAppearHere": "Tus resúmenes de visitas aparecerán aquí",
   "failedToLoadSummaries": "No se pudieron cargar los resúmenes",
+  "failedToLoadPatients": "No se pudieron cargar los pacientes",
   "retry": "Reintentar",
   "shareLabel": "Compartir",
   "doctorVisit": "Visita médica",

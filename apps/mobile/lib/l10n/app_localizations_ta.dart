@@ -248,6 +248,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get failedToLoadSummaries => 'சுருக்கங்களை ஏற்ற முடியவில்லை';
 
   @override
+  String get failedToLoadPatients => 'நோயாளிகளை ஏற்ற முடியவில்லை';
+
+  @override
   String get retry => 'மீண்டும் முயற்சி';
 
   @override

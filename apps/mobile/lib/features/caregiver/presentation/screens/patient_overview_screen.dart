@@ -1,10 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/config/environment.dart';
+import '../../../../core/services/backend_api_service.dart';
 import '../../../../core/utils/locale_format.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../patient/data/models/summary_item.dart';
@@ -22,6 +22,9 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   late TabController _tabController;
   String? _patientId;
   String _patientName = '';
+  // The generic "Patient" label used to mean both "no name yet" and "the
+  // lookup failed", which is why this screen read as working.
+  bool _patientNameFailed = false;
   bool _hasLoaded = false;
   bool _isLoading = true;
   String? _visitsError;
@@ -47,20 +50,7 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
     _patientId = GoRouterState.of(context).uri.queryParameters['patientId'];
 
     if (_patientId != null && _patientId!.isNotEmpty) {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(_patientId)
-          .get()
-          .then((doc) {
-        if (doc.exists && mounted) {
-          setState(() {
-            _patientName = (doc.data()?['displayName'] ??
-                    doc.data()?['fullName'] ??
-                    l10n.defaultPatient)
-                .toString();
-          });
-        }
-      });
+      _loadPatientName();
     }
 
     _hasLoaded = true;
@@ -71,6 +61,38 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _tabController.index = 1;
       });
+    }
+  }
+
+  /// Resolve the patient's name from the caregiver's care-team roster.
+  ///
+  /// _loadPatientData() fetches only visits and reminders, neither of which
+  /// carries a name, and there is no per-patient profile endpoint for
+  /// caregivers — so the roster is the only source. The route parameter may be
+  /// the users.id uuid or the firebase_uid depending on which screen linked
+  /// here, so match on both.
+  Future<void> _loadPatientName() async {
+    final id = _patientId;
+    if (id == null || id.isEmpty) return;
+    if (mounted) setState(() => _patientNameFailed = false);
+    try {
+      final patients = await BackendApiService().getMyPatients();
+      if (!mounted) return;
+      for (final p in patients) {
+        if (id == p['patient_id']?.toString() ||
+            id == p['firebase_uid']?.toString()) {
+          final name = p['full_name']?.toString();
+          if (name != null && name.isNotEmpty) {
+            setState(() => _patientName = name);
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      // Never the patient's name or any health data — only that it failed.
+      debugPrint('Patient name lookup failed: $e');
+      if (!mounted) return;
+      setState(() => _patientNameFailed = true);
     }
   }
 
@@ -127,9 +149,6 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
         _isLoading = false;
       });
 
-      if (_visitsError == null || _remindersError == null) {
-        await _markPatientSynced();
-      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -191,26 +210,6 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
       return 'Server error while loading patient data. Try again in a moment.';
     }
     return 'Could not load patient data. Pull to refresh or try again later.';
-  }
-
-  Future<void> _markPatientSynced() async {
-    final caregiverId = FirebaseAuth.instance.currentUser?.uid;
-    final patientId = _patientId;
-    if (caregiverId == null || patientId == null || patientId.isEmpty) return;
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(caregiverId)
-          .collection('connectedPatients')
-          .doc(patientId)
-          .set(
-        {'lastSyncedAt': FieldValue.serverTimestamp()},
-        SetOptions(merge: true),
-      );
-    } catch (e) {
-      debugPrint('Failed to update patient sync timestamp: $e');
-    }
   }
 
   List<Map<String, dynamic>> _flattenReminders(Map<String, dynamic> payload) {
@@ -327,13 +326,33 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _patientName,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        _patientName,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    // Without this the generic label is indistinguishable from
+                    // a real name, which is what hid the broken lookup.
+                    if (_patientNameFailed) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: l10n.failedToLoadPatients,
+                        icon: Icon(Icons.refresh,
+                            size: 18, color: Colors.red[400]),
+                        onPressed: _loadPatientName,
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(

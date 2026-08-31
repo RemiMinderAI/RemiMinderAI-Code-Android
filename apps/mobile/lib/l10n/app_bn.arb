@@ -75,6 +75,7 @@
   "noSummariesYet": "এখনও কোনো সারাংশ নেই",
   "summariesWillAppearHere": "আপনার ভিজিট সারাংশ এখানে দেখা যাবে",
   "failedToLoadSummaries": "সারাংশ লোড ব্যর্থ",
+  "failedToLoadPatients": "রোগী লোড ব্যর্থ",
   "retry": "পুনরায় চেষ্টা",
   "shareLabel": "শেয়ার",
   "doctorVisit": "ডাক্তার ভিজিট",

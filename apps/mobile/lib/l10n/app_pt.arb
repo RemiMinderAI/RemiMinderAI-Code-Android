@@ -75,6 +75,7 @@
   "noSummariesYet": "Nenhum resumo ainda",
   "summariesWillAppearHere": "Seus resumos de visita aparecerão aqui",
   "failedToLoadSummaries": "Falha ao carregar resumos",
+  "failedToLoadPatients": "Falha ao carregar pacientes",
   "retry": "Tentar novamente",
   "shareLabel": "Compartilhar",
   "doctorVisit": "Consulta médica",

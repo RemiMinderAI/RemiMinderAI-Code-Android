@@ -247,6 +247,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get failedToLoadSummaries => 'Falha ao carregar resumos';
 
   @override
+  String get failedToLoadPatients => 'Falha ao carregar pacientes';
+
+  @override
   String get retry => 'Tentar novamente';
 
   @override

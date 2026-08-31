@@ -570,6 +570,12 @@ abstract class AppLocalizations {
   /// **'Failed to load summaries'**
   String get failedToLoadSummaries;
 
+  /// Shown when the caregiver patient roster fetch fails, so it is distinguishable from having no patients
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load patients'**
+  String get failedToLoadPatients;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:

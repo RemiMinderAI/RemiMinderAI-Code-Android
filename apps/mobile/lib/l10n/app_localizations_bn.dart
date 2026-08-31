@@ -246,6 +246,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get failedToLoadSummaries => 'সারাংশ লোড ব্যর্থ';
 
   @override
+  String get failedToLoadPatients => 'রোগী লোড ব্যর্থ';
+
+  @override
   String get retry => 'পুনরায় চেষ্টা';
 
   @override

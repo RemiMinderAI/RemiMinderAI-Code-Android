@@ -246,6 +246,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get failedToLoadSummaries => 'सारांश लोड नहीं हो सके';
 
   @override
+  String get failedToLoadPatients => 'मरीज़ लोड नहीं हो सके';
+
+  @override
   String get retry => 'पुनः प्रयास';
 
   @override

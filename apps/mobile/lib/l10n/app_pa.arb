@@ -99,6 +99,7 @@
   "noSummariesYet": "ਅਜੇ ਕੋਈ ਸਾਰਾਂਸ਼ ਨਹੀਂ",
   "summariesWillAppearHere": "ਤੁਹਾਡੇ ਦੌਰੇ ਦੇ ਸੰਖੇਪ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੇ",
   "failedToLoadSummaries": "ਸਾਰਾਂਸ਼ਾਂ ਨੂੰ ਲੋਡ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ",
+  "failedToLoadPatients": "ਮਰੀਜ਼ਾਂ ਨੂੰ ਲੋਡ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ",
   "retry": "ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
   "shareLabel": "ਸ਼ੇਅਰ ਕਰੋ",
   "doctorVisit": "ਡਾਕਟਰ ਦੀ ਮੁਲਾਕਾਤ",

@@ -75,6 +75,7 @@
   "noSummariesYet": "இன்னும் சுருக்கங்கள் இல்லை",
   "summariesWillAppearHere": "உங்கள் வருகை சுருக்கங்கள் இங்கே தோன்றும்",
   "failedToLoadSummaries": "சுருக்கங்களை ஏற்ற முடியவில்லை",
+  "failedToLoadPatients": "நோயாளிகளை ஏற்ற முடியவில்லை",
   "retry": "மீண்டும் முயற்சி",
   "shareLabel": "பகிர்",
   "doctorVisit": "மருத்துவ வருகை",

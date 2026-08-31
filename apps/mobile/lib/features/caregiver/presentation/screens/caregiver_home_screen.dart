@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,6 +36,10 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
   List<Map<String, dynamic>> _alerts = [];
   List<Map<String, dynamic>> _connectedPatients = [];
   bool _isLoadingAlerts = true;
+  // An empty roster and a failed fetch must not render the same. Nothing here
+  // used to distinguish them, which is how an empty list passed for a hang.
+  bool _isLoadingPatients = true;
+  String? _patientsError;
 
   TextStyle get _bodyStyle => GoogleFonts.dmSans();
   TextStyle get _displayStyle => GoogleFonts.dmSerifDisplay();
@@ -80,12 +82,12 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
   String _patientNameForUserId(String userId) {
     if (userId.isEmpty) return AppLocalizations.of(context)!.defaultPatient;
     for (final patient in _connectedPatients) {
-      final patientId =
-          patient['patientId']?.toString() ?? patient['id']?.toString() ?? '';
-      if (patientId == userId) {
-        final name = patient['name']?.toString() ??
-            patient['patientName']?.toString() ??
-            patient['fullName']?.toString();
+      // caregiver_alerts.user_id holds either the users.id uuid or the
+      // firebase_uid, so an alert only resolves if both are checked.
+      final matches = userId == patient['patient_id']?.toString() ||
+          userId == patient['firebase_uid']?.toString();
+      if (matches) {
+        final name = patient['full_name']?.toString();
         if (name != null && name.isNotEmpty) return name;
       }
     }
@@ -151,34 +153,41 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
   }
 
   Future<void> _loadConnectedPatients() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingPatients = true;
+        _patientsError = null;
+      });
+    }
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('connectedPatients')
-          .get();
+      final patients = await BackendApiService().getMyPatients();
       if (!mounted) return;
-      final patients = snap.docs
-          .map((d) => {'id': d.id, ...d.data()})
-          .toList();
       setState(() {
         _connectedPatients = patients;
+        _isLoadingPatients = false;
         if (_alerts.isNotEmpty) {
           _refreshAlertPatientNames();
         }
       });
-    } catch (_) {
-      // silent fail
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _patientsError = e.toString();
+        _isLoadingPatients = false;
+      });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final l10n = AppLocalizations.of(context)!;
+    // Accepting an invitation invalidates this provider. The roster only
+    // loaded in initState, so the newly accepted patient did not appear until
+    // the app was restarted — the "click accept, then you're stuck" report.
+    ref.listen(receivedInvitationsProvider, (previous, next) {
+      if (previous != next) _loadConnectedPatients();
+    });
     final invitesAsync = ref.watch(receivedInvitationsProvider);
     final invitations = invitesAsync.value ?? [];
     final isLoadingInvitations = invitesAsync.isLoading;
@@ -201,12 +210,17 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
             context: context,
             greeting: greeting,
             firstName: firstName,
-            patientCount: _connectedPatients.length,
+            // Unknown while loading or after a failure; a zero here would read
+            // as "no patients", which is the confusion being fixed.
+            patientCount: (_isLoadingPatients || _patientsError != null)
+                ? null
+                : _connectedPatients.length,
             alertCount: _unreadAlertCount,
             pendingCount: pendingCount,
             unreadAlerts: _unreadAlertCount,
             l10n: l10n,
           ),
+          if (_patientsError != null) _buildPatientsErrorBanner(l10n),
           _sectionLabel(
             l10n.sectionRecentAlerts,
             trailing: l10n.viewAll,
@@ -224,7 +238,7 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     required BuildContext context,
     required String greeting,
     required String firstName,
-    required int patientCount,
+    required int? patientCount,
     required int alertCount,
     required int pendingCount,
     required int unreadAlerts,
@@ -340,11 +354,47 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     );
   }
 
-  Widget _summaryStat(BuildContext context, String label, int value) {
+  /// [value] is null when the figure is unknown — a failed fetch shows a dash,
+  /// never a zero that reads as "no patients".
+  Widget _buildPatientsErrorBanner(AppLocalizations l10n) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _sagePale,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _danger.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, size: 20, color: _danger),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.failedToLoadPatients,
+              style: _bodyStyle.copyWith(fontSize: 13, color: _textPrimary),
+            ),
+          ),
+          TextButton(
+            onPressed: _loadConnectedPatients,
+            child: Text(
+              l10n.retry,
+              style: _bodyStyle.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _sageDark),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryStat(BuildContext context, String label, int? value) {
     return Column(
       children: [
         Text(
-          LocaleFormat.number(context, value),
+          value == null ? '—' : LocaleFormat.number(context, value),
           style: _displayStyle.copyWith(
             fontSize: 22,
             color: _cream,

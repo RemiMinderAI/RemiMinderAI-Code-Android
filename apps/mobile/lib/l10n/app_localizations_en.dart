@@ -246,6 +246,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadSummaries => 'Failed to load summaries';
 
   @override
+  String get failedToLoadPatients => 'Failed to load patients';
+
+  @override
   String get retry => 'Retry';
 
   @override

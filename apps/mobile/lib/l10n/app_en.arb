@@ -99,6 +99,10 @@
   "noSummariesYet": "No summaries yet",
   "summariesWillAppearHere": "Your visit summaries will appear here",
   "failedToLoadSummaries": "Failed to load summaries",
+  "failedToLoadPatients": "Failed to load patients",
+  "@failedToLoadPatients": {
+    "description": "Shown when the caregiver patient roster fetch fails, so it is distinguishable from having no patients"
+  },
   "retry": "Retry",
   "shareLabel": "Share",
   "doctorVisit": "Doctor Visit",

@@ -691,6 +691,15 @@ class BackendApiService {
       );
     }
   }
+  /// The caregiver's patient roster, from care-team membership in Postgres.
+  ///
+  /// Each entry carries `patient_id` (the users.id uuid), `firebase_uid`,
+  /// `full_name`, `relationship`, `permission`, and per-patient counts. Alerts
+  /// reference a patient by either id, so match on both.
+  Future<List<Map<String, dynamic>>> getMyPatients() async {
+    return _getMapList('/api/care-team/my-patients', 'patients');
+  }
+
   /// Scanned documents for the signed-in patient.
   ///
   /// Each entry carries `ocr_preview` — capped server-side at 220 characters.

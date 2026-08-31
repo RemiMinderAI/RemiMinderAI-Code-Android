@@ -246,6 +246,9 @@ class AppLocalizationsPa extends AppLocalizations {
   String get failedToLoadSummaries => 'ਸਾਰਾਂਸ਼ਾਂ ਨੂੰ ਲੋਡ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ';
 
   @override
+  String get failedToLoadPatients => 'ਮਰੀਜ਼ਾਂ ਨੂੰ ਲੋਡ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ';
+
+  @override
   String get retry => 'ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ';
 
   @override
