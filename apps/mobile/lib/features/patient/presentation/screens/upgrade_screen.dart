@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/config/environment.dart';
 import '../../../../core/models/monetization_status.dart';
 import '../../../../core/services/revenuecat_service.dart';
+import '../../../../core/utils/locale_format.dart';
 
 enum _BillingPlan { monthly, yearly }
 
@@ -22,6 +25,9 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
   bool _loadingOfferings = true;
   Package? _monthlyPackage;
   Package? _annualPackage;
+
+  /// What the store says is already running, if anything.
+  ActiveSubscription? _active;
   String? _error;
 
   @override
@@ -33,6 +39,14 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
   Future<void> _loadOfferings() async {
     try {
       final packages = await RevenueCatService().getOfferings();
+      // Read before showing plans: someone who already pays should not be
+      // invited to pay again.
+      ActiveSubscription? active;
+      try {
+        active = await RevenueCatService().activeSubscription();
+      } catch (_) {
+        active = null; // shown as normal; the pre-purchase check still runs
+      }
       debugPrint('UPGRADE_DEBUG: initialized=${RevenueCatService().isPremium}, packages=${packages.length}, ids=${packages.map((p) => p.storeProduct.identifier).toList()}');
       Package? byProductId(String productId) {
         for (final package in packages) {
@@ -51,6 +65,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
 
       if (!mounted) return;
       setState(() {
+        _active = active;
         _monthlyPackage = byProductId(Environment.revenueCatMonthlyProductId) ??
             byType(PackageType.monthly);
         _annualPackage = byProductId(Environment.revenueCatAnnualProductId) ??
@@ -87,6 +102,37 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
 
     setState(() => _loading = true);
     try {
+      // Checked live, not from the cached isPremium flag: an annual subscriber
+      // could otherwise be charged again for a monthly plan, and the store
+      // would happily take the second payment.
+      ActiveSubscription? active;
+      try {
+        active = await RevenueCatService().activeSubscription();
+      } catch (_) {
+        // The store could not tell us. Refuse rather than risk a double
+        // charge — "unknown" is not "not subscribed".
+        if (!mounted) return;
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'We could not check your current subscription. '
+              'Please try again in a moment.',
+            ),
+          ),
+        );
+        return;
+      }
+      if (active != null) {
+        if (!mounted) return;
+        setState(() {
+          _active = active;
+          _loading = false;
+        });
+        await _showAlreadySubscribed(active);
+        return;
+      }
+
       final premium = await RevenueCatService().purchase(package);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,6 +152,73 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
       );
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// Tell them what they already have, and send them where they can change it.
+  ///
+  /// Refusing is only half the job — a patient who wanted to switch plans still
+  /// needs somewhere to go, and only the store can move them.
+  Future<void> _showAlreadySubscribed(ActiveSubscription active) async {
+    final plan = active.matches(Environment.revenueCatAnnualProductId)
+        ? 'annual'
+        : active.matches(Environment.revenueCatMonthlyProductId)
+            ? 'monthly'
+            : null;
+    final renews = active.expiresAt;
+    final when = renews == null
+        ? ''
+        : ' It ${active.willRenew ? 'renews' : 'ends'} on '
+            '${LocaleFormat.dateMedium(context, renews)}.';
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('You already have Premium'),
+        content: Text(
+          plan == null
+              ? 'Your Premium subscription is active, so there is nothing to '
+                  'buy.$when'
+              : 'You are on the $plan plan, so there is nothing to buy.$when',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+          if ((active.managementUrl ?? '').isNotEmpty)
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _openManagement(active.managementUrl!);
+              },
+              child: const Text('Manage subscription'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openManagement(String url) async {
+    try {
+      final launched = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Manage your subscription in your device settings.'),
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Manage your subscription in your device settings.'),
+        ),
+      );
     }
   }
 
@@ -322,6 +435,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                         style: TextStyle(color: theme.colorScheme.error),
                         textAlign: TextAlign.center,
                       ),
+                    if (!_loadingOfferings && _active != null)
+                      _currentPlanBanner(theme, _active!),
                     if (!_loadingOfferings &&
                         (_monthlyPackage != null || _annualPackage != null))
                       Row(
@@ -363,7 +478,13 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: (_loading || _packageFor(_selectedPlan) == null)
+                        // Disabled while a subscription is already running:
+                        // the pre-purchase check would refuse anyway, and an
+                        // enabled button that always refuses is worse than one
+                        // that never invited the tap.
+                        onPressed: (_loading ||
+                                _active != null ||
+                                _packageFor(_selectedPlan) == null)
                             ? null
                             : _purchaseSelectedPlan,
                         style: ElevatedButton.styleFrom(
@@ -378,9 +499,12 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                                 width: 22,
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
-                            : const Text(
-                                'Continue with Premium',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                            : Text(
+                                _active != null
+                                    ? 'You already have Premium'
+                                    : 'Continue with Premium',
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w700),
                               ),
                       ),
                     ),
@@ -405,6 +529,80 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// What they are already paying for, shown above the plans.
+  ///
+  /// The renewal date here comes from the store's own entitlement record, so
+  /// it is the number to trust — Apple's purchase sheet showed a date that
+  /// could not be reconciled, and this is the one place we can state it
+  /// authoritatively.
+  Widget _currentPlanBanner(ThemeData theme, ActiveSubscription active) {
+    final plan = active.matches(Environment.revenueCatAnnualProductId)
+        ? 'Annual'
+        : active.matches(Environment.revenueCatMonthlyProductId)
+            ? 'Monthly'
+            : null;
+    final renews = active.expiresAt;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.check_circle, color: theme.colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  plan == null
+                      ? 'Premium is active'
+                      : 'Premium is active — $plan plan',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                if (renews != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${active.willRenew ? 'Renews' : 'Ends'} on '
+                    '${LocaleFormat.dateMedium(context, renews)}',
+                    style: TextStyle(color: theme.colorScheme.secondary),
+                  ),
+                ],
+                if (active.isSandbox && kDebugMode) ...[
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Sandbox purchase — store durations are compressed here.',
+                    style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                  ),
+                ],
+                if ((active.managementUrl ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: () => _openManagement(active.managementUrl!),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 36),
+                      alignment: Alignment.centerLeft,
+                    ),
+                    child: const Text('Manage subscription'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

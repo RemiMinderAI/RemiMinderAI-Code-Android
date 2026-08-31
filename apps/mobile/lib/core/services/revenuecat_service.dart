@@ -5,6 +5,42 @@ import 'backend_api_service.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../config/environment.dart';
 
+/// What the store says the user is currently paying for.
+///
+/// The cached [RevenueCatService.isPremium] bool was never enough to stop a
+/// second purchase: it says whether Premium is on, not which plan is running or
+/// when it renews, so an annual subscriber could be sold a monthly plan on top
+/// with nothing in the way.
+class ActiveSubscription {
+  const ActiveSubscription({
+    required this.productIdentifier,
+    required this.willRenew,
+    required this.isSandbox,
+    this.expiresAt,
+    this.managementUrl,
+  });
+
+  final String productIdentifier;
+  final bool willRenew;
+
+  /// True for a TestFlight / sandbox purchase, where the store compresses a
+  /// year into minutes. Worth surfacing: it is the difference between "the
+  /// renewal date looks wrong" and "the product duration IS wrong".
+  final bool isSandbox;
+
+  final DateTime? expiresAt;
+
+  /// Where the store lets the user change or cancel. We cannot change a plan
+  /// for them — only send them to the place that can.
+  final String? managementUrl;
+
+  bool matches(String? productId) {
+    if (productId == null || productId.isEmpty) return false;
+    return productIdentifier == productId ||
+        productIdentifier.startsWith('$productId:');
+  }
+}
+
 class RevenueCatService {
   static final RevenueCatService _instance = RevenueCatService._();
   factory RevenueCatService() => _instance;
@@ -83,6 +119,33 @@ class RevenueCatService {
       if (_isPremium) await _syncToBackend('app_start');
     } catch (e) {
       if (kDebugMode) print('❌ RevenueCat status check failed: $e');
+    }
+  }
+
+
+  /// The live subscription, straight from the store — never the cached bool.
+  ///
+  /// Read before any purchase. Trusting [isPremium] would let a stale value
+  /// from app start authorise a second charge.
+  Future<ActiveSubscription?> activeSubscription() async {
+    if (!_initialized) return null;
+    try {
+      final info = await Purchases.getCustomerInfo();
+      _isPremium = info.entitlements.active.containsKey('Premium');
+      final entitlement = info.entitlements.active['Premium'];
+      if (entitlement == null) return null;
+      return ActiveSubscription(
+        productIdentifier: entitlement.productIdentifier,
+        willRenew: entitlement.willRenew,
+        isSandbox: entitlement.isSandbox,
+        expiresAt: DateTime.tryParse(entitlement.expirationDate ?? '')?.toLocal(),
+        managementUrl: info.managementURL,
+      );
+    } catch (e) {
+      if (kDebugMode) print('❌ RevenueCat active subscription check failed: $e');
+      // Unknown is not "no subscription" — the caller must not read a failure
+      // here as permission to charge again.
+      rethrow;
     }
   }
 
