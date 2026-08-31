@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/backend_api_service.dart';
 import '../../../../core/config/environment.dart';
 import '../../../../core/utils/locale_format.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -50,9 +50,12 @@ class _OverviewScreenState extends State<OverviewScreen>
   bool _isLoadingScannedDocs = true;
   String? _scannedDocsError;
 
-  // Lab results state (filtered from scanned docs)
+  // Lab results state. Matched server-side against the full OCR text, so this
+  // is its own fetch rather than a filter over _scannedDocs, whose previews are
+  // capped at 220 characters.
   List<Map<String, dynamic>> _labResults = [];
   bool _isLoadingLabResults = true;
+  String? _labResultsError;
 
   // Selection state
   bool _isSelectionMode = false;
@@ -613,74 +616,76 @@ class _OverviewScreenState extends State<OverviewScreen>
   }
 
   Future<void> _fetchScannedDocs() async {
-    try {
-      setState(() {
-        _isLoadingScannedDocs = true;
-        _isLoadingLabResults = true;
-        _scannedDocsError = null;
-      });
+    setState(() {
+      _isLoadingScannedDocs = true;
+      _isLoadingLabResults = true;
+      _scannedDocsError = null;
+      _labResultsError = null;
+    });
 
-      final user = await AuthService().getCurrentUser();
-      final uid = user?.authUid ?? user?.id;
-      if (uid == null) throw Exception('Not authenticated');
+    final api = BackendApiService();
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('scanned_docs')
-          .orderBy('timestamp', descending: true)
-          .get();
+    // Two endpoints, two independent failures: a lab-results outage must not
+    // blank the Scanned tab, and vice versa.
+    final results = await Future.wait([
+      api.getScannedDocs().then<Object>((v) => v).catchError((Object e) => e),
+      api.getLabResults().then<Object>((v) => v).catchError((Object e) => e),
+    ]);
 
-      final docs = snapshot.docs
-          .map((d) => {'id': d.id, ...d.data()})
-          .toList();
-
-      final labs = docs.where((d) {
-        final text = (d['parsed_text'] ?? '').toString().toLowerCase();
-        return text.contains('lab') ||
-            text.contains('result') ||
-            text.contains('test') ||
-            text.contains('blood') ||
-            text.contains('cholesterol') ||
-            text.contains('glucose');
-      }).toList();
-
-      if (!mounted) return;
-      setState(() {
+    if (!mounted) return;
+    setState(() {
+      final docs = results[0];
+      if (docs is List<Map<String, dynamic>>) {
         _scannedDocs = docs;
+      } else {
+        _scannedDocsError = docs.toString();
+      }
+      _isLoadingScannedDocs = false;
+
+      final labs = results[1];
+      if (labs is List<Map<String, dynamic>>) {
         _labResults = labs;
-        _isLoadingScannedDocs = false;
-        _isLoadingLabResults = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _scannedDocsError = e.toString();
-        _isLoadingScannedDocs = false;
-        _isLoadingLabResults = false;
-      });
+      } else {
+        _labResultsError = labs.toString();
+      }
+      _isLoadingLabResults = false;
+    });
+  }
+
+  /// When the document was scanned.
+  ///
+  /// `uploaded_at` is when the image was uploaded; `visit_date` is when the
+  /// visit was created. They coincide when a scan opens its own visit, but a
+  /// scan can also attach to a visit already in progress — a visit recorded
+  /// this morning, a report scanned into it this afternoon. The card is
+  /// labelled "Scanned on", so the upload time is the honest answer, with the
+  /// visit date as a fallback for rows written before the metadata existed.
+  DateTime? _scannedDocDate(Map<String, dynamic> doc) {
+    for (final key in const ['uploaded_at', 'visit_date']) {
+      final raw = doc[key];
+      if (raw is! String || raw.isEmpty) continue;
+      final parsed = DateTime.tryParse(raw);
+      if (parsed != null) return parsed.toLocal();
     }
+    return null;
   }
 
   Widget _buildScannedDocCard(Map<String, dynamic> doc) {
     final l10n = AppLocalizations.of(context)!;
-    final timestamp = doc['timestamp'];
-    String dateStr = '';
-    if (timestamp is Timestamp) {
-      final dt = timestamp.toDate();
-      dateStr = _formatSmartTime(dt, l10n);
-    }
-    final parsedText = (doc['parsed_text'] ?? '').toString();
-    final preview = parsedText.length > 120
-        ? '${parsedText.substring(0, 120)}...'
-        : parsedText;
+    final date = _scannedDocDate(doc);
+    final dateStr = date == null ? '' : _formatSmartTime(date, l10n);
+    final visitId = (doc['visit_id'] ?? '').toString();
+    final previewText = (doc['ocr_preview'] ?? '').toString();
+    final preview = previewText.length > 120
+        ? '${previewText.substring(0, 120)}...'
+        : previewText;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => _showScannedDocDetail(context, dateStr, parsedText),
+        onTap: () => _showScannedDocDetail(context, visitId, dateStr),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -1099,14 +1104,14 @@ class _OverviewScreenState extends State<OverviewScreen>
     if (_isLoadingLabResults) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_scannedDocsError != null) {
+    if (_labResultsError != null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
             const SizedBox(height: 12),
-            Text(_scannedDocsError!,
+            Text(_labResultsError!,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey[600], fontSize: 13)),
             const SizedBox(height: 16),
@@ -1214,7 +1219,13 @@ class _OverviewScreenState extends State<OverviewScreen>
     );
   }
 
-  void _showScannedDocDetail(BuildContext context, String dateStr, String parsedText) {
+  void _showScannedDocDetail(
+      BuildContext context, String visitId, String dateStr) {
+    // The list only carries a 220-char preview, so the full document is fetched
+    // here rather than passed in — otherwise every list load would drag every
+    // document's text along with it.
+    final textFuture = BackendApiService().getVisitOcrText(visitId);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1247,7 +1258,8 @@ class _OverviewScreenState extends State<OverviewScreen>
                   Expanded(
                     child: Text(
                       dateStr.isNotEmpty ? 'Scanned $dateStr' : 'Scanned document',
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 16),
                     ),
                   ),
                   IconButton(
@@ -1259,13 +1271,43 @@ class _OverviewScreenState extends State<OverviewScreen>
             ),
             const Divider(height: 1),
             Expanded(
-              child: SingleChildScrollView(
-                controller: scrollController,
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  parsedText,
-                  style: const TextStyle(fontSize: 14, height: 1.6),
-                ),
+              child: FutureBuilder<String>(
+                future: textFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline,
+                                size: 40, color: Colors.red[400]),
+                            const SizedBox(height: 12),
+                            Text(
+                              '${snapshot.error}',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  final text = snapshot.data ?? '';
+                  return SingleChildScrollView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      text,
+                      style: const TextStyle(fontSize: 14, height: 1.6),
+                    ),
+                  );
+                },
               ),
             ),
           ],

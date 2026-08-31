@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
@@ -27,6 +27,31 @@ def get_user_id(current_user=Depends(get_current_user)) -> str:
     """Extract firebase_uid from authenticated user"""
     # Firebase UID is the canonical user identity
     return current_user["sub"]
+
+
+def _iso_utc(value) -> Optional[str]:
+    """Return an offset-aware ISO timestamp, or None.
+
+    ``image_metadata['uploaded_at']`` was historically written with a naive
+    ``datetime.now()``, which the container evaluates in UTC. Clients parse a
+    naive string as local time, so the value renders hours off — and near
+    midnight, on the wrong day. Stamp UTC on anything without an offset.
+    """
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        raw = str(value).strip()
+        if raw.endswith("Z"):
+            raw = raw[:-1] + "+00:00"
+        try:
+            dt = datetime.fromisoformat(raw)
+        except (TypeError, ValueError):
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
 
 # DISABLED: Legacy summary generation route - functions removed during Supabase cleanup
 # @router.post("/generate-summary/{visit_id}", response_model=VisitSummaryPayload)
@@ -193,7 +218,7 @@ async def upload_image_for_visit(
             "blob_name": image_result["blob_name"],
             "content_type": image_result["content_type"],
             "file_size": image_result["file_size"],
-            "uploaded_at": datetime.now().isoformat()
+            "uploaded_at": datetime.now(timezone.utc).isoformat()
         }
 
         # Step 3: Single transaction for all database operations
@@ -289,6 +314,67 @@ async def process_visit_ocr(
     except Exception as e:
         logger.exception(f"OCR route failed for visit {visit_id}")
         raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
+
+
+@router.get("/visits/{visit_id}/ocr-text")
+async def get_visit_ocr_text(
+    visit_id: str,
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Full OCR text for one scanned document.
+
+    Deliberately separate from ``GET /visits/{visit_id}``: that route serves
+    visit metadata to the details screen, which would then carry a whole
+    document it never renders. The list endpoints cap OCR at a 220-char
+    preview, so only a detail view pays for the full text.
+    """
+    try:
+        from services.db_service import get_user_uuid
+        from services.cloud_sql_engine import get_cloud_sql_engine
+        from sqlalchemy import text
+
+        user_uuid = await get_user_uuid(user_id)
+        await assert_patient_access(user_uuid, user_uuid, "view")
+
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("""
+                    SELECT ocr_text, ocr_status
+                    FROM visit_transcripts
+                    WHERE visit_id::text = :visit_id
+                      AND user_id::text = :user_id
+                    LIMIT 1
+                """),
+                {"visit_id": visit_id, "user_id": user_uuid},
+            ).fetchone()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="Scanned document not found")
+
+        m = row._mapping if hasattr(row, "_mapping") else row
+        ocr_text = (m["ocr_text"] or "").strip()
+
+        # Health information: count only, never the text itself.
+        logger.info(
+            "OCR text fetched visit=%s status=%s chars=%d",
+            visit_id,
+            m["ocr_status"],
+            len(ocr_text),
+        )
+
+        return {
+            "visit_id": visit_id,
+            "ocr_status": m["ocr_status"] or "pending",
+            "ocr_text": ocr_text,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to fetch OCR text for visit %s: %s", visit_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch OCR text: {str(e)}")
 
 
 @router.post("/visits/{visit_id}/process-audio")
@@ -725,7 +811,7 @@ async def get_user_scanned_docs(user_id: str = Depends(get_user_id)):
                     "image_url": m["image_url"],
                     "ocr_status": m["ocr_status"] or "pending",
                     "ocr_preview": ocr_text[:220] if ocr_text else "",
-                    "uploaded_at": uploaded_at,
+                    "uploaded_at": _iso_utc(uploaded_at),
                 }
             )
         return docs
@@ -814,7 +900,7 @@ async def get_caregiver_patient_scanned_docs(
                     "image_url": m["image_url"],
                     "ocr_status": m["ocr_status"] or "pending",
                     "ocr_preview": ocr_text[:220] if ocr_text else "",
-                    "uploaded_at": uploaded_at,
+                    "uploaded_at": _iso_utc(uploaded_at),
                 }
             )
         return docs
@@ -916,7 +1002,8 @@ async def get_user_lab_results(user_id: str = Depends(get_user_id)):
                         v.created_at AS visit_date,
                         vt.image_url,
                         vt.ocr_status,
-                        vt.ocr_text
+                        vt.ocr_text,
+                        vt.image_metadata
                     FROM visit_transcripts vt
                     JOIN visits v ON v.id = vt.visit_id
                     WHERE vt.user_id::text = :user_id
@@ -938,6 +1025,9 @@ async def get_user_lab_results(user_id: str = Depends(get_user_id)):
         for row in rows:
             m = row._mapping if hasattr(row, "_mapping") else row
             ocr_text = (m["ocr_text"] or "").strip()
+            metadata = m["image_metadata"]
+            uploaded_at = metadata.get("uploaded_at") if isinstance(metadata, dict) else None
+            preview = ocr_text[:220] if ocr_text else ""
             results.append(
                 {
                     "visit_id": str(m["visit_id"]),
@@ -945,7 +1035,12 @@ async def get_user_lab_results(user_id: str = Depends(get_user_id)):
                     "visit_date": m["visit_date"].isoformat() if m["visit_date"] else None,
                     "image_url": m["image_url"],
                     "ocr_status": m["ocr_status"] or "pending",
-                    "result_preview": ocr_text[:220] if ocr_text else "",
+                    # result_preview is the original field name, kept for any
+                    # caller predating the scanned-docs shape; ocr_preview and
+                    # uploaded_at match /scanned-docs so one card renders both.
+                    "result_preview": preview,
+                    "ocr_preview": preview,
+                    "uploaded_at": _iso_utc(uploaded_at),
                 }
             )
         return results

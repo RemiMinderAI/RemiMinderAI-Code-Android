@@ -691,6 +691,77 @@ class BackendApiService {
       );
     }
   }
+  /// Scanned documents for the signed-in patient.
+  ///
+  /// Each entry carries `ocr_preview` — capped server-side at 220 characters.
+  /// Use [getVisitOcrText] for the full document.
+  Future<List<Map<String, dynamic>>> getScannedDocs() async {
+    return _getMapList('/api/scanned-docs', 'scanned documents');
+  }
+
+  /// Documents the backend matched as lab reports.
+  ///
+  /// The match runs in SQL against the whole OCR text. Filtering the scanned-docs
+  /// list client-side would only ever see the 220-char preview, and would return
+  /// an empty tab rather than an error.
+  Future<List<Map<String, dynamic>>> getLabResults() async {
+    return _getMapList('/api/lab-results', 'lab results');
+  }
+
+  Future<List<Map<String, dynamic>>> _getMapList(String path, String label) async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) {
+      throw Exception('Authentication required. Please log in again.');
+    }
+
+    final uri = Uri.parse('${Environment.apiBaseUrl}$path');
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      // Surfaced, not swallowed: an empty list here is indistinguishable from
+      // "you have no documents", which is how the original bug stayed hidden.
+      throw Exception(
+          'Failed to load $label: ${response.statusCode} - ${response.body}');
+    }
+
+    final decoded = json.decode(response.body);
+    if (decoded is! List) {
+      throw Exception('Failed to load $label: unexpected response shape');
+    }
+    return List<Map<String, dynamic>>.from(decoded);
+  }
+
+  /// Full OCR text for one scanned document.
+  Future<String> getVisitOcrText(String visitId) async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) {
+      throw Exception('Authentication required. Please log in again.');
+    }
+
+    final uri = Uri.parse('${Environment.apiBaseUrl}/api/visits/$visitId/ocr-text');
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Failed to load document text: ${response.statusCode} - ${response.body}');
+    }
+
+    final data = json.decode(response.body) as Map<String, dynamic>;
+    return (data['ocr_text'] ?? '').toString();
+  }
+
   Future<List<Map<String, dynamic>>> getCaregiverAlerts(String caregiverId) async {
     final accessToken = await _authService.getAccessToken();
     if (accessToken == null) return [];
