@@ -1405,4 +1405,11 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get voxConsentContinue => 'जारी रखें';
+
+  @override
+  String get recordingInProgressTitle => 'आपकी विज़िट रिकॉर्ड हो रही है';
+
+  @override
+  String get recordingInProgressBody =>
+      'RemiMinder पर लौटने के लिए टैप करें। जब तक आप इसे नहीं रोकते, रिकॉर्डिंग जारी रहेगी।';
 }

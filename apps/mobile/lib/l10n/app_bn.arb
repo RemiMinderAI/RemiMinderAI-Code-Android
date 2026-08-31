@@ -608,5 +608,7 @@
   "voxConsentHealthNote": "এতে ওষুধের নাম, চিকিৎসকের নাম এবং স্বাস্থ্য সম্পর্কিত তথ্য থাকতে পারে।",
   "voxConsentCheckbox": "আমি বুঝেছি এবং সম্মতি দিচ্ছি",
   "voxConsentNotNow": "এখন নয়",
-  "voxConsentContinue": "চালিয়ে যান"
+  "voxConsentContinue": "চালিয়ে যান",
+  "recordingInProgressTitle": "আপনার ভিজিট রেকর্ড হচ্ছে",
+  "recordingInProgressBody": "RemiMinder-এ ফিরতে ট্যাপ করুন। আপনি না থামানো পর্যন্ত রেকর্ডিং চলতে থাকবে।"
 }

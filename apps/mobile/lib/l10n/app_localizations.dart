@@ -2651,6 +2651,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue'**
   String get voxConsentContinue;
+
+  /// No description provided for @recordingInProgressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording your visit'**
+  String get recordingInProgressTitle;
+
+  /// No description provided for @recordingInProgressBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to return to RemiMinder. Recording continues until you stop it.'**
+  String get recordingInProgressBody;
 }
 
 class _AppLocalizationsDelegate

@@ -757,5 +757,7 @@
   "voxConsentHealthNote": "ਇਸ ਵਿੱਚ ਦਵਾਈਆਂ ਦੇ ਨਾਮ, ਡਾਕਟਰਾਂ ਦੇ ਨਾਮ ਅਤੇ ਸਿਹਤ ਸੰਬੰਧੀ ਜਾਣਕਾਰੀ ਸ਼ਾਮਲ ਹੋ ਸਕਦੀ ਹੈ।",
   "voxConsentCheckbox": "ਮੈਂ ਸਮਝਦਾ/ਸਮਝਦੀ ਹਾਂ ਅਤੇ ਸਹਿਮਤੀ ਦਿੰਦਾ/ਦਿੰਦੀ ਹਾਂ",
   "voxConsentNotNow": "ਹੁਣੇ ਨਹੀਂ",
-  "voxConsentContinue": "ਜਾਰੀ ਰੱਖੋ"
+  "voxConsentContinue": "ਜਾਰੀ ਰੱਖੋ",
+  "recordingInProgressTitle": "ਤੁਹਾਡੀ ਮੁਲਾਕਾਤ ਰਿਕਾਰਡ ਹੋ ਰਹੀ ਹੈ",
+  "recordingInProgressBody": "RemiMinder 'ਤੇ ਵਾਪਸ ਜਾਣ ਲਈ ਟੈਪ ਕਰੋ। ਜਦੋਂ ਤੱਕ ਤੁਸੀਂ ਬੰਦ ਨਹੀਂ ਕਰਦੇ, ਰਿਕਾਰਡਿੰਗ ਜਾਰੀ ਰਹੇਗੀ।"
 }

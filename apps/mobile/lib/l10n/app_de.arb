@@ -608,5 +608,7 @@
   "voxConsentHealthNote": "Dies kann Medikamentennamen, Arztnamen und Gesundheitsinformationen enthalten.",
   "voxConsentCheckbox": "Ich verstehe das und stimme zu",
   "voxConsentNotNow": "Jetzt nicht",
-  "voxConsentContinue": "Weiter"
+  "voxConsentContinue": "Weiter",
+  "recordingInProgressTitle": "Ihr Besuch wird aufgezeichnet",
+  "recordingInProgressBody": "Tippen Sie, um zu RemiMinder zurückzukehren. Die Aufnahme läuft weiter, bis Sie sie beenden."
 }

@@ -1412,4 +1412,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get voxConsentContinue => 'Continuar';
+
+  @override
+  String get recordingInProgressTitle => 'Gravando sua consulta';
+
+  @override
+  String get recordingInProgressBody =>
+      'Toque para voltar ao RemiMinder. A gravação continua até você parar.';
 }

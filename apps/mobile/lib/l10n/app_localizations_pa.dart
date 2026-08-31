@@ -1420,4 +1420,11 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get voxConsentContinue => 'ਜਾਰੀ ਰੱਖੋ';
+
+  @override
+  String get recordingInProgressTitle => 'ਤੁਹਾਡੀ ਮੁਲਾਕਾਤ ਰਿਕਾਰਡ ਹੋ ਰਹੀ ਹੈ';
+
+  @override
+  String get recordingInProgressBody =>
+      'RemiMinder \'ਤੇ ਵਾਪਸ ਜਾਣ ਲਈ ਟੈਪ ਕਰੋ। ਜਦੋਂ ਤੱਕ ਤੁਸੀਂ ਬੰਦ ਨਹੀਂ ਕਰਦੇ, ਰਿਕਾਰਡਿੰਗ ਜਾਰੀ ਰਹੇਗੀ।';
 }

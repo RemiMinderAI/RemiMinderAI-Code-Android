@@ -1399,4 +1399,11 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get voxConsentContinue => 'চালিয়ে যান';
+
+  @override
+  String get recordingInProgressTitle => 'আপনার ভিজিট রেকর্ড হচ্ছে';
+
+  @override
+  String get recordingInProgressBody =>
+      'RemiMinder-এ ফিরতে ট্যাপ করুন। আপনি না থামানো পর্যন্ত রেকর্ডিং চলতে থাকবে।';
 }

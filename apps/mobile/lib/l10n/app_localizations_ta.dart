@@ -1418,4 +1418,12 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get voxConsentContinue => 'தொடரவும்';
+
+  @override
+  String get recordingInProgressTitle =>
+      'உங்கள் சந்திப்பு பதிவு செய்யப்படுகிறது';
+
+  @override
+  String get recordingInProgressBody =>
+      'RemiMinder-க்குத் திரும்பத் தட்டவும். நீங்கள் நிறுத்தும் வரை பதிவு தொடரும்.';
 }

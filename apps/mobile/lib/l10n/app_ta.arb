@@ -608,5 +608,7 @@
   "voxConsentHealthNote": "இதில் மருந்துகளின் பெயர்கள், மருத்துவர்களின் பெயர்கள் மற்றும் உடல்நலத் தகவல்கள் இருக்கலாம்.",
   "voxConsentCheckbox": "நான் புரிந்துகொண்டேன், சம்மதிக்கிறேன்",
   "voxConsentNotNow": "இப்போது வேண்டாம்",
-  "voxConsentContinue": "தொடரவும்"
+  "voxConsentContinue": "தொடரவும்",
+  "recordingInProgressTitle": "உங்கள் சந்திப்பு பதிவு செய்யப்படுகிறது",
+  "recordingInProgressBody": "RemiMinder-க்குத் திரும்பத் தட்டவும். நீங்கள் நிறுத்தும் வரை பதிவு தொடரும்."
 }

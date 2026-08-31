@@ -1412,4 +1412,11 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get voxConsentContinue => 'ચાલુ રાખો';
+
+  @override
+  String get recordingInProgressTitle => 'તમારી મુલાકાત રેકોર્ડ થઈ રહી છે';
+
+  @override
+  String get recordingInProgressBody =>
+      'RemiMinder પર પાછા ફરવા ટૅપ કરો. તમે બંધ ન કરો ત્યાં સુધી રેકોર્ડિંગ ચાલુ રહેશે.';
 }

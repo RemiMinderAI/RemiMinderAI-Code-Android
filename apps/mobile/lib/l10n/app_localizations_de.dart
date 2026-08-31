@@ -1426,4 +1426,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get voxConsentContinue => 'Weiter';
+
+  @override
+  String get recordingInProgressTitle => 'Ihr Besuch wird aufgezeichnet';
+
+  @override
+  String get recordingInProgressBody =>
+      'Tippen Sie, um zu RemiMinder zurückzukehren. Die Aufnahme läuft weiter, bis Sie sie beenden.';
 }

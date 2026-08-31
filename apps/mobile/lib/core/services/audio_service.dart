@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+
+import '../../l10n/app_localizations.dart';
 
 /// Service for handling audio recording operations (conversations, consultations)
 class AudioService {
@@ -123,9 +126,29 @@ class AudioService {
 
       debugPrint('🎙️ Starting recorder with path: $_currentRecordingPath');
 
-      // Start recording with record package
-      await _audioRecorder!
-          .start(const RecordConfig(), path: _currentRecordingPath!);
+      // A consultation must keep recording when the user checks a message or
+      // the screen locks. On Android that requires a foreground service —
+      // without one the OS stops the microphone on backgrounding and may kill
+      // the process under memory pressure, and the conversation is gone.
+      // On iOS the equivalent is the `audio` background mode in Info.plist;
+      // the recorder's own AVAudioSession category already permits it.
+      final l10n = context.mounted ? AppLocalizations.of(context) : null;
+      await _audioRecorder!.start(
+        RecordConfig(
+          androidConfig: AndroidRecordConfig(
+            service: AndroidService(
+              title: l10n?.recordingInProgressTitle ?? 'Recording your visit',
+              content: l10n?.recordingInProgressBody ??
+                  'Tap to return to RemiMinder. Recording continues until you stop it.',
+            ),
+          ),
+        ),
+        path: _currentRecordingPath!,
+      );
+
+      // Remember what is being written, so a recording interrupted by a crash
+      // or a force-quit can be found on next launch instead of silently lost.
+      await _markRecordingInProgress(_currentRecordingPath!);
 
       _isRecording = true;
       _recordingDuration = Duration.zero;
@@ -157,6 +180,55 @@ class AudioService {
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Interrupted-recording recovery
+  //
+  // A foreground service stops Android reclaiming the process, but nothing
+  // stops a user force-quitting or the device dying. The path is written down
+  // while recording so the next launch can find what was left behind rather
+  // than leaving a medical consultation orphaned in the documents directory
+  // with nothing pointing at it.
+  // ---------------------------------------------------------------------
+
+  static const String _inProgressKey = 'audio_recording_in_progress_path';
+
+  Future<void> _markRecordingInProgress(String path) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_inProgressKey, path);
+    } catch (e) {
+      // Never block a recording from starting over bookkeeping.
+      debugPrint('Could not record in-progress marker: $e');
+    }
+  }
+
+  Future<void> _clearRecordingInProgress() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_inProgressKey);
+    } catch (e) {
+      debugPrint('Could not clear in-progress marker: $e');
+    }
+  }
+
+  /// A recording that was interrupted, if one is waiting.
+  ///
+  /// Returns the file only when it still exists and holds audio; the marker is
+  /// cleared either way, so a missing or empty file is not offered twice.
+  Future<File?> findInterruptedRecording() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final path = prefs.getString(_inProgressKey);
+      if (path == null || path.isEmpty) return null;
+      await prefs.remove(_inProgressKey);
+      final file = File(path);
+      if (await file.exists() && await file.length() > 0) return file;
+    } catch (e) {
+      debugPrint('Could not check for an interrupted recording: $e');
+    }
+    return null;
+  }
+
   /// Stop recording audio
   Future<String?> stopRecording() async {
     if (_audioRecorder == null) {
@@ -175,6 +247,7 @@ class AudioService {
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
+      await _clearRecordingInProgress();
       final path = await _audioRecorder!.stop().timeout(
         const Duration(seconds: 15),
         onTimeout: () {
@@ -252,6 +325,7 @@ class AudioService {
         }
       }
 
+      await _clearRecordingInProgress();
       _isRecording = false;
       _recordingTimer?.cancel();
       _recordingTimer = null;
