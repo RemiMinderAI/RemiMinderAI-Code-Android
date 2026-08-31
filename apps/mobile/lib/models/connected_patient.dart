@@ -1,9 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// Merged view of `users/{caregiverId}/connectedPatients/{id}` and optional
-/// `patients/{patientId}` profile.
+/// One row of `GET /api/care-team/my-patients`.
+///
+/// This used to merge two Firestore documents. The roster now comes from
+/// care_team_members in Postgres, which is what the backend maintains; the
+/// Firestore link documents were only ever written by this app.
 class ConnectedPatient {
   final String patientId;
   final String displayName;
@@ -18,7 +20,7 @@ class ConnectedPatient {
   final String? allergies;
   final List<String> medications;
   final List<String> alerts;
-  final DateTime? lastSyncedAt;
+  final DateTime? lastActivityAt;
 
   const ConnectedPatient({
     required this.patientId,
@@ -33,60 +35,30 @@ class ConnectedPatient {
     this.allergies,
     this.medications = const [],
     this.alerts = const [],
-    this.lastSyncedAt,
+    this.lastActivityAt,
   });
 
-  factory ConnectedPatient.fromFirestore(
-    DocumentSnapshot<Map<String, dynamic>> linkDoc,
-    DocumentSnapshot<Map<String, dynamic>>? patientDoc,
-  ) {
-    final link = linkDoc.data() ?? {};
-    final patientId = link['patientId'] as String? ?? linkDoc.id;
-    final linkName = (link['patientName'] as String?)?.trim() ?? '';
-    final role = (link['role'] as String?)?.trim() ?? '';
-    final invitationId = (link['invitationId'] as String?)?.trim() ?? '';
-    final joinedAt = _readTimestamp(link['joinedAt']);
-    final linkSyncedAt = _readTimestamp(link['lastSyncedAt']);
-
-    Map<String, dynamic>? p;
-    if (patientDoc != null && patientDoc.exists) {
-      p = patientDoc.data();
-    }
-
-    final profileName = p != null ? (p['name'] as String?)?.trim() : null;
-    final displayName = (profileName != null && profileName.isNotEmpty)
-        ? profileName
-        : (linkName.isNotEmpty ? linkName : 'Patient');
-
+  /// Fields the roster endpoint does not carry (dob, gender, conditions,
+  /// medications, alerts) stay empty; the card omits those rows rather than
+  /// rendering blanks.
+  factory ConnectedPatient.fromRoster(Map<String, dynamic> row) {
+    final name = (row['full_name'] as String?)?.trim() ?? '';
     return ConnectedPatient(
-      patientId: patientId,
-      displayName: displayName,
-      role: role,
-      invitationId: invitationId,
-      joinedAt: joinedAt,
-      profileName: profileName,
-      dob: p != null ? (p['dob'] as String?)?.trim() : null,
-      gender: p != null ? (p['gender'] as String?)?.trim() : null,
-      primaryCondition:
-          p != null ? (p['primaryCondition'] as String?)?.trim() : null,
-      allergies: p != null ? (p['allergies'] as String?)?.trim() : null,
-      medications: p != null ? _stringList(p['medications']) : const [],
-      alerts: p != null ? _stringList(p['alerts']) : const [],
-      lastSyncedAt:
-          linkSyncedAt ?? (p != null ? _readTimestamp(p['lastSyncedAt']) : null),
+      patientId: (row['patient_id'] ?? row['firebase_uid'] ?? '').toString(),
+      displayName: name.isNotEmpty ? name : 'Patient',
+      role: (row['relationship'] as String?)?.trim() ?? '',
+      invitationId: '',
+      joinedAt: _readTimestamp(row['joined_at']),
+      profileName: name.isNotEmpty ? name : null,
+      lastActivityAt: _readTimestamp(row['last_activity_at']),
     );
   }
 
   static DateTime? _readTimestamp(dynamic v) {
     if (v == null) return null;
-    if (v is Timestamp) return v.toDate();
+    if (v is DateTime) return v.toLocal();
+    if (v is String && v.isNotEmpty) return DateTime.tryParse(v)?.toLocal();
     return null;
-  }
-
-  static List<String> _stringList(dynamic v) {
-    if (v == null) return [];
-    if (v is! List) return [];
-    return v.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
   }
 
   static const _avatarPalettes = [
@@ -118,7 +90,7 @@ class ConnectedPatient {
   }
 
   String get lastSyncLabel {
-    final t = lastSyncedAt;
+    final t = lastActivityAt;
     if (t == null) return 'Not loaded yet';
     final diff = DateTime.now().difference(t);
     final minutes = diff.inMinutes;

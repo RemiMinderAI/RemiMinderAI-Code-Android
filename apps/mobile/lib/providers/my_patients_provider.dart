@@ -8,7 +8,7 @@ final myPatientsRepositoryProvider = Provider<MyPatientsRepository>((ref) {
 });
 
 final myPatientsProvider =
-    StreamProvider.autoDispose<List<ConnectedPatient>>((ref) {
+    FutureProvider.autoDispose<List<ConnectedPatient>>((ref) {
   final repo = ref.watch(myPatientsRepositoryProvider);
-  return repo.watchMyPatients();
+  return repo.fetchMyPatients();
 });

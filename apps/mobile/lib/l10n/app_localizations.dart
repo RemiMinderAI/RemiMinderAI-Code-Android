@@ -1938,6 +1938,18 @@ abstract class AppLocalizations {
   /// **'Last synced'**
   String get lastSynced;
 
+  /// Patient card row: when the patient last had an alert, reminder or visit
+  ///
+  /// In en, this message translates to:
+  /// **'Last activity'**
+  String get lastActivity;
+
+  /// Patient card row shown when the patient has no recorded activity
+  ///
+  /// In en, this message translates to:
+  /// **'No activity yet'**
+  String get noActivityYet;
+
   /// No description provided for @allergiesLabel.
   ///
   /// In en, this message translates to:

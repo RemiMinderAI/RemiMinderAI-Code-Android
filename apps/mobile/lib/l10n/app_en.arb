@@ -548,6 +548,14 @@
   },
   "primaryCondition": "Primary condition",
   "lastSynced": "Last synced",
+  "lastActivity": "Last activity",
+  "noActivityYet": "No activity yet",
+  "@lastActivity": {
+    "description": "Patient card row: when the patient last had an alert, reminder or visit"
+  },
+  "@noActivityYet": {
+    "description": "Patient card row shown when the patient has no recorded activity"
+  },
   "allergiesLabel": "Allergies",
   "dateOfBirth": "Date of birth",
   "currentMedications": "Current medications",

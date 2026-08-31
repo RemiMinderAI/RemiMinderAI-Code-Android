@@ -1007,6 +1007,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get lastSynced => 'अंतिम सिंक';
 
   @override
+  String get lastActivity => 'अंतिम गतिविधि';
+
+  @override
+  String get noActivityYet => 'अभी तक कोई गतिविधि नहीं';
+
+  @override
   String get allergiesLabel => 'एलर्जी';
 
   @override

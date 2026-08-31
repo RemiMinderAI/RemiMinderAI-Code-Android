@@ -1017,6 +1017,12 @@ class AppLocalizationsTa extends AppLocalizations {
   String get lastSynced => 'கடைசி ஒத்திசைவு';
 
   @override
+  String get lastActivity => 'கடைசி செயல்பாடு';
+
+  @override
+  String get noActivityYet => 'இன்னும் செயல்பாடு இல்லை';
+
+  @override
   String get allergiesLabel => 'ஒவ்வாமை';
 
   @override

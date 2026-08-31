@@ -1021,6 +1021,12 @@ class AppLocalizationsPa extends AppLocalizations {
   String get lastSynced => 'ਆਖਰੀ ਵਾਰ ਸਿੰਕ ਕੀਤਾ ਗਿਆ';
 
   @override
+  String get lastActivity => 'ਆਖਰੀ ਗਤੀਵਿਧੀ';
+
+  @override
+  String get noActivityYet => 'ਹਾਲੇ ਕੋਈ ਗਤੀਵਿਧੀ ਨਹੀਂ';
+
+  @override
   String get allergiesLabel => 'ਐਲਰਜੀ';
 
   @override

@@ -1005,6 +1005,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lastSynced => 'Last synced';
 
   @override
+  String get lastActivity => 'Last activity';
+
+  @override
+  String get noActivityYet => 'No activity yet';
+
+  @override
   String get allergiesLabel => 'Allergies';
 
   @override

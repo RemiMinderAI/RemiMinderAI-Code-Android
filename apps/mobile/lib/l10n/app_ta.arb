@@ -403,6 +403,8 @@
   "syncDaysAgo": "{days} நா. முன்",
   "primaryCondition": "முதன்மை நிலை",
   "lastSynced": "கடைசி ஒத்திசைவு",
+  "lastActivity": "கடைசி செயல்பாடு",
+  "noActivityYet": "இன்னும் செயல்பாடு இல்லை",
   "allergiesLabel": "ஒவ்வாமை",
   "dateOfBirth": "பிறந்த தேதி",
   "currentMedications": "தற்போதைய மருந்துகள்",

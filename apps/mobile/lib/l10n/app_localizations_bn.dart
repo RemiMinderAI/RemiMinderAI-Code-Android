@@ -1002,6 +1002,12 @@ class AppLocalizationsBn extends AppLocalizations {
   String get lastSynced => 'সর্বশেষ সিঙ্ক';
 
   @override
+  String get lastActivity => 'সর্বশেষ কার্যকলাপ';
+
+  @override
+  String get noActivityYet => 'এখনও কোনো কার্যকলাপ নেই';
+
+  @override
   String get allergiesLabel => 'অ্যালার্জি';
 
   @override

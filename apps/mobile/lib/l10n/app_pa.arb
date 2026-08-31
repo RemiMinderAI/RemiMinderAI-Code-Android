@@ -545,6 +545,8 @@
   },
   "primaryCondition": "ਪ੍ਰਾਇਮਰੀ ਹਾਲਤ",
   "lastSynced": "ਆਖਰੀ ਵਾਰ ਸਿੰਕ ਕੀਤਾ ਗਿਆ",
+  "lastActivity": "ਆਖਰੀ ਗਤੀਵਿਧੀ",
+  "noActivityYet": "ਹਾਲੇ ਕੋਈ ਗਤੀਵਿਧੀ ਨਹੀਂ",
   "allergiesLabel": "ਐਲਰਜੀ",
   "dateOfBirth": "ਜਨਮ ਤਾਰੀਖ",
   "currentMedications": "ਮੌਜੂਦਾ ਦਵਾਈਆਂ",

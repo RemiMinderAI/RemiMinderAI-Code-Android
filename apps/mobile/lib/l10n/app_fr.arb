@@ -403,6 +403,8 @@
   "syncDaysAgo": "il y a {days} j",
   "primaryCondition": "Condition principale",
   "lastSynced": "Dernière synchro",
+  "lastActivity": "Dernière activité",
+  "noActivityYet": "Aucune activité pour le moment",
   "allergiesLabel": "Allergies",
   "dateOfBirth": "Date de naissance",
   "currentMedications": "Médicaments actuels",

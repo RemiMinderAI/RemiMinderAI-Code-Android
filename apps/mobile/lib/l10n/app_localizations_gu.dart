@@ -1017,6 +1017,12 @@ class AppLocalizationsGu extends AppLocalizations {
   String get lastSynced => 'છેલ્લે સમન્વયિત';
 
   @override
+  String get lastActivity => 'છેલ્લી પ્રવૃત્તિ';
+
+  @override
+  String get noActivityYet => 'હજી સુધી કોઈ પ્રવૃત્તિ નથી';
+
+  @override
   String get allergiesLabel => 'એલર્જી';
 
   @override

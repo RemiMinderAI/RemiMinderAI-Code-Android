@@ -403,6 +403,8 @@
   "syncDaysAgo": "{days} দি. আগে",
   "primaryCondition": "প্রাথমিক অবস্থা",
   "lastSynced": "সর্বশেষ সিঙ্ক",
+  "lastActivity": "সর্বশেষ কার্যকলাপ",
+  "noActivityYet": "এখনও কোনো কার্যকলাপ নেই",
   "allergiesLabel": "অ্যালার্জি",
   "dateOfBirth": "জন্ম তারিখ",
   "currentMedications": "বর্তমান ওষুধ",

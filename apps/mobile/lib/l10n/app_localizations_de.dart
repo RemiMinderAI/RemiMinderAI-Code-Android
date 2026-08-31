@@ -1022,6 +1022,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get lastSynced => 'Zuletzt synchronisiert';
 
   @override
+  String get lastActivity => 'Letzte Aktivität';
+
+  @override
+  String get noActivityYet => 'Noch keine Aktivität';
+
+  @override
   String get allergiesLabel => 'Allergien';
 
   @override

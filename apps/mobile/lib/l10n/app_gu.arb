@@ -545,6 +545,8 @@
   },
   "primaryCondition": "પ્રાથમિક સ્થિતિ",
   "lastSynced": "છેલ્લે સમન્વયિત",
+  "lastActivity": "છેલ્લી પ્રવૃત્તિ",
+  "noActivityYet": "હજી સુધી કોઈ પ્રવૃત્તિ નથી",
   "allergiesLabel": "એલર્જી",
   "dateOfBirth": "જન્મ તારીખ",
   "currentMedications": "વર્તમાન દવાઓ",

@@ -13,6 +13,10 @@ void main() {
   late String overviewScreen;
   late String dbService;
   late String careTeamRoute;
+  late String patientsRepo;
+  late String patientsProvider;
+  late String connectedPatient;
+  late String patientCard;
 
   setUpAll(() {
     apiService =
@@ -25,6 +29,15 @@ void main() {
         .readAsStringSync();
     dbService = File('../backend/services/db_service.py').readAsStringSync();
     careTeamRoute = File('../backend/route/care_team.py').readAsStringSync();
+    patientsRepo =
+        File('lib/services/my_patients_repository.dart').readAsStringSync();
+    patientsProvider =
+        File('lib/providers/my_patients_provider.dart').readAsStringSync();
+    connectedPatient =
+        File('lib/models/connected_patient.dart').readAsStringSync();
+    patientCard =
+        File('lib/features/my_patients/widgets/patient_card.dart')
+            .readAsStringSync();
   });
 
   String rosterRow() {
@@ -185,6 +198,77 @@ void main() {
       // joinedAt, so MyPatientsRepository's orderBy excluded them anyway.
       expect(overviewScreen.contains('_markPatientSynced'), isFalse);
       expect(overviewScreen.contains('lastSyncedAt'), isFalse);
+    });
+  });
+
+  group('the My Patients tab reads the same roster', () {
+    test('the repository calls the endpoint, not Firestore', () {
+      expect(patientsRepo.contains('FirebaseFirestore'), isFalse);
+      expect(patientsRepo.contains('cloud_firestore'), isFalse);
+      expect(patientsRepo.contains("collection('connectedPatients')"), isFalse);
+      expect(patientsRepo.contains('getMyPatients()'), isTrue);
+    });
+
+    test('not signed in throws rather than returning an empty roster', () {
+      // Stream.value([]) rendered as "no patients yet" — the empty state, not
+      // a problem, which is the confusion this whole change is about.
+      expect(patientsRepo.contains('throw StateError'), isTrue);
+      expect(patientsRepo.contains('Stream<List<ConnectedPatient>>.value([])'),
+          isFalse);
+    });
+
+    test('the provider awaits a future, so failures reach AsyncValue.error', () {
+      expect(patientsProvider.contains('FutureProvider.autoDispose'), isTrue);
+      expect(patientsProvider.contains('StreamProvider'), isFalse);
+      expect(patientsProvider.contains('fetchMyPatients()'), isTrue);
+    });
+
+    test('the model maps the endpoint keys, not Firestore documents', () {
+      expect(connectedPatient.contains('fromRoster'), isTrue);
+      expect(connectedPatient.contains('fromFirestore'), isFalse);
+      expect(connectedPatient.contains('DocumentSnapshot'), isFalse);
+      expect(connectedPatient.contains('cloud_firestore'), isFalse);
+      for (final key in [
+        "row['patient_id']",
+        "row['full_name']",
+        "row['relationship']",
+        "row['joined_at']",
+        "row['last_activity_at']",
+      ]) {
+        expect(connectedPatient.contains(key), isTrue, reason: key);
+      }
+    });
+
+    test('timestamps parse as ISO strings, not Firestore Timestamps', () {
+      final start = connectedPatient.indexOf('static DateTime? _readTimestamp');
+      // Skip the signature: the method's own name contains "Timestamp".
+      final bodyStart = connectedPatient.indexOf('{', start) + 1;
+      final body = connectedPatient.substring(
+          bodyStart, connectedPatient.indexOf('\n  }', bodyStart));
+      expect(body.contains('DateTime.tryParse'), isTrue);
+      expect(body.contains('Timestamp'), isFalse,
+          reason: 'Firestore Timestamps no longer reach this model');
+    });
+
+    test('the card no longer claims a sync time it does not have', () {
+      // last_activity_at is the patient's last alert/reminder/visit. Labelling
+      // it "Last synced" would describe a Firestore write that no longer
+      // happens and never meant anything to a caregiver.
+      expect(patientCard.contains('p.lastSyncedAt'), isFalse);
+      expect(patientCard.contains('p.lastActivityAt'), isTrue);
+      expect(patientCard.contains('l10n.lastSynced,'), isFalse);
+      expect(patientCard.contains('l10n.lastActivity,'), isTrue);
+      expect(patientCard.contains('l10n.noActivityYet'), isTrue);
+    });
+
+    test('the new strings exist in every supported locale', () {
+      for (final code in [
+        'en', 'bn', 'de', 'es', 'fr', 'gu', 'hi', 'pa', 'pt', 'ta'
+      ]) {
+        final arb = File('lib/l10n/app_$code.arb').readAsStringSync();
+        expect(arb.contains('"lastActivity"'), isTrue, reason: code);
+        expect(arb.contains('"noActivityYet"'), isTrue, reason: code);
+      }
     });
   });
 }

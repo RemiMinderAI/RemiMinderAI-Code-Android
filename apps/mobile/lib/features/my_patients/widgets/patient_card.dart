@@ -233,7 +233,7 @@ class _PatientCardState extends State<PatientCard> {
             if (hasPrimary) const SizedBox(width: 12),
             Expanded(
               child: _labelValue(
-                l10n.lastSynced,
+                l10n.lastActivity,
                 _lastSyncLabel(p, l10n),
                 syncDot: true,
               ),
@@ -270,14 +270,17 @@ class _PatientCardState extends State<PatientCard> {
   }
 
   String _lastSyncLabel(ConnectedPatient p, AppLocalizations l10n) {
-    final t = p.lastSyncedAt;
-    if (t == null) return l10n.neverSynced;
+    // The roster carries the patient's last alert, reminder or visit — not a
+    // sync time. The old label described a Firestore write this app made when
+    // a caregiver opened the patient, which meant nothing to the caregiver.
+    final t = p.lastActivityAt;
+    if (t == null) return l10n.noActivityYet;
     return LocaleFormat.timeAgo(context, t, l10n);
   }
 
   Widget _syncRowOnly(ConnectedPatient p, AppLocalizations l10n) {
     return _labelValue(
-      l10n.lastSynced,
+      l10n.lastActivity,
       _lastSyncLabel(p, l10n),
       syncDot: true,
     );
