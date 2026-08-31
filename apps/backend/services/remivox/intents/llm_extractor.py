@@ -29,6 +29,7 @@ from google.genai import types
 from google.genai.errors import ClientError
 
 from services.gemini_client import get_gemini_client, resolve_gemini_api_key
+from services.remivox.intents.extractors import normalize_spoken_title
 from services.remivox.intents.models import IntentResult, VoxIntent
 from services.remivox.intents.router import route_intent
 
@@ -460,6 +461,9 @@ def _clean_title(value: Any) -> Optional[str]:
             break
         title = stripped
     title = _DOCTOR_RE.sub("Dr. ", title)
+    # The regex fallback already did this; the LLM path did not, so titles kept
+    # whatever case the transcript produced.
+    title = normalize_spoken_title(title)
     if len(title) < 2:
         return None
     return title[:80]

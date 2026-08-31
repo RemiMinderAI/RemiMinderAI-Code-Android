@@ -292,9 +292,7 @@ def extract_medication_or_title(text: str) -> Optional[str]:
     title = re.sub(r"\s+on\s*$", "", title, flags=re.I).strip(" .,")
     # Strip leading filler: "my task for", "a", "my"
     title = re.sub(r"^(?:my\s+task\s+(?:for|to)\s+|my\s+|a\s+)", "", title, flags=re.I).strip(" .,")
-    # Capitalize first letter
-    if title and title[0].islower():
-        title = title[0].upper() + title[1:]
+    title = normalize_spoken_title(title)
     if len(title) < 2:
         return None
     return title[:80]
@@ -389,6 +387,67 @@ def score_reminders(
         scored.append((score, item))
     scored.sort(key=lambda pair: pair[0], reverse=True)
     return scored
+
+
+# ── Spoken vitamin names ──────────────────────────────────────────────────
+#
+# "Vitamin D 3" is heard as two tokens and comes back right. "d3" is spoken as
+# one, and the transcript expands it — "d three", or glued as "btwelve". The
+# number-word conversion in the legacy time parser runs the other way, so this
+# is its own problem, not a setting on that one.
+#
+# Only combinations that name a real vitamin are rewritten. That matters more
+# than it looks: a pattern loose enough to catch a glued "btwelve" also catches
+# "bone", which would turn a bone-density reminder into B1. So the glued forms
+# are an explicit list with no English words in it, and the spelled-out forms
+# require a real separator.
+_VITAMIN_FORMS = {"D2", "D3", "B1", "B2", "B3", "B6", "B12", "K1", "K2"}
+_VITAMIN_NUM_WORDS = {"one": "1", "two": "2", "three": "3", "six": "6", "twelve": "12"}
+
+# "d3", "D 3", "b-12" — a letter beside a digit is never an English word.
+_VITAMIN_DIGIT_RE = re.compile(r"\b([dbk])\s*-?\s*(\d{1,2})\b", re.IGNORECASE)
+# "d three", "b twelve" — the separator is required, so "bone" cannot match.
+_VITAMIN_WORD_RE = re.compile(
+    r"\b([dbk])[\s-]+(one|two|three|six|twelve)\b", re.IGNORECASE
+)
+# Glued artefacts. "bone" and "done" are deliberately absent; B1 is reachable
+# only through the separated forms above.
+_VITAMIN_GLUED_RE = re.compile(
+    r"\b(b)(twelve|three|six|two)\b|\b(d)(three|two)\b|\b(k)(two)\b",
+    re.IGNORECASE,
+)
+
+
+def _vitamin_token(letter: str, number: str) -> Optional[str]:
+    combo = f"{letter.upper()}{_VITAMIN_NUM_WORDS.get(number.lower(), number)}"
+    return combo if combo in _VITAMIN_FORMS else None
+
+
+def _sub_pair(match: "re.Match[str]") -> str:
+    groups = [g for g in match.groups() if g]
+    if len(groups) != 2:
+        return match.group(0)
+    return _vitamin_token(groups[0], groups[1]) or match.group(0)
+
+
+def normalize_spoken_title(title: str) -> str:
+    """
+    Repair vitamin names the transcript spelled out, and capitalise the title.
+
+    Only the first letter is capitalised. Title-casing the whole string would
+    give "Pick Up Lab Results", and would flatten medication names that carry
+    their own capitals, like CoQ10.
+    """
+    if not title:
+        return title
+    for pattern in (_VITAMIN_DIGIT_RE, _VITAMIN_WORD_RE, _VITAMIN_GLUED_RE):
+        title = pattern.sub(_sub_pair, title)
+    # A bare "D3" is a vitamin nobody calls by letter alone.
+    if title.upper() in _VITAMIN_FORMS:
+        title = f"Vitamin {title.upper()}"
+    if title and title[0].islower():
+        title = title[0].upper() + title[1:]
+    return title
 
 
 def title_evidence(item: dict, hint_lower: str) -> int:
