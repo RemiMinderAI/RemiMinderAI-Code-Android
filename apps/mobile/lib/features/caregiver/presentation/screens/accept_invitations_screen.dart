@@ -1,18 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../care_team/care_team_tab.dart';
+import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../../../providers/invitation_provider.dart';
 import '../../../../services/invitation_service.dart';
-import '../../../../services/post_auth_navigation.dart';
 
 /// Caregiver shell route: Care Team tab (Firestore invitations + API team).
-class AcceptInvitationsScreen extends StatefulWidget {
+class AcceptInvitationsScreen extends ConsumerStatefulWidget {
   final String? inviteToken;
   const AcceptInvitationsScreen({super.key, this.inviteToken});
 
   @override
-  State<AcceptInvitationsScreen> createState() => _AcceptInvitationsScreenState();
+  ConsumerState<AcceptInvitationsScreen> createState() =>
+      _AcceptInvitationsScreenState();
 }
 
-class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
+class _AcceptInvitationsScreenState
+    extends ConsumerState<AcceptInvitationsScreen> {
+  /// Bumped after a successful accept so CareTeamTab is rebuilt from scratch.
+  ///
+  /// The tab loads once in its own initState and exposes no way to reload, so
+  /// accepting an invitation left it showing the team from before the accept —
+  /// the screen "not moving" that was reported. Changing the key discards that
+  /// State and runs the load again.
+  int _reloadToken = 0;
+
   @override
   void initState() {
     super.initState();
@@ -47,7 +60,13 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
 
     try {
       await InvitationService().acceptInvitationByToken(token);
+      // The team just changed, so nothing cached about it is true any more.
+      CareTeamApiService.clearCache();
+      // And the invitation is no longer pending — without this it stays in the
+      // received list until the next cold start.
+      ref.invalidate(receivedInvitationsProvider);
       if (mounted) {
+        setState(() => _reloadToken++);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('You have joined the care team!')),
         );
@@ -63,6 +82,6 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const CareTeamTab();
+    return CareTeamTab(key: ValueKey(_reloadToken));
   }
 }

@@ -35,6 +35,17 @@ class CareTeamApiService {
     _pendingInvitesCache = CacheEntry(invites, DateTime.now());
   }
 
+  /// Drop both caches after something changes the team.
+  ///
+  /// Without this, accepting an invitation left the caregiver looking at the
+  /// team they had BEFORE they joined: the screen reads the cache first, so
+  /// even rebuilding it showed the stale list. Only killing the app cleared
+  /// it, which is exactly the workaround that was being reported.
+  static void clearCache() {
+    _membersCache = null;
+    _pendingInvitesCache = null;
+  }
+
   String _requireUid() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
