@@ -659,6 +659,7 @@ async def get_user_summaries(user_id: str, firebase_uid: str = None) -> list[dic
                     s.created_at AS summary_created_at,
                     s.model_name,
                     s.summary_text,
+                    s.structured_data_json,
                     v.doctor AS doctor_name,
                     v.specialty AS specialty,
                     v.title AS title,
@@ -674,7 +675,8 @@ async def get_user_summaries(user_id: str, firebase_uid: str = None) -> list[dic
 
             summaries = []
             for row in rows:
-                summary_id, visit_id, summary_created_at, model_name, summary_text, doctor_name, specialty, title, visit_date = row
+                (summary_id, visit_id, summary_created_at, model_name, summary_text,
+                 structured_data_json, doctor_name, specialty, title, visit_date) = row
 
                 # Truncate summary_text to ~160 characters for preview
                 summary_preview = summary_text[:160] + "..." if len(summary_text) > 160 else summary_text
@@ -688,6 +690,11 @@ async def get_user_summaries(user_id: str, firebase_uid: str = None) -> list[dic
                     "visit_date": str(visit_date) if visit_date else None,
                     "summary_created_at": str(summary_created_at),
                     "summary_preview": summary_preview,
+                    # The preview is for list rows. Anything that READS the
+                    # summary aloud needs the whole thing — returning only the
+                    # 160-character cut is why Vox stopped mid-sentence.
+                    "summary_text": summary_text,
+                    "structured": structured_data_json,
                     "model_name": model_name,
                 })
 

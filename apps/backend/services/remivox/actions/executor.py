@@ -32,6 +32,7 @@ from services.remivox.intents.extractors import (
 )
 from services.remivox.intents.models import IntentResult, PROTECTED_ACTIONS, VoxIntent
 from services.remivox.intents.router import DEFAULT_SNOOZE_MINUTES
+from services.remivox.summary_speech import build_summary_speech
 from services.remivox_intents import build_caregiver_brief
 
 logger = logging.getLogger(__name__)
@@ -175,12 +176,23 @@ def _time_mismatch_result(
 
 
 def _latest_summary(summaries: list[dict]) -> tuple[str, str]:
+    """
+    The newest visit, and the full script to read for it.
+
+    summary_preview stays last in the fallback chain on purpose: it is a
+    160-character list-row excerpt, and reading it aloud is what ended the
+    reply on a dangling "the". It is only reached now when a row genuinely has
+    nothing else.
+    """
     if not summaries:
         return "your latest doctor visit", ""
     latest = summaries[0]
     title = str(latest.get("title") or "your latest doctor visit").strip()
-    summary = str(latest.get("summary") or latest.get("summary_text") or latest.get("summary_preview") or "").strip()
-    return title, summary
+    spoken = build_summary_speech(
+        str(latest.get("summary") or latest.get("summary_text") or "").strip(),
+        latest.get("structured"),
+    )
+    return title, spoken or str(latest.get("summary_preview") or "").strip()
 
 
 async def execute_intent(
@@ -306,7 +318,10 @@ async def execute_intent(
             success=True,
             action="read_summary",
             message_key="read_summary",
-            payload={"title": title, "summary": summary[:500] if summary else ""},
+            # No [:500] here. That was a second cut stacked on the preview, and
+            # three sections do not fit in it — build_summary_speech already
+            # bounds the length, and ends on a sentence when it has to.
+            payload={"title": title, "summary": summary or ""},
         )
 
     if intent == VoxIntent.CAREGIVER_BRIEF:

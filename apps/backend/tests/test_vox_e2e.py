@@ -231,10 +231,22 @@ def due_fixture() -> dict:
     }
 
 
+# Shaped like a real summaries_log row. It previously carried ONLY
+# summary_preview, so case 16 exercised the 160-character fallback and would
+# have passed just as happily while Vox read a sentence and stopped.
 SUMMARIES = [
     {
         "title": "Visit with Dr. Gubbala",
         "summary_preview": "Blood pressure improved; continue Metoprolol.",
+        "summary_text": "Blood pressure improved; continue Metoprolol.",
+        "structured": {
+            "summary": "Blood pressure improved; continue Metoprolol.",
+            "medications": ["Metoprolol", "Vitamin D3"],
+            "action_items": [
+                "Book a follow-up in six weeks",
+                "Keep a daily blood pressure log",
+            ],
+        },
     }
 ]
 
@@ -799,7 +811,16 @@ async def case_16(s):
         STORE.reset()
         out = await say(phrase, session=s + phrase[:4])
         expect(out["intent"] == "READ_DOCTOR_SUMMARY", f"{phrase!r} -> {out['intent']}")
-        expect("Blood pressure improved" in out["text"], f"reply={out['text']!r}")
+        text = out["text"]
+        expect("Blood pressure improved" in text, f"reply={text!r}")
+        # All three sections, with the spoken hand-offs — not just the first.
+        expect("Your medications are:" in text, f"no medications section: {text!r}")
+        expect("Vitamin D3" in text, f"medications not read: {text!r}")
+        expect("Your next steps are:" in text, f"no next-steps section: {text!r}")
+        expect("six weeks" in text, f"next steps not read: {text!r}")
+        # The defect: a 160-char cut left the reply on a dangling article.
+        expect(text.rstrip().endswith((".", "!", "?")),
+               f"reply ends mid-sentence: {text[-40:]!r}")
 
 
 async def case_17(s):
