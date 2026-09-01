@@ -37,7 +37,26 @@ abstract final class VoxConfig {
   /// Long enough to survive a mid-sentence pause without cutting the user off.
   static const Duration speechEndDebounce = Duration(milliseconds: 2000);
   static const Duration playbackChunkTimeout = Duration(seconds: 10);
-  static const Duration ttsCompletionTimeout = Duration(seconds: 45);
+  /// How long to wait for playback to finish before giving up on the
+  /// completion event and letting the turn end.
+  ///
+  /// This is not a cosmetic bound: while it is short, the turn finishes while
+  /// Vox is still talking, so the button returns to idle mid-sentence and the
+  /// next tap starts the recorder over the top of the reply.
+  ///
+  /// Measured against the TTS voice actually in use (Lightning v3.1, olivia,
+  /// speed 0.95): 160 chars -> 8.8s, 500 -> 23.9s, 891 -> 43.4s, 1300 -> 62.4s.
+  /// That is ~20.8 characters per second, so the old 45s covered only about
+  /// 940 characters. A visit summary read as overview + medications + next
+  /// steps runs past that on any reasonably long visit — which is why it only
+  /// showed up sometimes.
+  ///
+  /// The server caps a spoken summary at SPOKEN_SUMMARY_CHAR_LIMIT = 2500
+  /// characters (services/remivox/summary_speech.py), so 2500 / 20.8 ~= 120s
+  /// is the longest reply that can exist. 150s covers that with headroom.
+  /// The timeout only matters when the completion event is missed, so a
+  /// generous bound costs nothing in the normal case.
+  static const Duration ttsCompletionTimeout = Duration(seconds: 150);
   static const Duration connectivityPollInterval = Duration(seconds: 3);
   static const Duration textResponseDelay = Duration(milliseconds: 900);
 
