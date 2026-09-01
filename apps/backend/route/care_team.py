@@ -145,7 +145,10 @@ async def accept_invitation_redirect(token: str):
         mobile_landing = (os.getenv("CAREGIVER_INVITE_MOBILE_LANDING_URL") or "").strip().rstrip("/")
         if mobile_landing:
             q = (
-                f"inviteToken={quote(token, safe='')}"
+                # The app's router reads 'token' (app_router.dart:263 and :197).
+                # Sending inviteToken opened the accept screen with a null token,
+                # which looks like it worked and then does nothing.
+                f"token={quote(token, safe='')}"
                 f"&email={quote(email or '', safe='')}"
                 "&role=caregiver"
             )
