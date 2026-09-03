@@ -39,6 +39,15 @@ class _RemindersScreenState extends State<RemindersScreen>
 
   final List<Map<String, dynamic>> _allReminders = [];
 
+  /// Which reminder_type to show. null means all of them.
+  ///
+  /// Appointments and tasks were always stored and returned correctly — the
+  /// card even draws a calendar icon for one — but this screen is the only
+  /// list a patient has, so "book a doctor's appointment" and "take your
+  /// tablets" sat in the same undifferentiated feed with nothing to separate
+  /// them but an icon colour.
+  String? _typeFilter;
+
   List<Map<String, dynamic>> get _filteredReminders {
     var reminders = _allReminders;
 
@@ -50,6 +59,14 @@ class _RemindersScreenState extends State<RemindersScreen>
         final query = _searchQuery.toLowerCase();
         return title.contains(query) || description.contains(query);
       }).toList();
+    }
+
+    // Apply type filter before the tab filter, so "Appointments" narrows
+    // whichever tab is open rather than replacing it.
+    if (_typeFilter != null) {
+      reminders = reminders
+          .where((r) => (r['type']?.toString() ?? 'medication') == _typeFilter)
+          .toList();
     }
 
     // Apply tab filter
@@ -162,6 +179,7 @@ class _RemindersScreenState extends State<RemindersScreen>
       ),
       body: Column(
         children: [
+          _buildTypeFilter(l10n),
           // Search Bar (when active)
           if (_searchQuery.isNotEmpty)
             Padding(
@@ -222,6 +240,39 @@ class _RemindersScreenState extends State<RemindersScreen>
         onPressed: _addNewReminder,
         backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  /// Medication / Appointment / Task, on top of the existing status tabs.
+  ///
+  /// The type was never lost — it is correct in the database, in the API
+  /// response and in this screen's own mapping. What was missing was any way
+  /// to ask for it, so an appointment could only be found by scrolling the
+  /// whole reminder list looking for a different icon.
+  Widget _buildTypeFilter(AppLocalizations l10n) {
+    final options = <String?, String>{
+      null: l10n.tabAll,
+      'medication': l10n.medication,
+      'appointment': l10n.appointment,
+      'task': l10n.task,
+    };
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        children: options.entries.map((e) {
+          final selected = _typeFilter == e.key;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: ChoiceChip(
+              label: Text(e.value),
+              selected: selected,
+              onSelected: (_) => setState(() => _typeFilter = e.key),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

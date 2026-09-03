@@ -80,26 +80,6 @@ class CareTeamApiService {
   }
 
   /// Maps a `users/{patientId}/careTeam/{docId}` document to [CareTeamMember.fromJson] shape.
-  CareTeamMember _careTeamDocToMember(
-    String docId,
-    Map<String, dynamic> data,
-    String patientId,
-  ) {
-    final json = <String, dynamic>{
-      'id': data['id'] as String? ?? docId,
-      'patient_id': patientId,
-      'member_user_id': data['memberUserId'] ??
-          data['caregiverUid'] ??
-          data['caregiver_uid'] ??
-          '',
-      'full_name': data['name'] as String?,
-      'email': (data['email'] ?? data['caregiverEmail']) as String?,
-      'role': (data['relationship'] ?? data['role'] ?? '') as String,
-      'permission': _permissionToString(data['permission'], data['permissions']),
-      'status': (data['status'] ?? 'accepted') as String,
-    };
-    return CareTeamMember.fromJson(json);
-  }
 
   /// Maps invitation or pending careTeam doc to [CareTeamInvitation.fromJson] shape.
   CareTeamInvitation _toInvitation(String docId, Map<String, dynamic> data) {
@@ -117,58 +97,51 @@ class CareTeamApiService {
     return CareTeamInvitation.fromJson(json);
   }
 
-  CareTeamMember _invitationAcceptedToMember(
-    String inviteId,
-    Map<String, dynamic> data,
-    String caregiverUid,
-  ) {
-    final patientId = data['patientId'] as String? ?? '';
-    final json = <String, dynamic>{
-      'id': inviteId,
-      'patient_id': patientId,
-      'member_user_id': caregiverUid,
-      'full_name': data['patientName'] as String?,
-      'email': data['patientEmail'] as String?,
-      'role': (data['relationship'] ?? 'Caregiver') as String,
-      'permission': _permissionToString(data['permission'], data['permissions']),
-      'status': 'accepted',
-    };
-    return CareTeamMember.fromJson(json);
-  }
 
   /// Accepted caregivers on `users/{userId}/careTeam`, plus patients this user
   /// cares for (`invitations` where `caregiverUid` matches and `status` is accepted).
+  /// The patient's care team, from care_team_members via GET /api/care-team.
+  ///
+  /// This used to concatenate two Firestore queries: users/{uid}/careTeam,
+  /// deduplicated by member id, and then every accepted row in `invitations`
+  /// appended with no dedup against the first. One caregiver who had both an
+  /// accepted invitation and a care-team document was therefore listed twice.
+  /// The database cannot produce that — care_team_members carries
+  /// UNIQUE (patient_id, member_user_id) — so the duplicate only ever existed
+  /// in the merge.
+  ///
+  /// CareTeamMember.fromJson already expected this endpoint's snake_case
+  /// fields; the Firestore path bypassed it through a hand-rolled converter.
   Future<List<CareTeamMember>> getCareTeam() async {
-    final uid = _requireUid();
-    final out = <CareTeamMember>[];
-
-    final patientSnap = await _db
-        .collection('users')
-        .doc(uid)
-        .collection('careTeam')
-        .where('status', isEqualTo: 'accepted')
-        .get();
-    final seenMemberIds = <String>{};
-    for (final d in patientSnap.docs) {
-      final data = d.data();
-      // Check both memberUserId and caregiverUid for deduplication
-      final rawId = (data['memberUserId'] ?? data['caregiverUid'] ?? '').toString();
-      if (rawId.isNotEmpty && seenMemberIds.contains(rawId)) continue;
-      if (rawId.isNotEmpty) seenMemberIds.add(rawId);
-      final member = _careTeamDocToMember(d.id, data, uid);
-      out.add(member);
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (token == null) {
+      // Not an empty care team. Returning [] here would render as "no
+      // caregivers yet", which is how this class of bug stayed hidden.
+      throw StateError('Not signed in');
     }
 
-    final invSnap = await _db
-        .collection('invitations')
-        .where('caregiverUid', isEqualTo: uid)
-        .where('status', isEqualTo: 'accepted')
-        .get();
-    for (final d in invSnap.docs) {
-      out.add(_invitationAcceptedToMember(d.id, d.data(), uid));
+    final response = await http.get(
+      Uri.parse('${Environment.apiBaseUrl}/api/care-team'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load care team: ${response.statusCode} - ${response.body}',
+      );
     }
 
-    return out;
+    final decoded = json.decode(response.body);
+    if (decoded is! List) {
+      throw Exception('Failed to load care team: unexpected response shape');
+    }
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map(CareTeamMember.fromJson)
+        .toList();
   }
 
   /// Creates `invitations/{inviteId}` and mirrors to `users/{userId}/careTeam/{inviteId}`.

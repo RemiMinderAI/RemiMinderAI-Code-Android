@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../care_team/data/models/care_team_invitation.dart';
 import '../../../care_team/data/models/care_team_member.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
@@ -82,16 +83,23 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
       if (!mounted) return;
       CareTeamApiService.setCachedMembers(members);
       CareTeamApiService.setCachedPendingInvites(pending);
-      if (_membersChanged(members) || _pendingChanged(pending)) {
-        setState(() {
+      // _isLoading used to be cleared inside this branch. A reload that
+      // returned the same care team — refreshing after inviting someone, where
+      // the invite is pending and the member list has not moved — skipped the
+      // setState entirely and left the spinner up for good. The change check
+      // exists to avoid rebuilding on identical data; it must not decide
+      // whether loading ends.
+      final changed = _membersChanged(members) || _pendingChanged(pending);
+      setState(() {
+        if (changed) {
           _members = members;
           _pendingInvitations = pending;
           _pendingActionLoading.clear();
           _pendingActionMessage.clear();
           _pendingActionIsError.clear();
-          _isLoading = false;
-        });
-      }
+        }
+        _isLoading = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -212,6 +220,17 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      // Reached with context.go from the nav bar, which replaces the stack, and
+      // the screen had no AppBar — so there was no back button and nothing to
+      // pop to. Send the user home explicitly rather than leaving them stranded.
+      appBar: AppBar(
+        title: Text(l10n.careTeamTitle),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () => context.go('/patient/home'),
+        ),
+      ),
       backgroundColor: _cream,
       body: Column(
         children: [
