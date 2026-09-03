@@ -252,6 +252,24 @@ def to_intent_result(
             },
         )
 
+    if intent == VoxIntent.READ_DOCTOR_SUMMARY:
+        # Everything below this point used to get an empty dict, and this
+        # intent fell through to it. The date survived the model and the
+        # coercion — VOX_NLU logs the normalized entities, and it was there in
+        # fields — and then died here, one call before the executor that had
+        # been taught to use it. The log said date=none and it was telling the
+        # truth about its own input.
+        return result(
+            intent,
+            {
+                "date": entities.get("date"),
+                "date_ambiguous": entities.get("date_ambiguous"),
+            },
+        )
+
+    # Intents that need nothing from the utterance beyond the intent itself.
+    # Anything that DOES need an entity has to say so above, or it arrives
+    # empty and the executor cannot tell "not asked for" from "not delivered".
     return result(intent, {})
 
 

@@ -14,7 +14,8 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.remivox.actions.executor import execute_intent  # noqa: E402
-from services.remivox.intents.models import IntentResult, VoxIntent  # noqa: E402
+from services.remivox.intents.adapter import to_intent_result  # noqa: E402
+from services.remivox.intents.models import VoxIntent  # noqa: E402
 from services.remivox.response.builder import build_response  # noqa: E402
 
 TZ = "America/Toronto"
@@ -39,8 +40,21 @@ def summary(visit_id, when_utc, *, title, text, summary_created=None):
 
 
 def run(entities, summaries, timezone_name=TZ):
-    intent_result = IntentResult(
-        intent=VoxIntent.READ_DOCTOR_SUMMARY, entities=entities
+    """
+    Drive the turn the way production does: through the adapter.
+
+    Building an IntentResult by hand here is what let the executor's date
+    filter pass every test while never receiving a date on a device. The
+    adapter sat between them handing this intent an empty dict.
+    """
+    intent_result = to_intent_result(
+        {
+            "intent": VoxIntent.READ_DOCTOR_SUMMARY.value,
+            "entities": entities,
+            "confidence": 1.0,
+        },
+        language="en",
+        raw_transcript="read me my visit summary",
     )
     result = asyncio.run(
         execute_intent(

@@ -177,6 +177,14 @@ RULES:
    that. If today is Thursday 2026-09-03, "last Tuesday" is 2026-09-01, two
    days ago, NOT 2026-08-25. It is a date, not an ambiguity.
    If the user named no day at all, BOTH are null.
+   An all-numeric date like "08/12/2026" needs one check before you resolve
+   it. Look at the first two numbers. If BOTH are 12 or less, the day and the
+   month can be either way round — speech-to-text writes US order, the rest of
+   the world reads the opposite, and 08/12/2026 is 8 December one way and
+   12 August the other. Leave date null and put what was written in
+   date_ambiguous. If EITHER number is 13 or more it can only be the day, so
+   the order is certain and you must resolve it normally: "25/08/2026" is
+   2026-08-25, "2026-08-25" is 2026-08-25. Do not flag those.
 
 6c. A visit or summary the user asks to hear has already happened, so a bare
    weekday in that request looks BACKWARD, not forward: "my visit on Tuesday"
@@ -360,7 +368,38 @@ def _coerce_time(value: Any) -> Optional[str]:
     return None
 
 
+def _date_shape(text: str) -> str:
+    """
+    A name for the SHAPE of a value we could not read — never the value.
+
+    Dates in a health context identify a person, so the log gets the pattern
+    and nothing else. Enough to tell "the model started emitting slashes"
+    apart from "the model emitted prose".
+    """
+    # ISO first: 2026-13-45 also matches the looser numeric pattern below, and
+    # "the model emitted an impossible ISO date" is a different problem from
+    # "the model started emitting slashes".
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        return "iso-invalid"
+    if re.fullmatch(r"\d{1,4}[/-]\d{1,2}[/-]\d{1,4}", text):
+        return "numeric-separated"
+    if re.fullmatch(r"\d+", text):
+        return "bare-number"
+    if re.search(r"[A-Za-z]", text):
+        return "words"
+    return "other"
+
+
 def _coerce_date(value: Any, *, today: date_cls) -> Optional[str]:
+    """
+    A date we cannot read is NOT the absence of a date.
+
+    Returning None for both is what let "read my summary on 08/12/2026" be
+    answered with a different month's visit: the executor reads both-null as
+    "no day was mentioned" and falls back to the most recent. Callers must
+    treat a rejection as an ambiguity — normalize_extraction does, by moving
+    the raw value into date_ambiguous so the assistant asks.
+    """
     if value is None:
         return None
     text = str(value).strip().lower()
@@ -374,8 +413,10 @@ def _coerce_date(value: Any, *, today: date_cls) -> Optional[str]:
         try:
             datetime.strptime(text, "%Y-%m-%d")
         except ValueError:
+            logger.info("VOX_NLU date rejected shape=%s", _date_shape(text))
             return None
         return text
+    logger.info("VOX_NLU date rejected shape=%s", _date_shape(text))
     return None
 
 
@@ -571,6 +612,20 @@ def normalize_extraction(
         "schedule_unsupported": bool(raw_entities.get("schedule_unsupported")),
         "minutes": None,
     }
+
+    # A date the model supplied but the coercion could not read is an
+    # ambiguity, not an absence. Without this the two are the same value —
+    # None — and the executor, which is right to treat both-null as "no day
+    # was mentioned", reads out whichever visit happens to be newest. The raw
+    # value goes into date_ambiguous so the assistant can say the phrase back
+    # instead of asking a blank "which day?"; a phrase the model already
+    # flagged wins, because it is closer to what the user actually said.
+    if raw_entities.get("date") and not entities["date"]:
+        entities["date_ambiguous"] = (
+            entities["date_ambiguous"]
+            or _clean_phrase(raw_entities.get("date"))
+            or "that date"
+        )
 
     # Snooze minutes ride in as a plain number.
     minutes = raw_entities.get("minutes")
