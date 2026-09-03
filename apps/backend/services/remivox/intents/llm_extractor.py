@@ -88,6 +88,7 @@ _ENTITY_KEYS = (
     "new_frequency",
     "time_ambiguous",
     "frequency_ambiguous",
+    "date_ambiguous",
     "schedule_unsupported",
     "minutes",
 )
@@ -136,6 +137,7 @@ Analyze the transcript and return ONLY valid JSON (no markdown, no explanation):
     "new_frequency": string | null,
     "time_ambiguous": boolean,
     "frequency_ambiguous": string | null,
+    "date_ambiguous": string | null,
     "schedule_unsupported": boolean
   },
   "confidence": 0.0-1.0
@@ -158,6 +160,29 @@ RULES:
    A bare weekday means the NEXT time that weekday occurs: if today is that
    weekday but the stated time has already passed, resolve to next week's date,
    never to a moment in the past.
+6b. DATES YOU CANNOT PIN DOWN. When the user clearly refers to a particular
+   day but you cannot resolve it to one calendar date, set "date" to null AND
+   set "date_ambiguous" to the phrase they said. Never guess, and never leave
+   both null — the assistant treats both-null as "no day was mentioned" and
+   uses the most recent item, which for a request about a specific day would
+   be silently wrong:
+     "last month", "a few weeks ago", "a while back", "back in the summer"
+     "the one before this", "the previous one", "the earlier one"
+     a bare day of the month with no month ("the 25th", "on the 3rd")
+   A day you CAN resolve stays in "date" with "date_ambiguous" null. Resolve
+   these rather than flagging them: "today", "yesterday", "the day before
+   yesterday", "August 25th", "25 August 2026", and "last <weekday>".
+   "last <weekday>" means the MOST RECENT PAST occurrence of that weekday,
+   counting back day by day from the current date — never the week before
+   that. If today is Thursday 2026-09-03, "last Tuesday" is 2026-09-01, two
+   days ago, NOT 2026-08-25. It is a date, not an ambiguity.
+   If the user named no day at all, BOTH are null.
+
+6c. A visit or summary the user asks to hear has already happened, so a bare
+   weekday in that request looks BACKWARD, not forward: "my visit on Tuesday"
+   and "the summary from Tuesday" mean the most recent past Tuesday. Rule 6's
+   next-occurrence reading is for reminders being set, not for visits being
+   recalled.
 7. For UPDATE intents, put the target reminder name in "title" and the new values
    in "new_time" / "new_frequency".
 8. Multi-intent utterances: pick the PRIMARY intent.
@@ -542,6 +567,7 @@ def normalize_extraction(
         "new_frequency": _coerce_frequency(raw_entities.get("new_frequency")),
         "time_ambiguous": bool(raw_entities.get("time_ambiguous")),
         "frequency_ambiguous": _clean_phrase(raw_entities.get("frequency_ambiguous")),
+        "date_ambiguous": _clean_phrase(raw_entities.get("date_ambiguous")),
         "schedule_unsupported": bool(raw_entities.get("schedule_unsupported")),
         "minutes": None,
     }
@@ -854,6 +880,7 @@ def regex_fallback(
         "new_time": None,
         "new_frequency": None,
         "time_ambiguous": False,
+        "date_ambiguous": None,
         "minutes": legacy.get("minutes"),
     }
 

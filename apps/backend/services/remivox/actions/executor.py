@@ -8,7 +8,7 @@ Hydra must never call these side effects directly.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
@@ -175,6 +175,63 @@ def _time_mismatch_result(
     )
 
 
+def _summary_local_day(row: dict, timezone_name: str) -> Optional[date]:
+    """
+    The day the VISIT happened, in the user's own timezone.
+
+    Matched against what the user said, so it has to be the appointment rather
+    than the paperwork. get_user_summaries aliases s.created_at as "visit_date"
+    — when the summary text was generated — and the visit details screen has a
+    regenerate button, so that value moves to the day somebody pressed it.
+    visit_created_at is v.created_at and stays put; visit_date is only the
+    fallback for a caller that predates it.
+
+    The column is timestamptz, so the calendar day depends on where the user
+    is: a 9 PM visit in Toronto is already tomorrow in UTC. That is not a
+    detail — of the five rows whose two timestamps fall on different UTC days,
+    four are the same day once converted to the patient's timezone, and only
+    one is a real regeneration lag. Comparing in UTC would invent four
+    mismatches and miss the point of the one that counts.
+    """
+    raw = row.get("visit_created_at") or row.get("visit_date")
+    if not raw:
+        return None
+    text = str(raw).strip().replace(" ", "T", 1)
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(_tz(timezone_name)).date()
+
+
+def _spoken_day(value: date, today: Optional[date] = None) -> str:
+    """
+    "25 August" — the day named back, so a wrong one is audible.
+
+    The year is spoken only when it is not the current one: saying it every
+    time is noise, but leaving it off "31 December 2030" hides the very thing
+    that makes the answer make sense.
+    """
+    spoken = f"{value.day} {value.strftime('%B')}"
+    if today is not None and value.year != today.year:
+        spoken = f"{spoken} {value.year}"
+    return spoken
+
+
+def _summary_speech(row: dict) -> tuple[str, str]:
+    """Title and full spoken text for one summary row."""
+    title = str(row.get("title") or "your doctor visit").strip()
+    spoken = build_summary_speech(
+        str(row.get("summary") or row.get("summary_text") or "").strip(),
+        row.get("structured"),
+    )
+    return title, spoken or str(row.get("summary_preview") or "").strip()
+
+
 def _latest_summary(summaries: list[dict]) -> tuple[str, str]:
     """
     The newest visit, and the full script to read for it.
@@ -312,7 +369,112 @@ async def execute_intent(
         )
 
     if intent == VoxIntent.READ_DOCTOR_SUMMARY:
-        logger.info(f"READ_DOCTOR_SUMMARY: {len(summaries)} summaries available, keys={list(summaries[0].keys()) if summaries else 'none'}")
+        wanted_date = str(entities.get("date") or "").strip()
+        ambiguous_date = str(entities.get("date_ambiguous") or "").strip()
+        logger.info(
+            "READ_DOCTOR_SUMMARY: %d summaries available, date=%s ambiguous=%s",
+            len(summaries),
+            wanted_date or "none",
+            "yes" if ambiguous_date else "no",
+        )
+
+        # A day was meant but could not be pinned to one. Reading the most
+        # recent summary here is the failure this whole branch exists to stop:
+        # it answers a question about one day with another day's medicine.
+        if ambiguous_date and not wanted_date:
+            return ActionResult(
+                success=False,
+                action="read_summary",
+                message_key="summary_date_unclear",
+                payload={"phrase": ambiguous_date},
+                error="date_not_resolvable",
+            )
+
+        if wanted_date:
+            try:
+                target = date.fromisoformat(wanted_date)
+            except ValueError:
+                target = None
+
+            if target is not None:
+                today_local = datetime.now(_tz(timezone_name)).date()
+                matches = [
+                    row
+                    for row in summaries
+                    if _summary_local_day(row, timezone_name) == target
+                ]
+                if not matches:
+                    days = [
+                        (row, _summary_local_day(row, timezone_name))
+                        for row in summaries
+                    ]
+                    dated = [(r, d) for r, d in days if d is not None]
+                    nearest = (
+                        min(dated, key=lambda pair: abs((pair[1] - target).days))[1]
+                        if dated
+                        else None
+                    )
+                    return ActionResult(
+                        success=False,
+                        action="read_summary",
+                        message_key="summary_not_on_date",
+                        payload={
+                            "date_spoken": _spoken_day(target, today_local),
+                            "nearest_spoken": (
+                                _spoken_day(nearest, today_local) if nearest else ""
+                            ),
+                            "in_future": target > today_local,
+                            "have_any": bool(summaries),
+                        },
+                        error="no_summary_on_date",
+                    )
+
+                # More than one VISIT that day is a real choice; more than one
+                # summary for the same visit is just a regeneration, and the
+                # newest of those is the one to read. Rows arrive newest first.
+                visits = []
+                for row in matches:
+                    key = row.get("visit_id")
+                    if key not in visits:
+                        visits.append(key)
+                if len(visits) > 1:
+                    seen = []
+                    titles = []
+                    for row in matches:
+                        key = row.get("visit_id")
+                        if key in seen:
+                            continue
+                        seen.append(key)
+                        titles.append(
+                            str(row.get("title") or row.get("doctor_name") or "").strip()
+                            or "an unnamed visit"
+                        )
+                    return ActionResult(
+                        success=False,
+                        action="read_summary",
+                        message_key="summary_which_visit",
+                        payload={
+                            "date_spoken": _spoken_day(target, today_local),
+                            "titles": titles[:3],
+                            "count": len(visits),
+                        },
+                        error="multiple_visits_on_date",
+                    )
+
+                title, summary = _summary_speech(matches[0])
+                return ActionResult(
+                    success=True,
+                    action="read_summary",
+                    message_key="read_summary",
+                    payload={
+                        "title": title,
+                        "summary": summary or "",
+                        # Named back on every dated read, so a day the user did
+                        # not mean is heard rather than believed.
+                        "date_spoken": _spoken_day(target, today_local),
+                    },
+                )
+
         title, summary = _latest_summary(summaries)
         return ActionResult(
             success=True,

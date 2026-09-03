@@ -431,9 +431,51 @@ def _text_for(
     if key == "read_summary":
         summary = payload.get("summary") or ""
         title = payload.get("title") or "your latest visit"
+        # Only set when the user asked for a particular day. Saying it back is
+        # what makes a wrong match audible instead of invisible.
+        when = str(payload.get("date_spoken") or "").strip()
+        if summary and when:
+            return f"From {title} on {when}: {summary}"
         if summary:
             return f"From {title}: {summary}"
         return "I don't see a completed doctor visit summary yet."
+
+    if key == "summary_not_on_date":
+        when = str(payload.get("date_spoken") or "that day").strip()
+        nearest = str(payload.get("nearest_spoken") or "").strip()
+        if payload.get("in_future"):
+            return (
+                f"{when} hasn't happened yet, so there's no visit summary "
+                "from then."
+            )
+        if not payload.get("have_any"):
+            return "I don't see a completed doctor visit summary yet."
+        if nearest:
+            # Named, never substituted. Reading the nearest day's summary as
+            # though it were the one asked for is the whole defect.
+            return (
+                f"I don't have a visit summary from {when}. "
+                f"The nearest one I have is from {nearest}."
+            )
+        return f"I don't have a visit summary from {when}."
+
+    if key == "summary_date_unclear":
+        phrase = str(payload.get("phrase") or "").strip()
+        if phrase:
+            return (
+                f"I'm not sure which day you mean by {phrase}. "
+                "Which date was the visit?"
+            )
+        return "Which date was the visit?"
+
+    if key == "summary_which_visit":
+        when = str(payload.get("date_spoken") or "that day").strip()
+        titles = [str(t).strip() for t in (payload.get("titles") or []) if str(t).strip()]
+        count = payload.get("count") or len(titles)
+        if len(titles) >= 2:
+            listed = " and ".join([", ".join(titles[:-1]), titles[-1]]) if len(titles) > 2 else " and ".join(titles)
+            return f"You have {count} visits from {when} — {listed}. Which one?"
+        return f"You have {count} visits from {when}. Which one would you like?"
 
     if key == "caregiver_brief":
         return payload.get("text") or "I don't see linked patients for a care brief yet."

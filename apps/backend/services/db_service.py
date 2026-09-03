@@ -663,7 +663,13 @@ async def get_user_summaries(user_id: str, firebase_uid: str = None) -> list[dic
                     v.doctor AS doctor_name,
                     v.specialty AS specialty,
                     v.title AS title,
-                    s.created_at AS visit_date
+                    s.created_at AS visit_date,
+                    -- When the visit happened, as distinct from when its text
+                    -- was generated. visit_date above is an alias over
+                    -- s.created_at and moves when a summary is regenerated,
+                    -- which is the wrong thing to match a spoken date against.
+                    -- Kept as a new field so existing callers are untouched.
+                    v.created_at AS visit_created_at
                 FROM summaries_log s
                 JOIN visits v ON v.id = s.visit_id
                 WHERE s.user_id::text = :user_id OR s.user_id::text = :firebase_uid
@@ -676,7 +682,8 @@ async def get_user_summaries(user_id: str, firebase_uid: str = None) -> list[dic
             summaries = []
             for row in rows:
                 (summary_id, visit_id, summary_created_at, model_name, summary_text,
-                 structured_data_json, doctor_name, specialty, title, visit_date) = row
+                 structured_data_json, doctor_name, specialty, title, visit_date,
+                 visit_created_at) = row
 
                 # Truncate summary_text to ~160 characters for preview
                 summary_preview = summary_text[:160] + "..." if len(summary_text) > 160 else summary_text
@@ -688,6 +695,9 @@ async def get_user_summaries(user_id: str, firebase_uid: str = None) -> list[dic
                     "specialty": specialty,
                     "title": title,
                     "visit_date": str(visit_date) if visit_date else None,
+                    "visit_created_at": (
+                        visit_created_at.isoformat() if visit_created_at else None
+                    ),
                     "summary_created_at": str(summary_created_at),
                     "summary_preview": summary_preview,
                     # The preview is for list rows. Anything that READS the
