@@ -29,6 +29,9 @@ _FREQUENCY_TO_RECURRENCE = {
     "custom": "custom",
 }
 
+# How many times the assistant has asked which day a summary request meant.
+SUMMARY_DATE_ROUNDS_KEY = "_summary_date_rounds"
+
 _CARRY_PENDING_FOR = {
     VoxIntent.CREATE_REMINDER,
     VoxIntent.UPDATE_REMINDER,
@@ -259,13 +262,16 @@ def to_intent_result(
         # fields — and then died here, one call before the executor that had
         # been taught to use it. The log said date=none and it was telling the
         # truth about its own input.
-        return result(
-            intent,
-            {
-                "date": entities.get("date"),
-                "date_ambiguous": entities.get("date_ambiguous"),
-            },
-        )
+        out = {
+            "date": entities.get("date"),
+            "date_ambiguous": entities.get("date_ambiguous"),
+        }
+        if pending_intent == VoxIntent.READ_DOCTOR_SUMMARY.value:
+            # How many times we have already asked which day. Carried so the
+            # executor can stop rather than ask a third time; without it every
+            # turn looks like the first one and the clarification never ends.
+            out[SUMMARY_DATE_ROUNDS_KEY] = pending.get(SUMMARY_DATE_ROUNDS_KEY) or 0
+        return result(intent, out)
 
     # Intents that need nothing from the utterance beyond the intent itself.
     # Anything that DOES need an entity has to say so above, or it arrives

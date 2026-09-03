@@ -459,6 +459,30 @@ def _text_for(
             )
         return f"I don't have a visit summary from {when}."
 
+    if key == "summary_date_which_order":
+        options = [str(o).strip() for o in (payload.get("options") or []) if str(o).strip()]
+        if len(options) == 2:
+            # Two named days, either answerable in a word. "Which day was the
+            # visit?" asks for what the user already said, so cooperating
+            # reproduces the same ambiguity and the question repeats.
+            return f"Did you mean {options[0]} or {options[1]}?"
+        return "Which date was the visit?"
+
+    if key == "summary_date_give_up":
+        when = str(payload.get("nearest_spoken") or "").strip()
+        title = str(payload.get("nearest_title") or "").strip()
+        if when and title:
+            return (
+                f"I still can't tell which day you mean. The most recent one I "
+                f"have is {title} from {when} — ask for that day and I'll read it."
+            )
+        if when:
+            return (
+                f"I still can't tell which day you mean. The most recent visit "
+                f"summary I have is from {when} — ask for that day and I'll read it."
+            )
+        return "I still can't tell which day you mean, and I don't have a visit summary to offer."
+
     if key == "summary_date_unclear":
         phrase = str(payload.get("phrase") or "").strip()
         if phrase:

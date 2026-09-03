@@ -191,6 +191,23 @@ RULES:
    and "the summary from Tuesday" mean the most recent past Tuesday. Rule 6's
    next-occurrence reading is for reminders being set, not for visits being
    recalled.
+
+6d. WHEN intent IS "READ_DOCTOR_SUMMARY", AND ONLY THEN: a date that names a
+   month and a day but no year is NOT ambiguous. The visit is in the past, so
+   there is exactly one candidate — the most recent occurrence of that month
+   and day on or before the current date. "August 12" asked on 2026-09-03 is
+   2026-08-12. "December 20" asked on 2026-09-03 is 2025-12-20, last year,
+   because this year's has not happened. Resolve it into "date" and leave
+   date_ambiguous null. The same goes for a bare day of the month ("the 25th",
+   "on the 3rd"): the most recent past 25th. This overrides the entries for
+   those shapes in rule 6b.
+   This rule is ONLY for READ_DOCTOR_SUMMARY. For CREATE_REMINDER and every
+   other intent, "August 12" stays ambiguous exactly as rule 6b says, because
+   a reminder can be set for a date that has not arrived and guessing the year
+   would schedule it eleven months out or in the past. Do not apply 6d there.
+   6d does not touch the numeric-order check: "08/12/2026" is still ambiguous
+   for a summary, because that is about which number is the month, not which
+   year it is.
 7. For UPDATE intents, put the target reminder name in "title" and the new values
    in "new_time" / "new_frequency".
 8. Multi-intent utterances: pick the PRIMARY intent.

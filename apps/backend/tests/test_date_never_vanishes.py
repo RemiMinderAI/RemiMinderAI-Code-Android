@@ -143,7 +143,15 @@ class ARejectedDateIsNotAnAbsence(unittest.TestCase):
         _, action, spoken = turn({"date": "08/12/2026"})
         self.assertFalse(action.success)
         self.assertNotIn("Lyrica", spoken)
-        self.assertIn("08/12/2026", spoken)
+        # An order ambiguity gets the two readings by name rather than an open
+        # question the user has already answered once.
+        self.assertIn("12 August", spoken)
+        self.assertIn("8 December", spoken)
+
+    def test_a_vague_phrase_still_gets_the_open_question(self):
+        _, action, spoken = turn({"date_ambiguous": "a few weeks ago"})
+        self.assertFalse(action.success)
+        self.assertIn("a few weeks ago", spoken)
         self.assertIn("Which date", spoken)
 
 
