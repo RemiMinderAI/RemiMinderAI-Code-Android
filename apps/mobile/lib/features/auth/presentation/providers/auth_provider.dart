@@ -348,6 +348,26 @@ class AuthNotifier extends Notifier<AuthState> {
     await _checkAuthStatus();
   }
 
+  /// Re-read the profile from the server, role included.
+  ///
+  /// Accepting an invitation makes the account somebody's caregiver, and
+  /// /api/users/me derives that from the new care_team_members row. Until this
+  /// runs, state still carries the role from before the accept — which for an
+  /// invited user is "patient", and the router bounces them off every
+  /// caregiver route.
+  Future<void> refreshProfile() async {
+    if (state.user == null) return;
+    try {
+      final profile = await _backendApiService.getMyProfile();
+      state = state.copyWith(
+        profile: AuthProfile.fromUserProfile(profile),
+      );
+    } catch (e) {
+      // Non-fatal: the next start reads it again.
+      debugPrint('refreshProfile failed: $e');
+    }
+  }
+
   /// Update user profile in state
   void updateProfile(AuthProfile? profile) {
     if (state.user != null) {

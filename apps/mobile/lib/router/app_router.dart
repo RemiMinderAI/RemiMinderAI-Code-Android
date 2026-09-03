@@ -56,11 +56,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/welcome';
       }
 
-      // If authenticated, enforce role-based routing
-      // Use user.role (from SecureStorage) NOT profile.role (from backend)
+      // If authenticated, enforce role-based routing.
+      //
+      // The server's answer wins. It derives "caregiver" from an active
+      // care_team_members row, so it is the same on every device and it is
+      // right for someone who arrived through an invite link and was never
+      // asked to pick a role. SecureStorage stays as the fallback for the
+      // first frame and for offline starts; it used to be the only source,
+      // which is why an invited caregiver was stored as a patient and bounced
+      // off every caregiver route.
       if (authState.status == AuthStatus.authenticated) {
-        final role = authState.user?.role;
-        final isCaregiver = role == UserRole.caregiver;
+        final serverRole = authState.profile?.role;
+        final isCaregiver = serverRole != null && serverRole.isNotEmpty
+            ? serverRole == 'caregiver'
+            : authState.user?.role == UserRole.caregiver;
         final onCaregiverRoute = location.startsWith('/caregiver');
         final onPatientRoute = location.startsWith('/patient');
 

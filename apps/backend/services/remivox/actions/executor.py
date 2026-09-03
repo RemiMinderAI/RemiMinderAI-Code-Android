@@ -661,7 +661,7 @@ async def _checkin(
                 return ActionResult(
                     success=False,
                     action="snooze_reminder",
-                    message_key="not_due_yet",
+                    message_key="snooze_not_due_yet",
                     payload={
                         "title": title,
                         "due_local": _local_display(not_due.scheduled_time, match),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../care_team/care_team_tab.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
 import '../../../../providers/invitation_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../services/invitation_service.dart';
 
 /// Caregiver shell route: Care Team tab (Firestore invitations + API team).
@@ -65,6 +66,11 @@ class _AcceptInvitationsScreenState
       // And the invitation is no longer pending — without this it stays in the
       // received list until the next cold start.
       ref.invalidate(receivedInvitationsProvider);
+      // This account is now somebody's caregiver. The role is derived from that
+      // membership server-side, so re-read it — otherwise the router keeps
+      // treating an invited user as a patient until the next cold start, which
+      // is what left them with nowhere to go after accepting.
+      await ref.read(authNotifierProvider.notifier).refreshProfile();
       if (mounted) {
         setState(() => _reloadToken++);
         ScaffoldMessenger.of(context).showSnackBar(

@@ -140,6 +140,10 @@ class CareTeamApiService {
     }
     return decoded
         .whereType<Map<String, dynamic>>()
+        // Shadow invitations carry no member_user_id. The endpoint already
+        // filters to status='active' so none reach here today, but the model
+        // casts that field to a non-null String and would throw if one did.
+        .where((m) => (m['member_user_id'] ?? '').toString().isNotEmpty)
         .map(CareTeamMember.fromJson)
         .toList();
   }
@@ -349,14 +353,34 @@ class CareTeamApiService {
     return null;
   }
 
+  /// Removes a caregiver from the patient's care team.
+  ///
+  /// This deleted a Firestore document and never touched the server, so the
+  /// care_team_members row stayed active and the caregiver kept appearing —
+  /// the list reads /api/care-team now, and that row had never changed. The
+  /// endpoint hard-deletes the row, so the membership genuinely ends rather
+  /// than being hidden from one view.
   Future<void> removeMember({required String memberId}) async {
-    final uid = _requireUid();
-    await _db
-        .collection('users')
-        .doc(uid)
-        .collection('careTeam')
-        .doc(memberId)
-        .delete();
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (token == null) {
+      throw StateError('Not signed in');
+    }
+
+    final response = await http.delete(
+      Uri.parse('${Environment.apiBaseUrl}/api/care-team/$memberId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      // Surfaced, not swallowed: a silent failure here is what made the
+      // caregiver look like they had been removed when they had not.
+      throw Exception(
+        'Failed to remove caregiver: ${response.statusCode} - ${response.body}',
+      );
+    }
   }
 
   /// Patients linked to the signed-in caregiver (`connectedPatients` subcollection).

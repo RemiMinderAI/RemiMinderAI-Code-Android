@@ -1224,6 +1224,11 @@ async def sync_caregiver_patient_access(
 
         from services.cache_service import invalidate
         invalidate(f"care_team_member:{patient_uuid}:{caregiver_uuid}")
+        # /api/users/me derives "caregiver" from exactly this row and caches the
+        # answer for ten minutes. Without dropping it here, somebody who has
+        # just accepted an invitation keeps being told they are a patient — and
+        # is bounced off every caregiver route — until the entry expires.
+        invalidate(f"user_profile:{user_id}")
 
         logger.info("sync-access created SQL row caregiver=%s patient=%s", caregiver_uuid, patient_uuid)
         return {"status": "ok", "access": "created"}

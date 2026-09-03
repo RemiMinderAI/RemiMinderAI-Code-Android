@@ -23,6 +23,17 @@ String reminderActionMessage(
     try {
       final decoded = jsonDecode(body);
       final detail = decoded is Map ? decoded['detail'] : null;
+      // Snooze refuses through the same guard but must not borrow the
+      // mark-done wording: the patient asked to postpone, not to complete.
+      if (detail is Map && detail['error'] == 'not_due_yet') {
+        final parsed =
+            DateTime.tryParse(detail['scheduled_time']?.toString() ?? '');
+        if (parsed != null) {
+          return 'Not due until ${_whenLabel(context, parsed.toLocal())} — '
+              'nothing to snooze yet.';
+        }
+        return "This isn't due yet, so there's nothing to snooze.";
+      }
       if (detail is Map && detail['error'] == 'reminder_not_due') {
         final raw = detail['scheduled_time']?.toString();
         final parsed = raw != null ? DateTime.tryParse(raw) : null;

@@ -250,6 +250,33 @@ async def bootstrap_user(
         raise HTTPException(500, f"Bootstrap failed: {str(e)}")
 
 
+def _is_caregiver(conn, user_id) -> bool:
+    """
+    True when this user cares for somebody.
+
+    users.role has never carried this: every one of the 82 rows says "user",
+    because the role was only ever written to device storage at sign-up and the
+    invite path never asks. An active care_team_members row is the fact that
+    actually exists, it is written by the accept flow, and it travels with the
+    account rather than the handset — the same person on a second device gets
+    the same answer.
+
+    Nine accounts have such a row today and every one of them is currently told
+    it is a patient.
+    """
+    row = conn.execute(
+        text(
+            """
+            SELECT 1 FROM care_team_members
+            WHERE member_user_id = :user_id AND status = 'active'
+            LIMIT 1
+            """
+        ),
+        {"user_id": user_id},
+    ).fetchone()
+    return row is not None
+
+
 @router.get("/me", response_model=UserMeResponse)
 async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
     """Get current user's profile information"""
@@ -263,6 +290,8 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
         if cached is not None:
             db_role = cached.get("db_role")
             api_role = "patient" if db_role == "user" else db_role
+            if cached.get("is_caregiver"):
+                api_role = "caregiver"
             return UserMeResponse(
                 full_name=cached.get("full_name"),
                 email=cached["email"],
@@ -285,12 +314,19 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
             # Map database role to API role
             api_role = "patient" if db_role == "user" else db_role
 
+            # Caring for somebody outranks the stored role, which no signup
+            # flow has ever set to caregiver.
+            caregiver = _is_caregiver(conn, user_id)
+            if caregiver:
+                api_role = "caregiver"
+
             user_data = {
                 "id": str(user_id),
                 "email": email,
                 "full_name": full_name,
                 "phone": phone,
                 "db_role": db_role,
+                "is_caregiver": caregiver,
             }
             set(cache_key, user_data, 600)
             return UserMeResponse(

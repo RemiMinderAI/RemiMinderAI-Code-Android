@@ -290,6 +290,18 @@ def _text_for(
             f"{title} has already been snoozed once, so I have left it where it is."
         )
 
+    if key == "snooze_not_due_yet":
+        # Snooze reused the mark-done refusal, so a patient asking to postpone
+        # was told how to complete instead. Same guard, different verb.
+        title = payload.get("title") or "That reminder"
+        due = payload.get("due_local")
+        if due:
+            return (
+                f"{title} isn't due until {due}, "
+                "so there's nothing to snooze yet."
+            )
+        return f"{title} isn't due yet, so there's nothing to snooze."
+
     if key == "not_due_yet":
         # Deliberately NOT a question. The previous copy asked "did you mean
         # today's?" but nothing held pending state to receive the answer, so a
