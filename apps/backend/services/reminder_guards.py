@@ -85,3 +85,26 @@ def ensure_completable(reminder: Dict[str, Any], now: Optional[datetime] = None)
     reference = now or datetime.now(timezone.utc)
     if scheduled - reference > early_completion_grace(reminder):
         raise ReminderNotDueError(reminder, scheduled)
+
+
+def ensure_snoozable(reminder: Dict[str, Any], now: Optional[datetime] = None) -> None:
+    """
+    Raise ReminderNotDueError if this reminder has not come due yet.
+
+    Snooze moves a reminder forward from *now*, which is right for something
+    already overdue and wrong for anything else: snoozing a dose due tomorrow at
+    8 AM moved it to half an hour from now, roughly twelve hours early. A
+    medication reminder that arrives before the dose is due is a double-dose
+    risk, so there is no version of "snooze" that may move a reminder earlier
+    than its scheduled time.
+
+    Unlike completion there is no grace window. Taking a dose slightly early is
+    a real thing a patient does; snoozing a dose that has not been offered yet
+    is not — the reminder has not fired, so there is nothing to postpone.
+    """
+    scheduled = as_utc(reminder.get("scheduled_time"))
+    if scheduled is None:
+        return
+    reference = now or datetime.now(timezone.utc)
+    if scheduled > reference:
+        raise ReminderNotDueError(reminder, scheduled)

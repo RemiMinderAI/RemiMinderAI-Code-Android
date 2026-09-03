@@ -430,6 +430,47 @@ def _sub_pair(match: "re.Match[str]") -> str:
     return _vitamin_token(groups[0], groups[1]) or match.group(0)
 
 
+# ── Generic placeholders ──────────────────────────────────────────────────
+#
+# "Remind me about my medicine at 8 PM" created a reminder titled "My medicine".
+# That is the same fault as inventing a dose or a frequency: the patient named
+# no medication, so Vox has nothing to put in the title and must ask.
+#
+# Matched on the whole title only. A title that merely contains one of these
+# words is real — "medicine cabinet", "pick up my pills from the pharmacy" —
+# and rewriting those would lose information the patient did give.
+_MEDICATION_PLACEHOLDERS = frozenset(
+    {
+        "medicine", "medicines", "my medicine", "my medicines",
+        "medication", "medications", "my medication", "my medications",
+        "med", "meds", "my med", "my meds",
+        "pill", "pills", "my pill", "my pills",
+        "tablet", "tablets", "my tablet", "my tablets",
+        "capsule", "capsules", "my capsule", "my capsules",
+        "drug", "drugs", "my drugs",
+        "dose", "doses", "my dose", "my doses",
+        "prescription", "prescriptions", "my prescription", "my prescriptions",
+        "vitamin", "vitamins", "my vitamin", "my vitamins",
+        "the medicine", "the medication", "the pills", "the tablets",
+        "take my medicine", "take my medication", "take my pills",
+        "my medicine at", "medicine reminder", "medication reminder",
+    }
+)
+
+
+def is_generic_medication_placeholder(title: Any) -> bool:
+    """True when a title names no actual medication.
+
+    "Vitamin" alone is a placeholder; "Vitamin D3" is a name, so the check is
+    equality against the whole cleaned title rather than a substring test.
+    """
+    if not title:
+        return False
+    cleaned = re.sub(r"[^a-z0-9 ]+", " ", str(title).lower())
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned in _MEDICATION_PLACEHOLDERS
+
+
 def normalize_spoken_title(title: str) -> str:
     """
     Repair vitamin names the transcript spelled out, and capitalise the title.

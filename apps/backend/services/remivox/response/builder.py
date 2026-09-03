@@ -282,6 +282,14 @@ def _text_for(
             return _SLOT_PROMPTS.get(slot, "Could you share a bit more detail?")
         return "Could you share a bit more detail?"
 
+    if key == "snooze_unavailable":
+        # A reminder may only be snoozed once. This used to answer "snoozed"
+        # regardless, so the patient believed a dose had moved when it had not.
+        title = payload.get("title") or "That reminder"
+        return (
+            f"{title} has already been snoozed once, so I have left it where it is."
+        )
+
     if key == "not_due_yet":
         # Deliberately NOT a question. The previous copy asked "did you mean
         # today's?" but nothing held pending state to receive the answer, so a

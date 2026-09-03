@@ -524,8 +524,23 @@ async def snooze_reminder_post(
     try:
         from services.db_service import get_user_uuid
         internal_id = await get_user_uuid(user_id)
-        reminder = await snooze_reminder(reminder_id, internal_id, snooze_minutes)
-        
+        try:
+            reminder = await snooze_reminder(reminder_id, internal_id, snooze_minutes)
+        except ReminderNotDueError as not_due:
+            # Snooze moves a reminder forward from now, so on a future reminder
+            # it would land earlier than the dose is due. Refuse and say when.
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "error": "not_due_yet",
+                    "message": "That reminder is not due yet, so there is nothing to snooze.",
+                    "scheduled_time": (
+                        not_due.scheduled_time.isoformat()
+                        if not_due.scheduled_time else None
+                    ),
+                },
+            )
+
         if not reminder:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

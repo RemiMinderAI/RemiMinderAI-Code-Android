@@ -653,7 +653,31 @@ async def _checkin(
         if mode == "snooze":
             minutes = int(entities.get("minutes") or DEFAULT_SNOOZE_MINUTES)
             minutes = max(5, min(180, minutes))
-            await snooze_reminder(rid, user_uuid, minutes)
+            try:
+                snoozed = await snooze_reminder(rid, user_uuid, minutes)
+            except ReminderNotDueError as not_due:
+                # Snoozing a dose that has not come due yet would move it
+                # earlier, not later. Say when it is actually due.
+                return ActionResult(
+                    success=False,
+                    action="snooze_reminder",
+                    message_key="not_due_yet",
+                    payload={
+                        "title": title,
+                        "due_local": _local_display(not_due.scheduled_time, match),
+                    },
+                    error="reminder not due yet",
+                )
+            if not snoozed:
+                # Previously the return value was discarded, so an already-once-
+                # snoozed reminder still answered "snoozed" and nothing moved.
+                return ActionResult(
+                    success=False,
+                    action="snooze_reminder",
+                    message_key="snooze_unavailable",
+                    payload={"title": title},
+                    error="snooze refused",
+                )
             return ActionResult(
                 success=True,
                 action="snooze_reminder",

@@ -316,10 +316,10 @@ def _mock_table() -> dict[str, dict]:
                          "time": "08:00"},
             "confidence": 0.95,
         },
-        "Set a reminder to take my pills today at 2:31 PM": {
+        "Set a reminder to take Metoprolol today at 2:31 PM": {
             "intent": "CREATE_REMINDER",
             # No frequency: the stated date is what makes it a one-off.
-            "entities": {"title": "take my pills", "reminder_type": "medication",
+            "entities": {"title": "Metoprolol", "reminder_type": "medication",
                          "time": "14:31", "date": t},
             "confidence": 0.95,
         },
@@ -1419,8 +1419,13 @@ async def case_52(s):
 
 
 async def case_53(s):
-    """A stated date is the occurrence — do not ask how often it repeats."""
-    out = await say("Set a reminder to take my pills today at 2:31 PM", session=s)
+    """A stated date is the occurrence — do not ask how often it repeats.
+
+    Names a real medication on purpose. This used to say "take my pills", which
+    is a placeholder rather than a name, so the reply now asks which medicine —
+    a different question from the one this case exists to check.
+    """
+    out = await say("Set a reminder to take Metoprolol today at 2:31 PM", session=s)
     expect("just once" not in out["text"].lower()
            and "how often" not in out["text"].lower(),
            f"a stated date already answered this: {out['text']!r}")

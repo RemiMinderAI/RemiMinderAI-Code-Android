@@ -9,6 +9,7 @@ import pytz
 from sqlalchemy import text
 
 from services.cloud_sql_engine import get_cloud_sql_engine
+from services.reminder_guards import as_utc, ensure_snoozable
 
 logger = logging.getLogger(__name__)
 
@@ -268,8 +269,15 @@ async def snooze_reminder(reminder_id: str, user_id: str, snooze_minutes: int = 
     if reminder.get("snoozed_count", 0) >= 1:
         return None  # Already snoozed once
     
+    # Refuses anything not yet due. Shared with the REST path so the voice and
+    # button routes cannot disagree about something this consequential.
+    ensure_snoozable(reminder)
+
     now = datetime.now(timezone.utc)
-    new_scheduled_time = now + timedelta(minutes=snooze_minutes)
+    # Belt and braces: even if the guard above were bypassed, snoozing must
+    # never pull a reminder earlier than the time it was scheduled for.
+    base = max(now, as_utc(reminder.get("scheduled_time")) or now)
+    new_scheduled_time = base + timedelta(minutes=snooze_minutes)
     updated = await update_reminder(
         reminder_id, user_id,
         {

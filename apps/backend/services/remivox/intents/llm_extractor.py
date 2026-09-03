@@ -29,7 +29,10 @@ from google.genai import types
 from google.genai.errors import ClientError
 
 from services.gemini_client import get_gemini_client, resolve_gemini_api_key
-from services.remivox.intents.extractors import normalize_spoken_title
+from services.remivox.intents.extractors import (
+    is_generic_medication_placeholder,
+    normalize_spoken_title,
+)
 from services.remivox.intents.models import IntentResult, VoxIntent
 from services.remivox.intents.router import route_intent
 
@@ -465,6 +468,11 @@ def _clean_title(value: Any) -> Optional[str]:
     # whatever case the transcript produced.
     title = normalize_spoken_title(title)
     if len(title) < 2:
+        return None
+    # A placeholder is not a name. Dropping it here leaves medication empty, so
+    # the create validator reports it missing and Vox asks which one instead of
+    # filing a reminder called "My medicine".
+    if is_generic_medication_placeholder(title):
         return None
     return title[:80]
 
