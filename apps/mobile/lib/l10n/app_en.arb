@@ -739,6 +739,10 @@
   "noImageToProcess": "No image to process. Please capture again.",
   "documentScannedSaved": "Document scanned and saved!",
   "scanProcessingFailed": "Scan processing failed: {error}",
+  "scanNoTextFound": "Nothing readable in that photo. Try again in better light, holding the page flat.",
+  "@scanNoTextFound": {
+    "description": "Shown when a scan uploads but Vision finds no readable text"
+  },
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

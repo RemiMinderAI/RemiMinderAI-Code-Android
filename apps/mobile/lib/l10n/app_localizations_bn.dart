@@ -1373,6 +1373,10 @@ class AppLocalizationsBn extends AppLocalizations {
   }
 
   @override
+  String get scanNoTextFound =>
+      'সেই ছবিতে পড়ার মতো কিছু নেই। ভালো আলোয়, পৃষ্ঠাটি সমতল ধরে আবার চেষ্টা করুন।';
+
+  @override
   String get scanSavedToHistory => 'স্ক্যান আপনার ভিজিট ইতিহাসে সংরক্ষিত';
 
   @override

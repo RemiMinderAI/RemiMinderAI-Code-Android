@@ -205,4 +205,68 @@ void main() {
           reason: 'every list fetch would otherwise carry every document');
     });
   });
+
+  group('an unreadable scan is not reported as success', () {
+    test('the no-text case is its own exception, not a generic failure', () {
+      // The backend maps ValueError("No text detected in image") to a 400.
+      expect(apiService.contains('class OcrFoundNoTextException'), isTrue);
+      final start = apiService.indexOf('Future<void> triggerOcr(');
+      final body = apiService.substring(start, apiService.indexOf('\n  }', start));
+      expect(body.contains("response.body.contains('No text detected')"), isTrue);
+      expect(body.contains('throw const OcrFoundNoTextException()'), isTrue);
+    });
+
+    test('the camera screen handles it separately', () {
+      expect(cameraScreen.contains('on OcrFoundNoTextException'), isTrue);
+      expect(cameraScreen.contains('l10n.scanNoTextFound') ||
+             cameraScreen.contains('.scanNoTextFound'), isTrue);
+    });
+
+    test('a failed scan does not navigate away', () {
+      // It used to show the error and then go to Overview regardless, so the
+      // message flashed during the transition and the document was listed with
+      // no text.
+      final start = cameraScreen.indexOf('void _saveScan()');
+      final body = cameraScreen.substring(start, cameraScreen.indexOf('\n  }', start));
+      final noText = body.indexOf('on OcrFoundNoTextException');
+      final nav = body.indexOf("context.go('/patient/overview')");
+      expect(noText, greaterThan(-1));
+      expect(nav, greaterThan(noText),
+          reason: 'navigation must come after, and be skipped by, the failure paths');
+      // The branch must return AFTER telling the user — not merely contain a
+      // return, which its own `if (!mounted) return;` would satisfy, and not
+      // merely precede one belonging to the generic catch.
+      final genericCatch = body.indexOf('} catch (e)', noText);
+      expect(genericCatch, greaterThan(noText));
+      final noTextBlock = body.substring(noText, genericCatch);
+      final afterMessage = noTextBlock.substring(
+          noTextBlock.indexOf('showSnackBar'));
+      expect(afterMessage.contains('return;'), isTrue,
+          reason: 'the no-text branch must return after showing the message, '
+              'not fall through and navigate to Overview');
+
+      // Bounded at the catch's own closing brace: reading as far as the
+      // navigation would pick up the `if (!mounted) return;` that guards it.
+      final genericEnd = body.indexOf('\n    }', genericCatch);
+      expect(genericEnd, greaterThan(genericCatch));
+      final genericBlock = body.substring(genericCatch, genericEnd);
+      final afterGenericMessage =
+          genericBlock.substring(genericBlock.indexOf('showSnackBar'));
+      expect(afterGenericMessage.contains('return;'), isTrue,
+          reason: 'the generic failure branch must return too');
+    });
+
+    test('the user is returned to a state they can retake from', () {
+      final start = cameraScreen.indexOf('void _saveScan()');
+      final body = cameraScreen.substring(start, cameraScreen.indexOf('\n  }', start));
+      expect(body.contains('ScanState.ready'), isTrue);
+    });
+
+    test('the message exists in every supported locale', () {
+      for (final code in ['en','bn','de','es','fr','gu','hi','pa','pt','ta']) {
+        final arb = File('lib/l10n/app_$code.arb').readAsStringSync();
+        expect(arb.contains('"scanNoTextFound"'), isTrue, reason: code);
+      }
+    });
+  });
 }

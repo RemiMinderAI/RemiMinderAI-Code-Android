@@ -580,6 +580,7 @@
   "noImageToProcess": "No hay imagen para procesar. Captura de nuevo.",
   "documentScannedSaved": "¡Documento escaneado y guardado!",
   "scanProcessingFailed": "Error al procesar el escaneo: {error}",
+  "scanNoTextFound": "No se puede leer nada en esa foto. Inténtelo de nuevo con mejor luz y la hoja plana.",
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

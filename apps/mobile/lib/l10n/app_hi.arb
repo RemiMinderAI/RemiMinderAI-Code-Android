@@ -580,6 +580,7 @@
   "noImageToProcess": "प्रोसेस करने के लिए कोई छवि नहीं। फिर से कैप्चर करें।",
   "documentScannedSaved": "दस्तावेज़ स्कैन और सहेजा गया!",
   "scanProcessingFailed": "स्कैन प्रोसेसिंग विफल: {error}",
+  "scanNoTextFound": "उस फ़ोटो में पढ़ने योग्य कुछ नहीं है। बेहतर रोशनी में, पन्ने को सीधा रखकर फिर से कोशिश करें।",
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

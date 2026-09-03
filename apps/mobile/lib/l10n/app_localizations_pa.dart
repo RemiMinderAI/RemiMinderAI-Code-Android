@@ -1392,6 +1392,10 @@ class AppLocalizationsPa extends AppLocalizations {
   }
 
   @override
+  String get scanNoTextFound =>
+      'ਉਸ ਫੋਟੋ ਵਿੱਚ ਪੜ੍ਹਨਯੋਗ ਕੁਝ ਨਹੀਂ ਹੈ। ਬਿਹਤਰ ਰੌਸ਼ਨੀ ਵਿੱਚ, ਪੰਨਾ ਸਿੱਧਾ ਰੱਖ ਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।';
+
+  @override
   String get scanSavedToHistory =>
       'ਸਕੈਨ ਤੁਹਾਡੇ ਮੁਲਾਕਾਤ ਇਤਿਹਾਸ ਵਿੱਚ ਸੰਭਾਲਿਆ ਗਿਆ';
 

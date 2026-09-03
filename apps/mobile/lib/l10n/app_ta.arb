@@ -580,6 +580,7 @@
   "noImageToProcess": "செயலாக்க படம் இல்லை. மீண்டும் எடுக்கவும்.",
   "documentScannedSaved": "ஆவணம் ஸ்கேன் செய்து சேமிக்கப்பட்டது!",
   "scanProcessingFailed": "ஸ்கேன் செயலாக்கம் தோல்வி: {error}",
+  "scanNoTextFound": "அந்தப் புகைப்படத்தில் படிக்கக்கூடியது எதுவும் இல்லை. நல்ல வெளிச்சத்தில், பக்கத்தை நேராக வைத்து மீண்டும் முயற்சிக்கவும்.",
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

@@ -580,6 +580,7 @@
   "noImageToProcess": "Nenhuma imagem para processar. Capture novamente.",
   "documentScannedSaved": "Documento digitalizado e salvo!",
   "scanProcessingFailed": "Falha no processamento da digitalização: {error}",
+  "scanNoTextFound": "Nada legível nessa foto. Tente novamente com melhor iluminação, mantendo a página plana.",
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

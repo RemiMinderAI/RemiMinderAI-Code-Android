@@ -580,6 +580,7 @@
   "noImageToProcess": "Aucune image à traiter. Capturez à nouveau.",
   "documentScannedSaved": "Document numérisé et enregistré !",
   "scanProcessingFailed": "Échec du traitement de la numérisation : {error}",
+  "scanNoTextFound": "Rien de lisible sur cette photo. Réessayez avec un meilleur éclairage, en tenant la page à plat.",
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

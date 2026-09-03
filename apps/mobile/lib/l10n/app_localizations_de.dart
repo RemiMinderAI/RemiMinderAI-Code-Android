@@ -1400,6 +1400,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get scanNoTextFound =>
+      'Auf diesem Foto ist nichts lesbar. Bitte bei besserem Licht erneut versuchen und die Seite flach halten.';
+
+  @override
   String get scanSavedToHistory => 'Scan im Besuchsverlauf gespeichert';
 
   @override

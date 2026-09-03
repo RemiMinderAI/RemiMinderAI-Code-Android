@@ -1374,6 +1374,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get scanNoTextFound =>
+      'Nothing readable in that photo. Try again in better light, holding the page flat.';
+
+  @override
   String get scanSavedToHistory => 'Scan saved to your visit history';
 
   @override

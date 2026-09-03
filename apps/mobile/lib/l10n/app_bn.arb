@@ -580,6 +580,7 @@
   "noImageToProcess": "প্রক্রিয়ার জন্য ছবি নেই। আবার ক্যাপচার করুন।",
   "documentScannedSaved": "নথি স্ক্যান ও সংরক্ষিত!",
   "scanProcessingFailed": "স্ক্যান প্রক্রিয়াকরণ ব্যর্থ: {error}",
+  "scanNoTextFound": "সেই ছবিতে পড়ার মতো কিছু নেই। ভালো আলোয়, পৃষ্ঠাটি সমতল ধরে আবার চেষ্টা করুন।",
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

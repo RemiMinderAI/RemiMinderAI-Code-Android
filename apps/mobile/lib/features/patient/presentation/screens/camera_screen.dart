@@ -913,11 +913,27 @@ class _CameraScreenState extends State<CameraScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.documentScannedSaved)),
       );
+    } on OcrFoundNoTextException {
+      // The upload worked; the photo is the problem. Stay on the camera so the
+      // page can be retaken — navigating to Overview showed the message during
+      // the transition and left a document with no text in the list, which is
+      // how 18 of 32 scans came to report success and store nothing readable.
+      if (!mounted) return;
+      setState(() => _scanState = ScanState.ready);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.scanNoTextFound),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+      return;
     } catch (e) {
       if (!mounted) return;
+      setState(() => _scanState = ScanState.ready);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.scanProcessingFailed('$e'))),
       );
+      return;
     }
 
     if (!mounted) return;

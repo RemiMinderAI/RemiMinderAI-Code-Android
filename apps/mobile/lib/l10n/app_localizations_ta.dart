@@ -1391,6 +1391,10 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
+  String get scanNoTextFound =>
+      'அந்தப் புகைப்படத்தில் படிக்கக்கூடியது எதுவும் இல்லை. நல்ல வெளிச்சத்தில், பக்கத்தை நேராக வைத்து மீண்டும் முயற்சிக்கவும்.';
+
+  @override
   String get scanSavedToHistory =>
       'ஸ்கேன் உங்கள் வருகை வரலாற்றில் சேமிக்கப்பட்டது';
 

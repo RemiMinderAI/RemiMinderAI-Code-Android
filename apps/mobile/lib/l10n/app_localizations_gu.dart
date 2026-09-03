@@ -1387,6 +1387,10 @@ class AppLocalizationsGu extends AppLocalizations {
   }
 
   @override
+  String get scanNoTextFound =>
+      'તે ફોટામાં વાંચી શકાય તેવું કંઈ નથી. વધુ સારા પ્રકાશમાં, પાનું સપાટ રાખીને ફરી પ્રયાસ કરો.';
+
+  @override
   String get scanSavedToHistory => 'સ્કેન તમારા મુલાકાત ઇતિહાસમાં સાચવ્યો';
 
   @override

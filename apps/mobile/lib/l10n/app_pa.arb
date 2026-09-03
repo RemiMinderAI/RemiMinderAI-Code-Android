@@ -729,6 +729,7 @@
   "noImageToProcess": "ਪ੍ਰੋਸੈਸ ਕਰਨ ਲਈ ਚਿੱਤਰ ਨਹੀਂ। ਦੁਬਾਰਾ ਕੈਪਚਰ ਕਰੋ।",
   "documentScannedSaved": "ਦਸਤਾਵੇਜ਼ ਸਕੈਨ ਅਤੇ ਸੰਭਾਲਿਆ ਗਿਆ!",
   "scanProcessingFailed": "ਸਕੈਨ ਪ੍ਰੋਸੈਸਿੰਗ ਅਸਫਲ: {error}",
+  "scanNoTextFound": "ਉਸ ਫੋਟੋ ਵਿੱਚ ਪੜ੍ਹਨਯੋਗ ਕੁਝ ਨਹੀਂ ਹੈ। ਬਿਹਤਰ ਰੌਸ਼ਨੀ ਵਿੱਚ, ਪੰਨਾ ਸਿੱਧਾ ਰੱਖ ਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

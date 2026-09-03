@@ -729,6 +729,7 @@
   "noImageToProcess": "પ્રોસેસ કરવા છબી નથી. ફરી કેપ્ચર કરો.",
   "documentScannedSaved": "દસ્તાવેજ સ્કેન અને સાચવ્યો!",
   "scanProcessingFailed": "સ્કેન પ્રોસેસિંગ નિષ્ફળ: {error}",
+  "scanNoTextFound": "તે ફોટામાં વાંચી શકાય તેવું કંઈ નથી. વધુ સારા પ્રકાશમાં, પાનું સપાટ રાખીને ફરી પ્રયાસ કરો.",
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

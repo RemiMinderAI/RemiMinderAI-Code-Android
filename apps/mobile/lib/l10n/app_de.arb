@@ -580,6 +580,7 @@
   "noImageToProcess": "Kein Bild zum Verarbeiten. Bitte erneut aufnehmen.",
   "documentScannedSaved": "Dokument gescannt und gespeichert!",
   "scanProcessingFailed": "Scan-Verarbeitung fehlgeschlagen: {error}",
+  "scanNoTextFound": "Auf diesem Foto ist nichts lesbar. Bitte bei besserem Licht erneut versuchen und die Seite flach halten.",
   "@scanProcessingFailed": {
     "placeholders": {
       "error": {

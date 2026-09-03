@@ -2610,6 +2610,12 @@ abstract class AppLocalizations {
   /// **'Scan processing failed: {error}'**
   String scanProcessingFailed(String error);
 
+  /// Shown when a scan uploads but Vision finds no readable text
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing readable in that photo. Try again in better light, holding the page flat.'**
+  String get scanNoTextFound;
+
   /// No description provided for @scanSavedToHistory.
   ///
   /// In en, this message translates to:

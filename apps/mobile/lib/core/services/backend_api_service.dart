@@ -14,6 +14,19 @@ import '../config/supported_languages.dart';
 import '../config/vox_config.dart';
 import '../models/user.dart';
 
+/// The scan uploaded, but Vision found nothing to read in it.
+///
+/// Distinct from a genuine failure: the request worked and the image is
+/// stored — the only thing wrong is the photo. Worth separating, because
+/// retaking it is something the user can actually do. 18 of 32 scanned
+/// documents reached the server unreadable and every one reported success.
+class OcrFoundNoTextException implements Exception {
+  const OcrFoundNoTextException();
+
+  @override
+  String toString() => 'No readable text in the scanned image';
+}
+
 /// Service for making authenticated API calls to the backend
 class BackendApiService {
   final AuthService _authService;
@@ -131,6 +144,12 @@ class BackendApiService {
     );
 
     if (response.statusCode != 200) {
+      // The backend maps ValueError("No text detected in image") onto a 400.
+      // That is not a transport failure and must not be reported as one.
+      if (response.statusCode == 400 &&
+          response.body.contains('No text detected')) {
+        throw const OcrFoundNoTextException();
+      }
       throw Exception(
           'OCR trigger failed: ${response.statusCode} - ${response.body}');
     }
