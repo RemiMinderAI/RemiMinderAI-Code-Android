@@ -268,11 +268,14 @@ def _is_caregiver(conn, user_id) -> bool:
         text(
             """
             SELECT 1 FROM care_team_members
-            WHERE member_user_id = :user_id AND status = 'active'
+            WHERE member_user_id = CAST(:user_id AS uuid) AND status = 'active'
             LIMIT 1
             """
         ),
-        {"user_id": user_id},
+        # Cast, and pass a string. The caller hands us a UUID straight off the
+        # users row on one path and a string out of the cached profile on the
+        # other, and the two do not compare the same way against a uuid column.
+        {"user_id": str(user_id)},
     ).fetchone()
     return row is not None
 
@@ -287,54 +290,55 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
     try:
         cache_key = f"user_profile:{firebase_uid}"
         cached = get(cache_key)
-        if cached is not None:
-            db_role = cached.get("db_role")
-            api_role = "patient" if db_role == "user" else db_role
-            if cached.get("is_caregiver"):
-                api_role = "caregiver"
-            return UserMeResponse(
-                full_name=cached.get("full_name"),
-                email=cached["email"],
-                phone=cached.get("phone"),
-                role=api_role,
-            )
         engine = get_cloud_sql_engine()
         with engine.connect() as conn:
-            result = conn.execute(
-                text("SELECT id, full_name, email, phone, role FROM users WHERE firebase_uid = :firebase_uid LIMIT 1"),
-                {"firebase_uid": firebase_uid}
-            )
-            row = result.fetchone()
+            if cached is not None:
+                user_id = cached["id"]
+                full_name = cached.get("full_name")
+                email = cached["email"]
+                phone = cached.get("phone")
+                db_role = cached.get("db_role")
+            else:
+                result = conn.execute(
+                    text("SELECT id, full_name, email, phone, role FROM users WHERE firebase_uid = :firebase_uid LIMIT 1"),
+                    {"firebase_uid": firebase_uid}
+                )
+                row = result.fetchone()
 
-            if not row:
-                raise HTTPException(404, "User not found")
+                if not row:
+                    raise HTTPException(404, "User not found")
 
-            user_id, full_name, email, phone, db_role = row
+                user_id, full_name, email, phone, db_role = row
+                set(cache_key, {
+                    "id": str(user_id),
+                    "email": email,
+                    "full_name": full_name,
+                    "phone": phone,
+                    "db_role": db_role,
+                }, 600)
 
             # Map database role to API role
             api_role = "patient" if db_role == "user" else db_role
 
             # Caring for somebody outranks the stored role, which no signup
             # flow has ever set to caregiver.
-            caregiver = _is_caregiver(conn, user_id)
-            if caregiver:
+            #
+            # Read fresh every time rather than from the blob above. This
+            # cache is per-process and the service runs up to three of them,
+            # so an invalidation only reaches the instance that handled the
+            # write; /api/users/profile fills the same key with a payload that
+            # has no such field; and the ten minutes after accepting an
+            # invitation are exactly the ten minutes this has to be right in.
+            # It is one indexed lookup on a table with a few dozen rows.
+            if _is_caregiver(conn, user_id):
                 api_role = "caregiver"
 
-            user_data = {
-                "id": str(user_id),
-                "email": email,
-                "full_name": full_name,
-                "phone": phone,
-                "db_role": db_role,
-                "is_caregiver": caregiver,
-            }
-            set(cache_key, user_data, 600)
-            return UserMeResponse(
-                full_name=full_name,
-                email=email,
-                phone=phone,
-                role=api_role,
-            )
+        return UserMeResponse(
+            full_name=full_name,
+            email=email,
+            phone=phone,
+            role=api_role,
+        )
 
     except HTTPException:
         raise

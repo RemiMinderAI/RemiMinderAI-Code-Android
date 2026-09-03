@@ -20,6 +20,7 @@ from services.db_service import (
     get_care_team_invitation_by_token,
     get_care_team_member_by_id,
     get_care_team_members,
+    get_firebase_uid_from_uuid,
     get_my_care_team_invitations,
     get_my_patients_for_caregiver,
     get_pending_care_team_invitations,
@@ -334,6 +335,12 @@ async def accept_care_team_invitation(
         invalidate(f"care_team_pending:{patient_id}")
         invalidate(f"care_team_list:{patient_id}")
         invalidate(f"care_team_my_invites:{member_user_id}")
+        # This row is what /api/users/me reads to decide somebody is a
+        # caregiver, and that answer is cached for ten minutes under the
+        # accepter's own uid. They were a patient a moment ago, so the entry
+        # exists and says so; without dropping it here the invitation is
+        # accepted and the app keeps routing them to the patient home.
+        invalidate(f"user_profile:{auth_uid}")
         return {"status": "accepted"}
 
     except HTTPException:
@@ -619,11 +626,29 @@ async def delete_care_team_member_endpoint(
         if str(member["patient_id"]) != str(patient_id):
             raise HTTPException(status_code=403, detail="Not authorized")
 
+        member_user_id = member.get("member_user_id")
+
         deleted = await remove_care_team_member(member_id=member_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Care team member not found")
 
         invalidate(f"care_team_list:{patient_id}")
+        # Removing the row removes the only reason /api/users/me calls this
+        # person a caregiver, so their cached profile is now wrong. Leaving it
+        # would keep them on the caregiver screens of a patient they no longer
+        # have access to. A pending invitation has no member_user_id and no
+        # cached profile to drop.
+        if member_user_id:
+            try:
+                removed_uid = await get_firebase_uid_from_uuid(str(member_user_id))
+                if removed_uid:
+                    invalidate(f"user_profile:{removed_uid}")
+            except Exception:
+                # The lookup raises when the row points at a user that no
+                # longer exists. The membership is already gone by this point,
+                # so a stale cache entry that cannot be found is not a reason
+                # to tell the caller their removal failed.
+                logger.warning("could not clear cached profile for removed member")
         return {"success": True}
 
     except HTTPException:
