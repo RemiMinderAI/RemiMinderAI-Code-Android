@@ -123,7 +123,11 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
         );
         return;
       }
-      if (active != null) {
+      // Refuse a second copy of the plan they already have — but not a move
+      // between plans. Blocking every purchase while any entitlement was
+      // active left a monthly subscriber with no way to reach annual, which
+      // costs more than the duplicate charge the guard was written to prevent.
+      if (active != null && active.matches(package.storeProduct.identifier)) {
         if (!mounted) return;
         setState(() {
           _active = active;
@@ -133,7 +137,10 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
         return;
       }
 
-      final premium = await RevenueCatService().purchase(package);
+      final premium = await RevenueCatService().purchase(
+        package,
+        replacing: active?.productIdentifier,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -159,6 +166,18 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
   ///
   /// Refusing is only half the job — a patient who wanted to switch plans still
   /// needs somewhere to go, and only the store can move them.
+  /// True only when the plan on screen is the one already running.
+  ///
+  /// The other plan stays buyable: both stores treat that as a change within
+  /// the subscription group rather than a second subscription.
+  bool get _selectedPlanIsCurrent {
+    final active = _active;
+    if (active == null) return false;
+    final package = _packageFor(_selectedPlan);
+    if (package == null) return false;
+    return active.matches(package.storeProduct.identifier);
+  }
+
   Future<void> _showAlreadySubscribed(ActiveSubscription active) async {
     final plan = active.matches(Environment.revenueCatAnnualProductId)
         ? 'annual'
@@ -483,7 +502,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                         // enabled button that always refuses is worse than one
                         // that never invited the tap.
                         onPressed: (_loading ||
-                                _active != null ||
+                                _selectedPlanIsCurrent ||
                                 _packageFor(_selectedPlan) == null)
                             ? null
                             : _purchaseSelectedPlan,
@@ -500,9 +519,11 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
                             : Text(
-                                _active != null
-                                    ? 'You already have Premium'
-                                    : 'Continue with Premium',
+                                _selectedPlanIsCurrent
+                                    ? 'You already have this plan'
+                                    : _active != null
+                                        ? 'Switch to this plan'
+                                        : 'Continue with Premium',
                                 style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w700),
                               ),

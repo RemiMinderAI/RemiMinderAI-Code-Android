@@ -93,11 +93,20 @@ void main() {
       ).readAsStringSync();
     });
 
-    test('the buy button is disabled while a subscription is active', () {
-      expect(source.contains('_active != null'), isTrue);
+    test('the buy button is dead only for the plan already held', () {
+      // This asserted `_active != null`, which disabled the button for BOTH
+      // plans and left a monthly subscriber unable to reach annual. Refusing a
+      // duplicate is right; refusing the cross-grade was the bug.
       final btn = source.indexOf('onPressed: (_loading ||');
       expect(btn, greaterThan(-1));
-      expect(source.substring(btn, btn + 160).contains('_active != null'), isTrue);
+      final condition = source.substring(btn, btn + 200);
+      expect(condition.contains('_selectedPlanIsCurrent'), isTrue);
+      expect(condition.contains('_active != null'), isFalse);
+    });
+
+    test('the other plan is still offered, as a switch', () {
+      expect(source.contains('Switch to this plan'), isTrue);
+      expect(source.contains('You already have this plan'), isTrue);
     });
 
     test('the current plan and its renewal date are shown', () {

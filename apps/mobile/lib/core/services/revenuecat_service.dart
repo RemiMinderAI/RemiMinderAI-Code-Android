@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
@@ -162,10 +163,28 @@ class RevenueCatService {
     return [];
   }
 
-  Future<bool> purchase(Package package) async {
+  /// [replacing] is the product the user is already subscribed to, when this
+  /// purchase is a plan change rather than a first subscription.
+  ///
+  /// The two stores differ. StoreKit treats a purchase inside the same
+  /// subscription group as an upgrade and handles proration itself, so iOS
+  /// needs nothing extra. Play needs to be told which subscription is being
+  /// replaced — without it a plan change can stack a second subscription
+  /// beside the first instead of swapping it.
+  Future<bool> purchase(Package package, {String? replacing}) async {
     if (!_initialized) return false;
     try {
-      final result = await Purchases.purchasePackage(package);
+      // Play identifies the subscription, not the base plan, so strip any
+      // ":base-plan" suffix RevenueCat reports.
+      final oldProductId = replacing?.split(':').first;
+      final result = await Purchases.purchasePackage(
+        package,
+        googleProductChangeInfo:
+            (Platform.isAndroid && oldProductId != null && oldProductId.isNotEmpty)
+                // ignore: deprecated_member_use
+                ? GoogleProductChangeInfo(oldProductId)
+                : null,
+      );
       _isPremium = result.customerInfo.entitlements.active.containsKey('Premium');
       await _syncToBackend('purchase',
           productId: package.storeProduct.identifier);
