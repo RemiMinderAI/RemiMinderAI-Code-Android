@@ -269,6 +269,29 @@ def _order_readings(phrase: str, today: date) -> list[date]:
     return unique if len(unique) == 2 else []
 
 
+def _summaries_on(
+    summaries: list[dict], day: date, timezone_name: str
+) -> list[dict]:
+    """Every summary whose visit fell on that day, in the user's timezone."""
+    return [
+        row for row in summaries if _summary_local_day(row, timezone_name) == day
+    ]
+
+
+def _nearest_day(
+    summaries: list[dict], target: date, timezone_name: str
+) -> Optional[date]:
+    """The visit day closest to the target, for naming rather than reading."""
+    days = [
+        day
+        for day in (_summary_local_day(row, timezone_name) for row in summaries)
+        if day is not None
+    ]
+    if not days:
+        return None
+    return min(days, key=lambda day: abs((day - target).days))
+
+
 def _spoken_day(value: date, today: Optional[date] = None) -> str:
     """
     "25 August" — the day named back, so a wrong one is audible.
@@ -439,9 +462,6 @@ async def execute_intent(
             "yes" if ambiguous_date else "no",
         )
 
-        # A day was meant but could not be pinned to one. Reading the most
-        # recent summary here is the failure this whole branch exists to stop:
-        # it answers a question about one day with another day's medicine.
         # A date that arrives in a shape this cannot read is an ambiguity, not
         # an absence. normalize_extraction already promotes these, so in
         # production wanted_date is ISO or empty — but "upstream guarantees it"
@@ -452,8 +472,59 @@ async def execute_intent(
             ambiguous_date = ambiguous_date or wanted_date
             wanted_date = ""
 
+        today_local = datetime.now(_tz(timezone_name)).date()
+
+        # "08/12/2026" is 8 December read one way and 12 August the other,
+        # and the user said neither — speech-to-text wrote digits in US
+        # order for a spoken "August". Asking about December when somebody
+        # said August reads as not listening.
+        #
+        # So look before asking. The question exists to choose between two
+        # candidate days, and the patient's own visits usually settle it:
+        # if only one of the two days has a summary, the other is not a
+        # real alternative and there is nothing to choose. This is not
+        # guessing month order — a day with no visit on it is not an
+        # answer to "read me my visit summary", whichever way it is read.
+        order_readings = _order_readings(ambiguous_date, today_local)
+        if order_readings:
+            with_summaries = [
+                reading
+                for reading in order_readings
+                if _summaries_on(summaries, reading, timezone_name)
+            ]
+            logger.info(
+                "READ_DOCTOR_SUMMARY: order-ambiguous date, %d of %d "
+                "readings have a summary",
+                len(with_summaries),
+                len(order_readings),
+            )
+            if len(with_summaries) == 1:
+                # Settled by the data, not by a convention.
+                wanted_date = with_summaries[0].isoformat()
+                ambiguous_date = ""
+            elif not with_summaries:
+                nearest = _nearest_day(summaries, order_readings[0], timezone_name)
+                return ActionResult(
+                    success=False,
+                    action="read_summary",
+                    message_key="summary_not_on_date",
+                    payload={
+                        "date_spoken": " or ".join(
+                            _spoken_day(r, today_local) for r in order_readings
+                        ),
+                        "nearest_spoken": (
+                            _spoken_day(nearest, today_local) if nearest else ""
+                        ),
+                        "in_future": False,
+                        "have_any": bool(summaries),
+                    },
+                    error="no_summary_on_either_reading",
+                )
+
+        # A day was meant but could not be pinned to one. Reading the most
+        # recent summary here is the failure this whole branch exists to stop:
+        # it answers a question about one day with another day's medicine.
         if ambiguous_date and not wanted_date:
-            today_local = datetime.now(_tz(timezone_name)).date()
             asked = int(entities.get(SUMMARY_DATE_ROUNDS_KEY) or 0) + 1
 
             # However good the question, asking it a third time means it is not
@@ -494,14 +565,18 @@ async def execute_intent(
             # ask about THAT, not "which day was the visit?" — the open
             # question invites the answer that just failed, and a cooperative
             # user is stuck saying the same thing again.
-            readings = _order_readings(ambiguous_date, today_local)
             payload: dict[str, Any] = {"phrase": ambiguous_date}
             key = "summary_date_unclear"
-            if readings:
+            if order_readings:
+                # Reaching here means BOTH readings have a summary, so this is
+                # a real collision rather than a transcription artefact. Ask
+                # about what was heard, which the user can recognise, rather
+                # than about a calendar they never mentioned.
                 key = "summary_date_which_order"
                 payload["options"] = [
-                    _spoken_day(reading, today_local) for reading in readings
+                    _spoken_day(reading, today_local) for reading in order_readings
                 ]
+                payload["heard"] = ambiguous_date
 
             # Hold the question open. Asking which day and then discarding the
             # turn is the mark-done failure again: a question nothing can
@@ -525,7 +600,6 @@ async def execute_intent(
         if wanted_date:
             target = _parse_iso_day(wanted_date)
             if target is not None:
-                today_local = datetime.now(_tz(timezone_name)).date()
                 matches = [
                     row
                     for row in summaries

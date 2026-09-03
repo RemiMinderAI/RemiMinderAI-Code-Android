@@ -208,6 +208,19 @@ RULES:
    6d does not touch the numeric-order check: "08/12/2026" is still ambiguous
    for a summary, because that is about which number is the month, not which
    year it is.
+
+6e. In READ_DOCTOR_SUMMARY, the words "last", "latest", "most recent",
+   "previous" and "my" attach to the SUMMARY, not to the date beside it.
+   "My last visit summary from August 12" means "my most recent visit summary,
+   the one from August 12" — it does NOT mean the 12 August before the most
+   recent one. Resolve the date exactly as 6d says, as though the word were
+   not there: on 2026-09-03 that is 2026-08-12, never 2025-08-12. The same
+   holds for "my previous visit summary from August 12" and "the last one from
+   August". When there is no date at all, "last" simply means the most recent
+   summary and no date is extracted.
+   This is about "last" sitting in front of a noun. It does not change
+   "last <weekday>", which rule 6b resolves as the most recent past occurrence
+   of that weekday and which stays exactly as it is.
 7. For UPDATE intents, put the target reminder name in "title" and the new values
    in "new_time" / "new_frequency".
 8. Multi-intent utterances: pick the PRIMARY intent.

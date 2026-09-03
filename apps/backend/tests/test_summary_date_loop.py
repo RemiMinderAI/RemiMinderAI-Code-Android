@@ -63,20 +63,72 @@ def turn(entities, *, pending=None, summaries=ROWS):
     return action, spoken
 
 
-class TheQuestionCanBeAnswered(unittest.TestCase):
-    def test_an_order_ambiguity_names_both_readings(self):
-        _, spoken = turn({"date": "08/12/2026"})
+BOTH = [
+    dict(ROWS[0], summary_id="s-a", visit_id="v-a", title="August visit",
+         summary_text="The August one.", summary_preview="The August one.",
+         visit_date="2026-08-12T14:00:00+00:00",
+         visit_created_at="2026-08-12T14:00:00+00:00"),
+    dict(ROWS[0], summary_id="s-d", visit_id="v-d", title="December visit",
+         summary_text="The December one.", summary_preview="The December one.",
+         visit_date="2026-12-08T14:00:00+00:00",
+         visit_created_at="2026-12-08T14:00:00+00:00"),
+]
+ONLY_AUGUST = [BOTH[0]]
+
+
+class AnOrderAmbiguityAsksOnlyWhenItMustinner(unittest.TestCase):
+    """
+    "08/12/2026" is a transcription artefact: the user said "August" and
+    smart_format wrote US-order digits. Asking about December when somebody
+    said August reads as not listening, so the patient's own visits settle it
+    wherever they can.
+    """
+
+    def test_one_reading_with_a_summary_is_read_without_asking(self):
+        action, spoken = turn({"date": "08/12/2026"}, summaries=ONLY_AUGUST)
+        self.assertTrue(action.success)
+        self.assertIn("The August one.", spoken)
+        self.assertNotIn("Which one?", spoken)
+        self.assertNotIn("December", spoken)
+
+    def test_neither_reading_with_a_summary_says_so_and_names_the_nearest(self):
+        action, spoken = turn({"date": "08/12/2026"})  # only a 27 August row
+        self.assertFalse(action.success)
+        self.assertEqual(action.message_key, "summary_not_on_date")
+        self.assertIn("27 August", spoken)
+        self.assertNotIn("Lyrica", spoken)
+
+    def test_both_readings_with_a_summary_still_asks(self):
+        action, spoken = turn({"date": "08/12/2026"}, summaries=BOTH)
+        self.assertFalse(action.success)
+        self.assertEqual(action.message_key, "summary_date_which_order")
         self.assertIn("12 August", spoken)
         self.assertIn("8 December", spoken)
-        # Not the open question that invites the same answer again.
-        self.assertNotIn("Which date was the visit?", spoken)
+        # and it reads neither of them
+        self.assertNotIn("The August one.", spoken)
+        self.assertNotIn("The December one.", spoken)
 
+    def test_the_question_leads_with_what_was_heard(self):
+        _, spoken = turn({"date": "08/12/2026"}, summaries=BOTH)
+        self.assertIn("I heard that as 08/12/2026", spoken)
+
+    def test_an_unambiguous_numeric_date_never_asks(self):
+        rows = [dict(ROWS[0], visit_date="2026-08-25T14:00:00+00:00",
+                     visit_created_at="2026-08-25T14:00:00+00:00")]
+        action, spoken = turn({"date": "2026-08-25"}, summaries=rows)
+        self.assertTrue(action.success)
+        self.assertNotIn("Which one?", spoken)
+
+
+class TheQuestionCanBeAnswered(unittest.TestCase):
     def test_answering_it_resolves(self):
-        action, _ = turn({"date": "08/12/2026"})
-        answer, spoken = turn({"date": "2026-08-12"}, pending=action.pending_entities)
-        self.assertFalse(answer.success)  # no summary that day, but it RESOLVED
-        self.assertEqual(answer.message_key, "summary_not_on_date")
-        self.assertIn("12 August", spoken)
+        action, _ = turn({"date": "08/12/2026"}, summaries=BOTH)
+        answer, spoken = turn(
+            {"date": "2026-08-12"}, pending=action.pending_entities, summaries=BOTH
+        )
+        self.assertTrue(answer.success)
+        self.assertIn("The August one.", spoken)
+        self.assertNotIn("The December one.", spoken)
 
     def test_a_vague_phrase_keeps_the_open_question(self):
         _, spoken = turn({"date_ambiguous": "a few weeks ago"})
@@ -84,14 +136,15 @@ class TheQuestionCanBeAnswered(unittest.TestCase):
 
 
 class TheLoopEnds(unittest.TestCase):
-    def _ask_again(self, rounds):
+    def _ask_again(self, rounds, summaries=ROWS):
         return turn(
-            {"date": "08/12/2026"},
+            {"date_ambiguous": "a few weeks ago"},
             pending={SUMMARY_DATE_ROUNDS_KEY: rounds},
+            summaries=summaries,
         )
 
     def test_the_counter_survives_the_replay(self):
-        action, _ = turn({"date": "08/12/2026"})
+        action, _ = turn({"date_ambiguous": "a few weeks ago"})
         self.assertEqual(action.pending_entities[SUMMARY_DATE_ROUNDS_KEY], 1)
         again, _ = self._ask_again(1)
         self.assertEqual(again.pending_entities[SUMMARY_DATE_ROUNDS_KEY], 2)
@@ -119,7 +172,7 @@ class TheLoopEnds(unittest.TestCase):
 
     def test_with_no_summaries_it_says_so_rather_than_offering(self):
         action, spoken = turn(
-            {"date": "08/12/2026"},
+            {"date_ambiguous": "a few weeks ago"},
             pending={SUMMARY_DATE_ROUNDS_KEY: MAX_SUMMARY_DATE_ASKS},
             summaries=[],
         )

@@ -461,10 +461,20 @@ def _text_for(
 
     if key == "summary_date_which_order":
         options = [str(o).strip() for o in (payload.get("options") or []) if str(o).strip()]
+        heard = str(payload.get("heard") or "").strip()
         if len(options) == 2:
             # Two named days, either answerable in a word. "Which day was the
             # visit?" asks for what the user already said, so cooperating
             # reproduces the same ambiguity and the question repeats.
+            #
+            # Lead with what was heard. The digits came from speech-to-text,
+            # not from the user's mouth, and somebody who said "August" needs
+            # to know why December is being offered at all.
+            if heard:
+                return (
+                    f"I heard that as {heard}, which could be "
+                    f"{options[0]} or {options[1]}. Which one?"
+                )
             return f"Did you mean {options[0]} or {options[1]}?"
         return "Which date was the visit?"
 
