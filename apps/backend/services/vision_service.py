@@ -3,29 +3,35 @@ Google Vision API service for OCR processing.
 Processes images from Google Cloud Storage.
 """
 
-import base64
-import json
 import logging
-import os
 from google.cloud import vision
-from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
 
 
 def _get_vision_client() -> vision.ImageAnnotatorClient:
-    """Build a Vision client using FIREBASE_SERVICE_ACCOUNT if ADC not available."""
-    sa_b64 = os.getenv("FIREBASE_SERVICE_ACCOUNT", "").strip()
-    if sa_b64:
-        try:
-            sa_info = json.loads(base64.b64decode(sa_b64).decode("utf-8"))
-            creds = service_account.Credentials.from_service_account_info(
-                sa_info,
-                scopes=["https://www.googleapis.com/auth/cloud-platform"],
-            )
-            return vision.ImageAnnotatorClient(credentials=creds)
-        except Exception as e:
-            logger.warning("Failed to build Vision client from FIREBASE_SERVICE_ACCOUNT: %s", e)
+    """
+    Vision client on Application Default Credentials.
+
+    On Cloud Run that resolves to the runtime service account, and
+    vision.googleapis.com is enabled on the project, which is all an
+    authenticated principal needs — there is no Vision-specific IAM role to
+    hold.
+
+    This used to claim it fell back to a service account "if ADC not
+    available". It never did: the branch read FIREBASE_SERVICE_ACCOUNT, and
+    only FIREBASE_SERVICE_ACCOUNT_JSON has ever been set, so sa_b64 was always
+    empty and every call has come through the line below. The two April
+    failures recorded as "default credentials were not found" are what that
+    looks like when ADC cannot be resolved — there was no second path to catch
+    them, and the except that would have logged one was unreachable.
+
+    Pointing it at the variable that does exist would not have helped either:
+    that secret holds raw JSON, not base64, so the decode would throw, and the
+    identity inside it is the Firebase admin account, whose roles are
+    Firebase-scoped. Wiring it up would have replaced a working path with an
+    untested one.
+    """
     return vision.ImageAnnotatorClient()
 
 
