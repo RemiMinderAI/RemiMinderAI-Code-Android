@@ -58,13 +58,18 @@ class LocaleFormat {
   /// Rewrites Western digits in [text] to the active locale's numeral system.
   static String localizeDigitsInText(BuildContext context, String text) {
     final formatter = NumberFormat.decimalPattern(locale(context));
+    // The locale's own zero. Bengali numbers as ০, so padding a formatted
+    // "০" with an ASCII "0" wrote 9:00 PM as "9:0০" — one minute in two
+    // scripts. Nine of the ten supported locales use Latin digits, which is
+    // why an ASCII pad looked correct.
+    final zero = formatter.format(0);
     return text.replaceAllMapped(RegExp(r'\d+'), (match) {
       final raw = match.group(0)!;
       final value = int.parse(raw);
       final formatted = formatter.format(value);
-      // Preserve leading zeros (e.g. "00" in "9:00 PM" must stay "00")
+      // Preserve leading zeros: "00" in "9:00 PM" must stay two digits.
       if (raw.length > formatted.length && raw.startsWith('0')) {
-        return formatted.padLeft(raw.length, '0');
+        return formatted.padLeft(raw.length, zero);
       }
       return formatted;
     });
