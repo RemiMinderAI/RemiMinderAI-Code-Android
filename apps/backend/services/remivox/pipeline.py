@@ -172,9 +172,20 @@ async def run_care_turn(
         error=action_result.error,
     )
 
-    if action_result.clear_pending or (
-        action_result.success and not action_result.pending_intent
-    ):
+    # A turn keeps the conversation open only by ASKING for something. Anything
+    # else ends it, whether it succeeded or was declined.
+    #
+    # This used to read "success and not pending_intent", so a refusal — which
+    # is neither successful nor a question — matched no branch and left the
+    # previous pending state exactly where it was. A create half-way through
+    # collecting slots would survive "mark done Aspirin" being turned down, and
+    # the next thing the user said finished it: a patient saying they had TAKEN
+    # a drug ended up with a future dose of it scheduled. Thirteen refusal paths
+    # had that shape, and only some of them had thought to set clear_pending.
+    #
+    # Declaring a pending intent is now the only way to hold the turn open, so a
+    # new refusal cannot forget to end it.
+    if action_result.clear_pending or not action_result.pending_intent:
         clear_state(user_uuid, sid)
     elif action_result.pending_intent:
         upsert_pending(

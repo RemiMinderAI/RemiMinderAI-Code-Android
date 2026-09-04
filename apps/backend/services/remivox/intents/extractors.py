@@ -458,17 +458,38 @@ _MEDICATION_PLACEHOLDERS = frozenset(
 )
 
 
+# Stripped before the comparison, so the set holds noun phrases rather than
+# every sentence somebody might wrap one in. The enumeration had "take my
+# medicine" and "take my pills" but not "take my medicines", and that one
+# missing plural is how a reminder called "Take my medicines" got created.
+_PLACEHOLDER_LEAD_RE = re.compile(r"^(?:please\s+)?(?:take|taking|have|get)\s+")
+_PLACEHOLDER_DET_RE = re.compile(r"^(?:my|the|a|an|some)\s+")
+_PLACEHOLDER_TAIL_RE = re.compile(r"\s+reminder$")
+
+
 def is_generic_medication_placeholder(title: Any) -> bool:
     """True when a title names no actual medication.
 
     "Vitamin" alone is a placeholder; "Vitamin D3" is a name, so the check is
     equality against the whole cleaned title rather than a substring test.
+
+    A leading verb and determiner are peeled off first: the patient named no
+    medication whether they said "my pills", "the pills" or "take my pills",
+    and enumerating every wrapping is how the plural got missed. Only the
+    leading words go — "medicine cabinet" and "pick up my pills from the
+    pharmacy" still carry information the patient gave, and still pass.
     """
     if not title:
         return False
     cleaned = re.sub(r"[^a-z0-9 ]+", " ", str(title).lower())
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    return cleaned in _MEDICATION_PLACEHOLDERS
+    if cleaned in _MEDICATION_PLACEHOLDERS:
+        return True
+    core = _PLACEHOLDER_TAIL_RE.sub("", cleaned)
+    for _ in range(2):
+        core = _PLACEHOLDER_LEAD_RE.sub("", core, count=1)
+        core = _PLACEHOLDER_DET_RE.sub("", core, count=1)
+    return core in _MEDICATION_PLACEHOLDERS
 
 
 def normalize_spoken_title(title: str) -> str:
