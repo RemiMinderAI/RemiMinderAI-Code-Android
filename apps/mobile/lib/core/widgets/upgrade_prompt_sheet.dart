@@ -77,59 +77,63 @@ Future<void> showUpgradePromptSheet(
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: const BoxDecoration(
-                color: Color(0xFFC9A84C),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.workspace_premium,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              reason.title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              reason.message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF2D2D2D),
-                height: 1.35,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(sheetContext).pop(false);
-                context.go('/upgrade');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+        // Scrollable: a bottom sheet is height-constrained, and the icon,
+        // title, message and two buttons overflow by ~52px on a short screen.
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFC9A84C),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.workspace_premium,
+                  color: theme.colorScheme.primary,
                 ),
               ),
-              child: const Text('View Premium options'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(sheetContext).pop(true),
-              child: const Text('Maybe later'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                reason.title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                reason.message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF2D2D2D),
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(sheetContext).pop(false);
+                  context.go('/upgrade');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('View Premium options'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(sheetContext).pop(true),
+                child: const Text('Maybe later'),
+              ),
+            ],
+          ),
         ),
       );
     },

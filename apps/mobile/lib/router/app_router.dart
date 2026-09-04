@@ -146,8 +146,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final location = state.uri.path;
           final currentItem = getCurrentNavigationItem(location);
           // Shared routes like /profile don't start with /caregiver — use auth role.
+          // watch, not read: read takes a snapshot, so a shell built before the
+          // profile resolves keeps the patient navigation until something else
+          // forces a rebuild — a caregiver arriving from an invite link sees
+          // Visits and Overview and can reach none of them.
+          // The server role lands in profile.role (a String, set from
+          // /api/users/me). user.role is only ever what SecureStorage held at
+          // sign-in, which is patient for anyone who arrived by invite — so
+          // reading user.role alone never sees a derived caregiver.
+          final authState = ref.read(authNotifierProvider);
           final isCaregiver =
-              ref.read(authNotifierProvider).user?.role == UserRole.caregiver;
+              authState.profile?.role.toLowerCase() == 'caregiver' ||
+              authState.user?.role == UserRole.caregiver;
           final caregiverRoutes = isCaregiver
               ? {
                   NavigationItem.home: '/caregiver/home',
@@ -267,10 +277,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SendInvitationsScreen(),
       ),
       GoRoute(
+        // The email deep link lands here. Building the screen directly puts it
+        // OUTSIDE the ShellRoute, so a caregiver arriving from the link got no
+        // bottom navigation and no way off the page. Redirect to the in-shell
+        // route instead — the same screen with navigation around it.
         path: '/accept-invitation',
-        builder: (context, state) {
+        redirect: (context, state) {
           final token = state.uri.queryParameters['token'];
-          return AcceptInvitationsScreen(inviteToken: token);
+          return token == null || token.isEmpty
+              ? '/caregiver/accept-invitations'
+              : '/caregiver/accept-invitations?token=$token';
         },
       ),
       GoRoute(
