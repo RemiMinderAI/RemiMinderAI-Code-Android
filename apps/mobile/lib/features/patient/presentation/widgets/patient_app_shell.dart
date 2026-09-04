@@ -685,7 +685,10 @@ class _VoxButtonBodyState extends State<_VoxButtonBody>
     _snackListening(
       isFollowUp
           ? 'Vox is still listening…'
-          : 'Vox is listening… speak in English or Hindi',
+          // Vox transcribes with Deepgram nova-3-medical, which is
+          // English-only — the medical model is what gets drug names right.
+          // The app interface is translated; voice commands are not.
+          : 'Vox is listening… speak in English',
       listenFor,
     );
     if (isFollowUp && mounted) {
