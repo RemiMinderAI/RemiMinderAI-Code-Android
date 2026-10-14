@@ -22,7 +22,7 @@ enum UserRole {
   String get displayName {
     switch (this) {
       case UserRole.patient:
-        return 'Patient';
+        return 'Member';
       case UserRole.caregiver:
         return 'Caregiver';
     }
@@ -32,9 +32,9 @@ enum UserRole {
   String get description {
     switch (this) {
       case UserRole.patient:
-        return 'Manage your own medications, appointments, and health records';
+        return 'Keep track of my appointments, medications, reminders, and important information.';
       case UserRole.caregiver:
-        return 'Help manage medications and care for family members or patients';
+        return 'Help someone stay organized, informed, and on track.';
     }
   }
 }

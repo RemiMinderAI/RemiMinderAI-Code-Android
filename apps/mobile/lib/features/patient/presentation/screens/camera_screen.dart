@@ -588,7 +588,7 @@ class _CameraScreenState extends State<CameraScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildResultSection('Patient Information', [
+        _buildResultSection('Your Information', [
           _buildResultItem('Name', 'John Doe'),
           _buildResultItem('DOB', '01/15/1985'),
           _buildResultItem('ID', 'P123456789'),

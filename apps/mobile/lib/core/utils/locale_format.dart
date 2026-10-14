@@ -85,7 +85,10 @@ class LocaleFormat {
     if (trimmed.isEmpty) return fallback;
 
     final normalized = trimmed.toLowerCase();
-    if (normalized == 'patient' || normalized == 'default patient') {
+    if (normalized == 'patient' ||
+        normalized == 'default patient' ||
+        normalized == 'member' ||
+        normalized == 'default member') {
       return fallback;
     }
     if (normalized == 'caregiver' || normalized == 'default caregiver') {

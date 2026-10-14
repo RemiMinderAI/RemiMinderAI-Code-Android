@@ -61,7 +61,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
       'id': raw['id']?.toString() ?? '',
       'type': alertType.toString(),
       'message': raw['message']?.toString() ?? raw['description']?.toString() ?? '',
-      'patient': raw['patient_name'] ?? raw['patientName'] ?? 'Patient',
+      'patient': raw['patient_name'] ?? raw['patientName'] ?? 'Member',
       'patientId': patientId.toString(),
       'timestamp': timestamp,
       'priority': raw['priority'] ?? 'medium',

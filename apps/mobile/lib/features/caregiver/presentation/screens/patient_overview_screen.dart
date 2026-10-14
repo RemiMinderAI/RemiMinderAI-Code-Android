@@ -195,10 +195,10 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   String _friendlyLoadError(Object error) {
     final message = error.toString();
     if (message.contains('403')) {
-      return 'Unable to load patient data. Ask the patient to confirm your care team access.';
+      return 'Unable to load Member data. Ask the Member to confirm your care team access.';
     }
     if (message.contains('404')) {
-      return 'Patient data is not available yet.';
+      return 'Member data is not available yet.';
     }
     if (message.contains('401')) {
       if (message.contains('client does not have permission to')) {
@@ -207,9 +207,9 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
       return 'Your session expired. Sign out and sign in again.';
     }
     if (message.contains('500')) {
-      return 'Server error while loading patient data. Try again in a moment.';
+      return 'Server error while loading Member data. Try again in a moment.';
     }
-    return 'Could not load patient data. Pull to refresh or try again later.';
+    return 'Could not load Member data. Pull to refresh or try again later.';
   }
 
   List<Map<String, dynamic>> _flattenReminders(Map<String, dynamic> payload) {

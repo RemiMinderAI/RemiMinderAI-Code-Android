@@ -62,9 +62,9 @@ class RoleSelectionScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       _RoleCard(
-                        title: 'Patient',
+                        title: 'Member',
                         description:
-                            'Manage your own medications, appointments, and health records',
+                            'Keep track of my appointments, medications, reminders, and important information.',
                         iconPath: 'assets/images/patient_icon.svg',
                         isSelected: selectedRole == UserRole.patient,
                         compactLayout: compactLayout,
@@ -76,7 +76,7 @@ class RoleSelectionScreen extends ConsumerWidget {
                       _RoleCard(
                         title: 'Caregiver',
                         description:
-                            'Help manage medications and care for family members or patients',
+                            'Help someone stay organized, informed, and on track.',
                         iconPath: 'assets/images/caregiver_icon.svg',
                         isSelected: selectedRole == UserRole.caregiver,
                         compactLayout: compactLayout,
