@@ -227,7 +227,7 @@
   "communicationAndConsent": "સંચાર અને સંમતિ",
   "allowEmailNotifications": "ઇમેઇલ સૂચનાઓને મંજૂરી આપો",
   "allowSmsNotifications": "SMS સૂચનાઓને મંજૂરી આપો",
-  "allowPushNotifications": "પુશ સૂચનાઓને મંજૂરી આપો",
+  "notificationSettings": "સૂચના સેટિંગ્સ",
   "dataControl": "ડેટા નિયંત્રણ",
   "exportMyData": "મારો ડેટા નિકાસ કરો",
   "deleteAllMedicalRecords": "મારા તમામ મેડિકલ રેકોર્ડ્સ કાઢી નાખો",
@@ -243,14 +243,6 @@
   "privacyPolicy": "ગોપનીયતા નીતિ",
   "privacyPolicyBody": "RemiMinder માટે ગોપનીયતા નીતિ\n\n1. માહિતી અમે એકત્રિત કરીએ છીએ\nઅમે અમારી સેવાને બહેતર બનાવવા માટે તમે પ્રદાન કરો છો તે માહિતી એકત્રિત કરીએ છીએ અને ડેટાનો ઉપયોગ કરીએ છીએ.\n\n2. અમે માહિતીનો ઉપયોગ કેવી રીતે કરીએ છીએ\nમાહિતીનો ઉપયોગ હેલ્થકેર મેનેજમેન્ટ સેવાઓ પ્રદાન કરવા માટે થાય છે.\n\n3. માહિતી શેરિંગ\nઅમે તમારી અંગત માહિતી વેચતા નથી.\n\nસંપૂર્ણ ગોપનીયતા નીતિ માટે, કૃપા કરીને અમારી વેબસાઇટની મુલાકાત લો.",
   "close": "બંધ કરો",
-  "featureComingSoon": "{feature}ટૂંક સમયમાં આવી રહ્યું છે",
-  "@featureComingSoon": {
-    "placeholders": {
-      "feature": {
-        "type": "String"
-      }
-    }
-  },
   "caregiverSharingEnabled": "કેરગીવર શેરિંગ સક્ષમ છે",
   "caregiverSharingDisabled": "કેરગીવર શેરિંગ અક્ષમ છે",
   "dataExport": "ડેટા નિકાસ",

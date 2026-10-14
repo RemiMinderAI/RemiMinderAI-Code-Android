@@ -231,7 +231,7 @@
   "communicationAndConsent": "Communication & Consent",
   "allowEmailNotifications": "Allow email notifications",
   "allowSmsNotifications": "Allow SMS notifications",
-  "allowPushNotifications": "Allow push notifications",
+  "notificationSettings": "Notification settings",
   "dataControl": "Data Control",
   "exportMyData": "Export my data",
   "deleteAllMedicalRecords": "Delete all my medical records",
@@ -247,14 +247,6 @@
   "privacyPolicy": "Privacy Policy",
   "privacyPolicyBody": "Privacy Policy for RemiMinder\n\n1. Information We Collect\nWe collect information you provide and usage data to improve our service.\n\n2. How We Use Information\nInformation is used to provide healthcare management services.\n\n3. Information Sharing\nWe do not sell your personal information.\n\nFor the complete Privacy Policy, please visit our website.",
   "close": "Close",
-  "featureComingSoon": "{feature} coming soon",
-  "@featureComingSoon": {
-    "placeholders": {
-      "feature": {
-        "type": "String"
-      }
-    }
-  },
   "caregiverSharingEnabled": "Caregiver sharing enabled",
   "caregiverSharingDisabled": "Caregiver sharing disabled",
   "dataExport": "Data export",

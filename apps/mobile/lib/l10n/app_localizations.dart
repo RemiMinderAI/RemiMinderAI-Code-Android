@@ -1074,11 +1074,11 @@ abstract class AppLocalizations {
   /// **'Allow SMS notifications'**
   String get allowSmsNotifications;
 
-  /// No description provided for @allowPushNotifications.
+  /// No description provided for @notificationSettings.
   ///
   /// In en, this message translates to:
-  /// **'Allow push notifications'**
-  String get allowPushNotifications;
+  /// **'Notification settings'**
+  String get notificationSettings;
 
   /// No description provided for @dataControl.
   ///
@@ -1169,12 +1169,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
-
-  /// No description provided for @featureComingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'{feature} coming soon'**
-  String featureComingSoon(String feature);
 
   /// No description provided for @caregiverSharingEnabled.
   ///

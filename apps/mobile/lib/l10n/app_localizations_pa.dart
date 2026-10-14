@@ -522,7 +522,7 @@ class AppLocalizationsPa extends AppLocalizations {
   String get allowSmsNotifications => 'SMS ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ';
 
   @override
-  String get allowPushNotifications => 'ਪੁਸ਼ ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ';
+  String get notificationSettings => 'ਸੂਚਨਾ ਸੈਟਿੰਗਾਂ';
 
   @override
   String get dataControl => 'ਡਾਟਾ ਕੰਟਰੋਲ';
@@ -571,11 +571,6 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get close => 'ਬੰਦ ਕਰੋ';
-
-  @override
-  String featureComingSoon(String feature) {
-    return '$featureਆਨ ਵਾਲੀ';
-  }
 
   @override
   String get caregiverSharingEnabled => 'ਕੇਅਰਗਿਵਰ ਸ਼ੇਅਰਿੰਗ ਸਮਰੱਥ ਹੈ';

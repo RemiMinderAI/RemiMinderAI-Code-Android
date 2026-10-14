@@ -520,7 +520,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get allowSmsNotifications => 'Permitir notificaciones por SMS';
 
   @override
-  String get allowPushNotifications => 'Permitir notificaciones push';
+  String get notificationSettings => 'Configuración de notificaciones';
 
   @override
   String get dataControl => 'Control de datos';
@@ -569,11 +569,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get close => 'Cerrar';
-
-  @override
-  String featureComingSoon(String feature) {
-    return '$feature próximamente';
-  }
 
   @override
   String get caregiverSharingEnabled => 'Compartir con cuidador activado';

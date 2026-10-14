@@ -227,7 +227,7 @@
   "communicationAndConsent": "ਸੰਚਾਰ ਅਤੇ ਸਹਿਮਤੀ",
   "allowEmailNotifications": "ਈਮੇਲ ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ",
   "allowSmsNotifications": "SMS ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ",
-  "allowPushNotifications": "ਪੁਸ਼ ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ",
+  "notificationSettings": "ਸੂਚਨਾ ਸੈਟਿੰਗਾਂ",
   "dataControl": "ਡਾਟਾ ਕੰਟਰੋਲ",
   "exportMyData": "ਮੇਰਾ ਡੇਟਾ ਨਿਰਯਾਤ ਕਰੋ",
   "deleteAllMedicalRecords": "ਮੇਰੇ ਸਾਰੇ ਮੈਡੀਕਲ ਰਿਕਾਰਡ ਮਿਟਾਓ",
@@ -243,14 +243,6 @@
   "privacyPolicy": "ਪਰਾਈਵੇਟ ਨੀਤੀ",
   "privacyPolicyBody": "ਰੀਮੀਮਾਈਂਡਰ ਲਈ ਗੋਪਨੀਯਤਾ ਨੀਤੀ\n\n1. ਜਾਣਕਾਰੀ ਅਸੀਂ ਇਕੱਠੀ ਕਰਦੇ ਹਾਂ\nਅਸੀਂ ਸਾਡੀ ਸੇਵਾ ਨੂੰ ਬਿਹਤਰ ਬਣਾਉਣ ਲਈ ਤੁਹਾਡੇ ਦੁਆਰਾ ਪ੍ਰਦਾਨ ਕੀਤੀ ਜਾਣਕਾਰੀ ਅਤੇ ਵਰਤੋਂ ਡੇਟਾ ਇਕੱਤਰ ਕਰਦੇ ਹਾਂ।\n\n2. ਅਸੀਂ ਜਾਣਕਾਰੀ ਦੀ ਵਰਤੋਂ ਕਿਵੇਂ ਕਰਦੇ ਹਾਂ\nਜਾਣਕਾਰੀ ਦੀ ਵਰਤੋਂ ਸਿਹਤ ਸੰਭਾਲ ਪ੍ਰਬੰਧਨ ਸੇਵਾਵਾਂ ਪ੍ਰਦਾਨ ਕਰਨ ਲਈ ਕੀਤੀ ਜਾਂਦੀ ਹੈ।\n\n3. ਜਾਣਕਾਰੀ ਸਾਂਝੀ ਕਰਨਾ\nਅਸੀਂ ਤੁਹਾਡੀ ਨਿੱਜੀ ਜਾਣਕਾਰੀ ਨਹੀਂ ਵੇਚਦੇ।\n\nਪੂਰੀ ਗੋਪਨੀਯਤਾ ਨੀਤੀ ਲਈ, ਕਿਰਪਾ ਕਰਕੇ ਸਾਡੀ ਵੈੱਬਸਾਈਟ 'ਤੇ ਜਾਓ।",
   "close": "ਬੰਦ ਕਰੋ",
-  "featureComingSoon": "{feature}ਆਨ ਵਾਲੀ",
-  "@featureComingSoon": {
-    "placeholders": {
-      "feature": {
-        "type": "String"
-      }
-    }
-  },
   "caregiverSharingEnabled": "ਕੇਅਰਗਿਵਰ ਸ਼ੇਅਰਿੰਗ ਸਮਰੱਥ ਹੈ",
   "caregiverSharingDisabled": "ਦੇਖਭਾਲ ਕਰਨ ਵਾਲਾ ਸਾਂਝਾਕਰਨ ਅਯੋਗ ਹੈ",
   "dataExport": "ਡਾਟਾ ਨਿਰਯਾਤ",

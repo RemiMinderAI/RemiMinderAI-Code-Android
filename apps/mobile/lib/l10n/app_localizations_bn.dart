@@ -514,7 +514,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get allowSmsNotifications => 'SMS বিজ্ঞপ্তি অনুমতি';
 
   @override
-  String get allowPushNotifications => 'পুশ বিজ্ঞপ্তি অনুমতি';
+  String get notificationSettings => 'বিজ্ঞপ্তি সেটিংস';
 
   @override
   String get dataControl => 'ডেটা নিয়ন্ত্রণ';
@@ -563,11 +563,6 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get close => 'বন্ধ';
-
-  @override
-  String featureComingSoon(String feature) {
-    return '$feature শীঘ্রই আসছে';
-  }
 
   @override
   String get caregiverSharingEnabled => 'যত্নকারী শেয়ারিং চালু';

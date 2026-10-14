@@ -524,7 +524,7 @@ class AppLocalizationsTa extends AppLocalizations {
   String get allowSmsNotifications => 'SMS அறிவிப்புகளை அனுமதி';
 
   @override
-  String get allowPushNotifications => 'புஷ் அறிவிப்புகளை அனுமதி';
+  String get notificationSettings => 'அறிவிப்பு அமைப்புகள்';
 
   @override
   String get dataControl => 'தரவு கட்டுப்பாடு';
@@ -574,11 +574,6 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get close => 'மூடு';
-
-  @override
-  String featureComingSoon(String feature) {
-    return '$feature விரைவில் வரும்';
-  }
 
   @override
   String get caregiverSharingEnabled => 'பராமரிப்பாளர் பகிர்வு இயக்கப்பட்டது';
