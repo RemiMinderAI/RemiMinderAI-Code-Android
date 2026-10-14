@@ -1,6 +1,6 @@
 # MediMinder Mobile App
 
-A Flutter-based healthcare companion app for patients and caregivers.
+A Flutter-based healthcare companion app for Members and caregivers.
 
 ## Getting Started
 
@@ -34,7 +34,7 @@ A Flutter-based healthcare companion app for patients and caregivers.
 ```
 lib/
 ├── features/
-│   ├── patient/          # Patient-specific screens and logic
+│   ├── patient/          # Member-facing screens and logic
 │   ├── caregiver/        # Caregiver-specific screens and logic
 │   └── auth/             # Authentication screens and logic
 ├── core/
@@ -46,17 +46,17 @@ lib/
 
 ## Features
 
-### For Patients
+### For Members
 - **Visit Recording**: Record healthcare visits with audio
 - **Medication Reminders**: Smart reminders with notifications
 - **Health Dashboard**: Track visits, medications, and health metrics
 - **Caregiver Connection**: Share health information with caregivers
 
 ### For Caregivers
-- **Patient Management**: Monitor multiple patients
-- **Visit Summaries**: Access patient visit recordings and summaries
+- **Member Management**: Monitor multiple Members
+- **Visit Summaries**: Access Member visit recordings and summaries
 - **Reminder Oversight**: Track medication adherence
-- **Communication**: Connect with patients and healthcare providers
+- **Communication**: Connect with Members and healthcare providers
 
 ## Development
 

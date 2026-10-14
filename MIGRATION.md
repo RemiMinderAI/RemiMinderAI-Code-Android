@@ -38,14 +38,14 @@ Copy these files from Phase 1:
    - Implement push notifications
 
 4. **Build Flutter screens**
-   - Patient dashboard
+   - Member dashboard
    - Caregiver interface
    - Settings and profile management
 
 5. **Test end-to-end functionality**
    - Audio recording and transcription
    - Reminder notifications
-   - Caregiver-patient communication
+   - Caregiver-Member communication
 
 ## Migration Checklist
 

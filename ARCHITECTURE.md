@@ -2,7 +2,7 @@
 
 ## Overview
 
-RemiMinder Phase 2 is a mobile-first healthcare companion that connects patients and caregivers through AI-powered visit recording and intelligent medication management.
+RemiMinder Phase 2 is a mobile-first healthcare companion that connects Members and caregivers through AI-powered visit recording and intelligent medication management.
 
 ## System Components
 
@@ -16,8 +16,8 @@ RemiMinder Phase 2 is a mobile-first healthcare companion that connects patients
   - Audio visit recording with AI transcription
   - Smart medication reminders with snooze/skip
   - RemiScan: AI-powered scanner for prescriptions, pill bottles, and lab reports
-  - Patient dashboard with health tracking
-  - Caregiver multi-patient monitoring
+  - Member dashboard with health tracking
+  - Caregiver multi-Member monitoring
   - Offline-first capabilities with sync
 
 ### Backend (FastAPI + GCP)
@@ -44,8 +44,8 @@ Firebase Auth   Cloud Storage   Real-time Sync
 
 ## Key Capabilities
 
-### Patient Experience
-- **Audio Visit Recording**: Record doctor-patient conversations with high-quality audio
+### Member Experience
+- **Audio Visit Recording**: Record conversations with healthcare providers with high-quality audio
 - **AI Transcription**: Automatic conversion to text with intelligent summarization
 - **Smart Medication Reminders**: Intelligent scheduling with snooze and skip options
 - **RemiScan**: AI-powered scanning of prescriptions, pill bottles, and lab reports
@@ -53,9 +53,9 @@ Firebase Auth   Cloud Storage   Real-time Sync
 - **Visit History**: Archive of past visits with summaries and recordings
 
 ### Caregiver Experience
-- **Multi-Patient Monitoring**: Manage multiple patients with real-time oversight
+- **Multi-Member Monitoring**: Manage multiple Members with real-time oversight
 - **Adherence Alerts**: Receive notifications for missed medications or issues
-- **Visit Access**: View patient visit recordings and AI-generated summaries
+- **Visit Access**: View Member visit recordings and AI-generated summaries
 - **Emergency Connections**: Quick access to healthcare providers
 - **Progress Tracking**: Monitor medication compliance and health trends
 
