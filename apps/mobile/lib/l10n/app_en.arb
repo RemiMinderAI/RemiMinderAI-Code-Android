@@ -521,7 +521,7 @@
     }
   },
   "neverSynced": "Not loaded yet",
-  "privacyDataRequestMessage": "Contact privacy@remiminder.ai to export or delete your data.",
+  "privacyDataRequestMessage": "Contact team@remiminderai.com to export or delete your data.",
   "syncMinutesAgo": "{minutes}m ago",
   "@syncMinutesAgo": {
     "placeholders": {

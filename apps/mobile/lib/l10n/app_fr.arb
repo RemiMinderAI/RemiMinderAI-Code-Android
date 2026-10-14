@@ -397,7 +397,7 @@
   "badgeNew": "Nouveau",
   "joinedOn": "Rejoint le {date}",
   "neverSynced": "Pas encore chargé",
-  "privacyDataRequestMessage": "Contactez privacy@remiminder.ai pour exporter ou supprimer vos données.",
+  "privacyDataRequestMessage": "Contactez team@remiminderai.com pour exporter ou supprimer vos données.",
   "syncMinutesAgo": "il y a {minutes} min",
   "syncHoursAgo": "il y a {hours} h",
   "syncDaysAgo": "il y a {days} j",

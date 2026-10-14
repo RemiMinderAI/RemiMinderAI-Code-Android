@@ -397,7 +397,7 @@
   "badgeNew": "नया",
   "joinedOn": "जुड़े {date}",
   "neverSynced": "अभी लोड नहीं हुआ",
-  "privacyDataRequestMessage": "अपना डेटा निर्यात या हटाने के लिए privacy@remiminder.ai से संपर्क करें।",
+  "privacyDataRequestMessage": "अपना डेटा निर्यात या हटाने के लिए team@remiminderai.com से संपर्क करें।",
   "syncMinutesAgo": "{minutes} मि० पहले",
   "syncHoursAgo": "{hours} घं० पहले",
   "syncDaysAgo": "{days} दि० पहले",

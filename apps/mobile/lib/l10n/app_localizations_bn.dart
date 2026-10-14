@@ -979,7 +979,7 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get privacyDataRequestMessage =>
-      'আপনার ডেটা রপ্তানি বা মুছে ফেলতে privacy@remiminder.ai এ যোগাযোগ করুন।';
+      'আপনার ডেটা রপ্তানি বা মুছে ফেলতে team@remiminderai.com এ যোগাযোগ করুন।';
 
   @override
   String syncMinutesAgo(int minutes) {

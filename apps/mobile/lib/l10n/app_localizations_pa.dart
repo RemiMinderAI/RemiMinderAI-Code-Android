@@ -997,7 +997,7 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get privacyDataRequestMessage =>
-      'ਆਪਣੇ ਡੇਟਾ ਨੂੰ ਨਿਰਯਾਤ ਕਰਨ ਜਾਂ ਮਿਟਾਉਣ ਲਈ privacy@remiminder.ai \'ਤੇ ਸੰਪਰਕ ਕਰੋ।';
+      'ਆਪਣੇ ਡੇਟਾ ਨੂੰ ਨਿਰਯਾਤ ਕਰਨ ਜਾਂ ਮਿਟਾਉਣ ਲਈ team@remiminderai.com \'ਤੇ ਸੰਪਰਕ ਕਰੋ।';
 
   @override
   String syncMinutesAgo(int minutes) {

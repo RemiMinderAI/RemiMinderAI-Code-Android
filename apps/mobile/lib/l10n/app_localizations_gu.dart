@@ -993,7 +993,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get privacyDataRequestMessage =>
-      'તમારો ડેટા નિકાસ કરવા અથવા કાઢી નાખવા માટે privacy@remiminder.ai નો સંપર્ક કરો.';
+      'તમારો ડેટા નિકાસ કરવા અથવા કાઢી નાખવા માટે team@remiminderai.com નો સંપર્ક કરો.';
 
   @override
   String syncMinutesAgo(int minutes) {

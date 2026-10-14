@@ -1905,7 +1905,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyDataRequestMessage.
   ///
   /// In en, this message translates to:
-  /// **'Contact privacy@remiminder.ai to export or delete your data.'**
+  /// **'Contact team@remiminderai.com to export or delete your data.'**
   String get privacyDataRequestMessage;
 
   /// No description provided for @syncMinutesAgo.

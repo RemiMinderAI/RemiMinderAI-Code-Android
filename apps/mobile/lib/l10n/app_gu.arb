@@ -518,7 +518,7 @@
     }
   },
   "neverSynced": "હજુ સુધી લોડ નથી",
-  "privacyDataRequestMessage": "તમારો ડેટા નિકાસ કરવા અથવા કાઢી નાખવા માટે privacy@remiminder.ai નો સંપર્ક કરો.",
+  "privacyDataRequestMessage": "તમારો ડેટા નિકાસ કરવા અથવા કાઢી નાખવા માટે team@remiminderai.com નો સંપર્ક કરો.",
   "syncMinutesAgo": "{minutes}મી પહેલા",
   "@syncMinutesAgo": {
     "placeholders": {

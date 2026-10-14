@@ -994,7 +994,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get privacyDataRequestMessage =>
-      'உங்கள் தரவை ஏற்றுமதி அல்லது நீக்க privacy@remiminder.ai ஐ தொடர்பு கொள்ளுங்கள்.';
+      'உங்கள் தரவை ஏற்றுமதி அல்லது நீக்க team@remiminderai.com ஐ தொடர்பு கொள்ளுங்கள்.';
 
   @override
   String syncMinutesAgo(int minutes) {

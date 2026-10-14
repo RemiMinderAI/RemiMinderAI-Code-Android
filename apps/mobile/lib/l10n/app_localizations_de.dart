@@ -998,7 +998,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get privacyDataRequestMessage =>
-      'Kontaktieren Sie privacy@remiminder.ai, um Ihre Daten zu exportieren oder zu löschen.';
+      'Kontaktieren Sie team@remiminderai.com, um Ihre Daten zu exportieren oder zu löschen.';
 
   @override
   String syncMinutesAgo(int minutes) {
