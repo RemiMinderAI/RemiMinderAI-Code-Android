@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -578,7 +579,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get allowSmsNotifications => 'Autoriser les notifications par SMS';
 
   @override
-  String get allowPushNotifications => 'Autoriser les notifications push';
+  String get notificationSettings => 'Paramètres de notification';
 
   @override
   String get dataControl => 'Contrôle des données';

@@ -256,7 +256,7 @@
   "communicationAndConsent": "Communication & Consent",
   "allowEmailNotifications": "Allow email notifications",
   "allowSmsNotifications": "Allow SMS notifications",
-  "allowPushNotifications": "Allow push notifications",
+  "notificationSettings": "Notification settings",
   "dataControl": "Data Control",
   "exportMyData": "Export my data",
   "deleteAllMedicalRecords": "Delete all my medical records",

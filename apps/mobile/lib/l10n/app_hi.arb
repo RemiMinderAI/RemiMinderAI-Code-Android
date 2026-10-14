@@ -157,7 +157,7 @@
   "communicationAndConsent": "संचार और सहमति",
   "allowEmailNotifications": "ईमेल सूचनाएँ अनुमति दें",
   "allowSmsNotifications": "SMS सूचनाएँ अनुमति दें",
-  "allowPushNotifications": "पुश सूचनाएँ अनुमति दें",
+  "notificationSettings": "सूचना सेटिंग्स",
   "dataControl": "डेटा नियंत्रण",
   "exportMyData": "मेरा डेटा निर्यात करें",
   "deleteAllMedicalRecords": "सभी चिकित्सा रिकॉर्ड हटाएँ",

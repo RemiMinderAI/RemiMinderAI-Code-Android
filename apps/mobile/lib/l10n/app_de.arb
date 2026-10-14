@@ -157,7 +157,7 @@
   "communicationAndConsent": "Kommunikation & Einwilligung",
   "allowEmailNotifications": "E-Mail-Benachrichtigungen erlauben",
   "allowSmsNotifications": "SMS-Benachrichtigungen erlauben",
-  "allowPushNotifications": "Push-Benachrichtigungen erlauben",
+  "notificationSettings": "Benachrichtigungseinstellungen",
   "dataControl": "Datenkontrolle",
   "exportMyData": "Meine Daten exportieren",
   "deleteAllMedicalRecords": "Alle meine medizinischen Aufzeichnungen löschen",

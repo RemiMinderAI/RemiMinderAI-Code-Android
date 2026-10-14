@@ -157,7 +157,7 @@
   "communicationAndConsent": "যোগাযোগ ও সম্মতি",
   "allowEmailNotifications": "ইমেইল বিজ্ঞপ্তি অনুমতি",
   "allowSmsNotifications": "SMS বিজ্ঞপ্তি অনুমতি",
-  "allowPushNotifications": "পুশ বিজ্ঞপ্তি অনুমতি",
+  "notificationSettings": "বিজ্ঞপ্তি সেটিংস",
   "dataControl": "ডেটা নিয়ন্ত্রণ",
   "exportMyData": "আমার ডেটা রপ্তানি",
   "deleteAllMedicalRecords": "সব চিকিৎসা রেকর্ড মুছুন",

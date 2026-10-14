@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -573,7 +574,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get allowSmsNotifications => 'SMS સૂચનાઓને મંજૂરી આપો';
 
   @override
-  String get allowPushNotifications => 'પુશ સૂચનાઓને મંજૂરી આપો';
+  String get notificationSettings => 'સૂચના સેટિંગ્સ';
 
   @override
   String get dataControl => 'ડેટા નિયંત્રણ';

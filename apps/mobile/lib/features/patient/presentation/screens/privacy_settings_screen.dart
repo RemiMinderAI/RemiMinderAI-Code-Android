@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/legal_urls.dart';
 import '../../../../core/services/account_data_actions.dart';
-import '../../../../core/services/notification_service.dart';
 import '../../../../core/widgets/remi_shell_ui.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../care_team/care_team_permission.dart';
@@ -25,7 +25,6 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
   bool _allowAiImprovement = true;
 
   bool _allowEmailNotifications = true;
-  bool _allowPushNotifications = true;
 
   CareTeamMember? _activeCaregiver;
   bool _isLoadingCaregiver = true;
@@ -80,7 +79,6 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
     _allowCaregiverReminders = value;
     _allowAiImprovement = value;
     _allowEmailNotifications = value;
-    _allowPushNotifications = value;
   }
 
   Future<void> _loadCaregiver() async {
@@ -190,18 +188,8 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
     );
   }
 
-  Future<void> _updatePushNotifications(bool value) async {
-    _updateLocalPreference(() => _allowPushNotifications = value);
-    if (!value) return;
-
-    final granted = await NotificationService().requestPermissions();
-    if (!mounted) return;
-    if (!granted) {
-      setState(() => _allowPushNotifications = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.pushNotificationsDisabled)),
-      );
-    }
+  Future<void> _openNotificationSettings() async {
+    await openAppSettings();
   }
 
   void _updateEmailNotifications(bool value) {
@@ -337,11 +325,10 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
                       _updateEmailNotifications,
                       isEnabled: !_isLoadingCaregiver,
                     ),
-                    _buildToggleTile(
-                      l10n.allowPushNotifications,
-                      _allowPushNotifications,
-                      _updatePushNotifications,
-                      isEnabled: !_isLoadingCaregiver,
+                    _buildActionButton(
+                      l10n.notificationSettings,
+                      Icons.settings,
+                      _openNotificationSettings,
                     ),
                     const SizedBox(height: 24),
                     _buildSectionHeader(l10n.dataControl, Icons.storage),

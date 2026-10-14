@@ -157,7 +157,7 @@
   "communicationAndConsent": "தொடர்பு & ஒப்புதல்",
   "allowEmailNotifications": "மின்னஞ்சல் அறிவிப்புகளை அனுமதி",
   "allowSmsNotifications": "SMS அறிவிப்புகளை அனுமதி",
-  "allowPushNotifications": "புஷ் அறிவிப்புகளை அனுமதி",
+  "notificationSettings": "அறிவிப்பு அமைப்புகள்",
   "dataControl": "தரவு கட்டுப்பாடு",
   "exportMyData": "என் தரவை ஏற்றுமதி செய்",
   "deleteAllMedicalRecords": "என் அனைத்து மருத்துவ பதிவுகளையும் நீக்கு",

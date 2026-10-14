@@ -226,7 +226,7 @@
   "communicationAndConsent": "ਸੰਚਾਰ ਅਤੇ ਸਹਿਮਤੀ",
   "allowEmailNotifications": "ਈਮੇਲ ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ",
   "allowSmsNotifications": "SMS ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ",
-  "allowPushNotifications": "ਪੁਸ਼ ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ",
+  "notificationSettings": "ਸੂਚਨਾ ਸੈਟਿੰਗਾਂ",
   "dataControl": "ਡਾਟਾ ਕੰਟਰੋਲ",
   "exportMyData": "ਮੇਰਾ ਡੇਟਾ ਨਿਰਯਾਤ ਕਰੋ",
   "deleteAllMedicalRecords": "ਮੇਰੇ ਸਾਰੇ ਮੈਡੀਕਲ ਰਿਕਾਰਡ ਮਿਟਾਓ",
