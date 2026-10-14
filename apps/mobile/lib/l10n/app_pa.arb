@@ -19,7 +19,7 @@
   "navOverview": "ਸੰਖੇਪ ਜਾਣਕਾਰੀ",
   "navCareTeam": "ਕੇਅਰ ਟੀਮ",
   "navProfile": "ਪ੍ਰੋਫਾਈਲ",
-  "navPatients": "ਮਰੀਜ਼",
+  "navPatients": "ਸਦੱਸ",
   "goodMorning": "ਸ਼ੁਭ ਸਵੇਰ",
   "goodAfternoon": "ਨਮਸਕਾਰ",
   "goodEvening": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ",
@@ -99,7 +99,7 @@
   "noSummariesYet": "ਅਜੇ ਕੋਈ ਸਾਰਾਂਸ਼ ਨਹੀਂ",
   "summariesWillAppearHere": "ਤੁਹਾਡੇ ਦੌਰੇ ਦੇ ਸੰਖੇਪ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੇ",
   "failedToLoadSummaries": "ਸਾਰਾਂਸ਼ਾਂ ਨੂੰ ਲੋਡ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ",
-  "failedToLoadPatients": "ਮਰੀਜ਼ਾਂ ਨੂੰ ਲੋਡ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ",
+  "failedToLoadPatients": "ਸਦੱਸਾਂ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ",
   "retry": "ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
   "shareLabel": "ਸ਼ੇਅਰ ਕਰੋ",
   "doctorVisit": "ਡਾਕਟਰ ਦੀ ਮੁਲਾਕਾਤ",
@@ -152,7 +152,7 @@
   "notSet": "ਸੈੱਟ ਨਹੀਂ ਹੈ",
   "appleIdHidden": "ਐਪਲ ਆਈਡੀ (ਲੁਕਿਆ ਹੋਇਆ)",
   "accountType": "ਖਾਤੇ ਦੀ ਕਿਸਮ",
-  "patientRole": "ਮਰੀਜ਼",
+  "patientRole": "ਸਦੱਸ",
   "caregiverRole": "ਦੇਖਭਾਲ ਕਰਨ ਵਾਲਾ",
   "phoneLabel": "ਫ਼ੋਨ",
   "edit": "ਸੰਪਾਦਿਤ ਕਰੋ",
@@ -434,7 +434,7 @@
   "sectionRecentAlerts": "ਹਾਲੀਆ ਚੇਤਾਵਨੀਆਂ",
   "viewAll": "ਸਭ ਦੇਖੋ",
   "sectionInvitations": "ਸੱਦੇ",
-  "summaryPatients": "ਮਰੀਜ਼",
+  "summaryPatients": "ਸਦੱਸ",
   "summaryAlerts": "ਚੇਤਾਵਨੀਆਂ",
   "summaryPending": "ਬਕਾਇਆ",
   "noAlertsAtThisTime": "ਇਸ ਸਮੇਂ ਕੋਈ ਚੇਤਾਵਨੀਆਂ ਨਹੀਂ ਹਨ",
@@ -450,9 +450,9 @@
   },
   "reviewAcceptInvitations": "ਦੇਖਭਾਲ ਕਰਨ ਵਾਲੇ ਸੱਦਿਆਂ ਦੀ ਸਮੀਖਿਆ ਕਰੋ ਅਤੇ ਸਵੀਕਾਰ ਕਰੋ।",
   "viewInvitations": "ਸੱਦੇ ਵੇਖੋ",
-  "defaultPatient": "ਮਰੀਜ਼",
+  "defaultPatient": "ਸਦੱਸ",
   "defaultCaregiver": "ਦੇਖਭਾਲ ਕਰਨ ਵਾਲਾ",
-  "caregiverPatientTime": "ਮਰੀਜ਼:{name} • {time}",
+  "caregiverPatientTime": "ਸਦੱਸ: {name} • {time}",
   "@caregiverPatientTime": {
     "placeholders": {
       "name": {
@@ -480,7 +480,7 @@
   "alertsPlural": "ਚੇਤਾਵਨੀਆਂ",
   "clearFilter": "ਫਿਲਟਰ ਸਾਫ਼ ਕਰੋ",
   "noAlertsMatchFilter": "ਕੋਈ ਚੇਤਾਵਨੀਆਂ ਇਸ ਫਿਲਟਰ ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦੀਆਂ",
-  "allPatientActivitiesSmooth": "ਮਰੀਜ਼ਾਂ ਦੀਆਂ ਸਾਰੀਆਂ ਗਤੀਵਿਧੀਆਂ ਸੁਚਾਰੂ ਢੰਗ ਨਾਲ ਚੱਲ ਰਹੀਆਂ ਹਨ",
+  "allPatientActivitiesSmooth": "ਸਦੱਸਾਂ ਦੀਆਂ ਸਾਰੀਆਂ ਗਤੀਵਿਧੀਆਂ ਸੁਚਾਰੂ ਢੰਗ ਨਾਲ ਚੱਲ ਰਹੀਆਂ ਹਨ",
   "tryAdjustingFilter": "ਹੋਰ ਚੇਤਾਵਨੀਆਂ ਦੇਖਣ ਲਈ ਆਪਣੇ ਫਿਲਟਰ ਨੂੰ ਵਿਵਸਥਿਤ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
   "viewAllAlerts": "ਸਾਰੀਆਂ ਚੇਤਾਵਨੀਆਂ ਵੇਖੋ",
   "alertMarkedAsRead": "ਚੇਤਾਵਨੀ ਨੂੰ ਪੜ੍ਹਿਆ ਗਿਆ ਵਜੋਂ ਚਿੰਨ੍ਹਿਤ ਕੀਤਾ ਗਿਆ",
@@ -493,9 +493,9 @@
     }
   },
   "allAlertsAlreadyRead": "ਸਾਰੀਆਂ ਚੇਤਾਵਨੀਆਂ ਪਹਿਲਾਂ ਹੀ ਪੜ੍ਹੀਆਂ ਗਈਆਂ ਹਨ",
-  "myPatientsTitle": "ਮੇਰੇ ਮਰੀਜ਼",
-  "patientsConnectedSubtitle": "ਤੁਹਾਡੇ ਨਾਲ ਜੁੜੇ ਮਰੀਜ਼",
-  "myPatientsSection": "ਮੇਰੇ ਮਰੀਜ਼",
+  "myPatientsTitle": "ਮੇਰੇ ਸਦੱਸ",
+  "patientsConnectedSubtitle": "ਤੁਹਾਡੇ ਨਾਲ ਜੁੜੇ ਸਦੱਸ",
+  "myPatientsSection": "ਮੇਰੇ ਸਦੱਸ",
   "connectedCount": "{count}ਜੁੜਿਆ",
   "@connectedCount": {
     "placeholders": {
@@ -504,10 +504,10 @@
       }
     }
   },
-  "searchPatientsHint": "ਮਰੀਜ਼ਾਂ ਦੀ ਭਾਲ...",
-  "noPatientsMatchSearch": "ਕੋਈ ਮਰੀਜ਼ ਤੁਹਾਡੀ ਖੋਜ ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ।",
-  "noPatientsConnectedYet": "ਅਜੇ ਤੱਕ ਕੋਈ ਮਰੀਜ਼ ਜੁੜਿਆ ਨਹੀਂ ਹੈ",
-  "acceptInvitationToSeePatient": "ਇੱਥੇ ਇੱਕ ਮਰੀਜ਼ ਨੂੰ ਦੇਖਣ ਲਈ ਇੱਕ ਸੱਦਾ ਸਵੀਕਾਰ ਕਰੋ.",
+  "searchPatientsHint": "ਸਦੱਸਾਂ ਨੂੰ ਖੋਜੋ...",
+  "noPatientsMatchSearch": "ਕੋਈ ਵੀ ਸਦੱਸ ਤੁਹਾਡੀ ਖੋਜ ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ।",
+  "noPatientsConnectedYet": "ਹਾਲੇ ਕੋਈ ਸਦੱਸ ਨਹੀਂ ਹੈ",
+  "acceptInvitationToSeePatient": "ਇੱਥੇ ਕਿਸੇ ਸਦੱਸ ਨੂੰ ਦੇਖਣ ਲਈ ਸੱਦਾ ਸਵੀਕਾਰ ਕਰੋ।",
   "badgeNew": "ਨਵਾਂ",
   "joinedOn": "ਸ਼ਾਮਲ ਹੋਏ{date}",
   "@joinedOn": {
@@ -562,12 +562,12 @@
       }
     }
   },
-  "patientOverviewTitle": "ਮਰੀਜ਼ ਦੀ ਸੰਖੇਪ ਜਾਣਕਾਰੀ",
+  "patientOverviewTitle": "ਸਦੱਸ ਬਾਰੇ ਸੰਖੇਪ ਜਾਣਕਾਰੀ",
   "patientOverviewTabVisits": "ਮੁਲਾਕਾਤਾਂ",
   "patientOverviewTabReminders": "ਰੀਮਾਈਂਡਰ",
   "patientOverviewNoVisits": "ਕੋਈ ਮੁਲਾਕਾਤਾਂ ਉਪਲਬਧ ਨਹੀਂ ਹਨ",
   "patientOverviewNoReminders": "ਕੋਈ ਰੀਮਾਈਂਡਰ ਉਪਲਬਧ ਨਹੀਂ ਹਨ",
-  "patientOverviewMissingPatientId": "ਮਰੀਜ਼ ਦੀ ਜਾਣਕਾਰੀ ਗੁੰਮ ਹੈ",
+  "patientOverviewMissingPatientId": "ਸਦੱਸ ਦੀ ਜਾਣਕਾਰੀ ਮੌਜੂਦ ਨਹੀਂ ਹੈ",
   "patientOverviewLastVisit": "ਆਖਰੀ ਫੇਰੀ",
   "patientOverviewCareTeam": "ਕੇਅਰ ਟੀਮ ਦੇ ਮੈਂਬਰ",
   "patientOverviewScheduledReminder": "ਨਿਯਤ ਰੀਮਾਈਂਡਰ",

@@ -195,7 +195,7 @@ abstract class AppLocalizations {
   /// No description provided for @navPatients.
   ///
   /// In en, this message translates to:
-  /// **'Patients'**
+  /// **'Members'**
   String get navPatients;
 
   /// No description provided for @goodMorning.
@@ -573,7 +573,7 @@ abstract class AppLocalizations {
   /// Shown when the caregiver patient roster fetch fails, so it is distinguishable from having no patients
   ///
   /// In en, this message translates to:
-  /// **'Failed to load patients'**
+  /// **'Failed to load Members'**
   String get failedToLoadPatients;
 
   /// No description provided for @retry.
@@ -765,7 +765,7 @@ abstract class AppLocalizations {
   /// No description provided for @patientRole.
   ///
   /// In en, this message translates to:
-  /// **'Patient'**
+  /// **'Member'**
   String get patientRole;
 
   /// No description provided for @caregiverRole.
@@ -1671,7 +1671,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryPatients.
   ///
   /// In en, this message translates to:
-  /// **'Patients'**
+  /// **'Members'**
   String get summaryPatients;
 
   /// No description provided for @summaryAlerts.
@@ -1725,7 +1725,7 @@ abstract class AppLocalizations {
   /// No description provided for @defaultPatient.
   ///
   /// In en, this message translates to:
-  /// **'Patient'**
+  /// **'Member'**
   String get defaultPatient;
 
   /// No description provided for @defaultCaregiver.
@@ -1737,7 +1737,7 @@ abstract class AppLocalizations {
   /// No description provided for @caregiverPatientTime.
   ///
   /// In en, this message translates to:
-  /// **'Patient: {name} • {time}'**
+  /// **'Member: {name} • {time}'**
   String caregiverPatientTime(String name, String time);
 
   /// No description provided for @timeDaysAgo.
@@ -1803,7 +1803,7 @@ abstract class AppLocalizations {
   /// No description provided for @allPatientActivitiesSmooth.
   ///
   /// In en, this message translates to:
-  /// **'All patient activities are running smoothly'**
+  /// **'All Members\' activities are running smoothly'**
   String get allPatientActivitiesSmooth;
 
   /// No description provided for @tryAdjustingFilter.
@@ -1839,19 +1839,19 @@ abstract class AppLocalizations {
   /// No description provided for @myPatientsTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Patients'**
+  /// **'My Members'**
   String get myPatientsTitle;
 
   /// No description provided for @patientsConnectedSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Patients connected to you'**
+  /// **'Members connected to you'**
   String get patientsConnectedSubtitle;
 
   /// No description provided for @myPatientsSection.
   ///
   /// In en, this message translates to:
-  /// **'My patients'**
+  /// **'My Members'**
   String get myPatientsSection;
 
   /// No description provided for @connectedCount.
@@ -1863,25 +1863,25 @@ abstract class AppLocalizations {
   /// No description provided for @searchPatientsHint.
   ///
   /// In en, this message translates to:
-  /// **'Search patients...'**
+  /// **'Search Members...'**
   String get searchPatientsHint;
 
   /// No description provided for @noPatientsMatchSearch.
   ///
   /// In en, this message translates to:
-  /// **'No patients match your search.'**
+  /// **'No Members match your search.'**
   String get noPatientsMatchSearch;
 
   /// No description provided for @noPatientsConnectedYet.
   ///
   /// In en, this message translates to:
-  /// **'No patients connected yet'**
+  /// **'No Members yet'**
   String get noPatientsConnectedYet;
 
   /// No description provided for @acceptInvitationToSeePatient.
   ///
   /// In en, this message translates to:
-  /// **'Accept an invitation to see a patient here.'**
+  /// **'Accept an invitation to see a Member here.'**
   String get acceptInvitationToSeePatient;
 
   /// No description provided for @badgeNew.
@@ -2001,7 +2001,7 @@ abstract class AppLocalizations {
   /// No description provided for @patientOverviewTitle.
   ///
   /// In en, this message translates to:
-  /// **'Patient Overview'**
+  /// **'Member Overview'**
   String get patientOverviewTitle;
 
   /// No description provided for @patientOverviewTabVisits.
@@ -2031,7 +2031,7 @@ abstract class AppLocalizations {
   /// No description provided for @patientOverviewMissingPatientId.
   ///
   /// In en, this message translates to:
-  /// **'Missing patient information'**
+  /// **'Missing Member information'**
   String get patientOverviewMissingPatientId;
 
   /// No description provided for @patientOverviewLastVisit.

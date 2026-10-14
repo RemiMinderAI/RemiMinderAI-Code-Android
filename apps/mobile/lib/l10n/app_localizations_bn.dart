@@ -50,7 +50,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get navProfile => 'প্রোফাইল';
 
   @override
-  String get navPatients => 'রোগী';
+  String get navPatients => 'সদস্যরা';
 
   @override
   String get goodMorning => 'সুপ্রভাত';
@@ -246,7 +246,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get failedToLoadSummaries => 'সারাংশ লোড ব্যর্থ';
 
   @override
-  String get failedToLoadPatients => 'রোগী লোড ব্যর্থ';
+  String get failedToLoadPatients => 'সদস্যদের লোড করা যায়নি';
 
   @override
   String get retry => 'পুনরায় চেষ্টা';
@@ -350,7 +350,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get accountType => 'অ্যাকাউন্ট ধরন';
 
   @override
-  String get patientRole => 'রোগী';
+  String get patientRole => 'সদস্য';
 
   @override
   String get caregiverRole => 'যত্নকারী';
@@ -845,7 +845,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get sectionInvitations => 'আমন্ত্রণ';
 
   @override
-  String get summaryPatients => 'রোগী';
+  String get summaryPatients => 'সদস্যরা';
 
   @override
   String get summaryAlerts => 'সতর্কতা';
@@ -875,14 +875,14 @@ class AppLocalizationsBn extends AppLocalizations {
   String get viewInvitations => 'আমন্ত্রণ দেখুন';
 
   @override
-  String get defaultPatient => 'রোগী';
+  String get defaultPatient => 'সদস্য';
 
   @override
   String get defaultCaregiver => 'কেয়ারগিভার';
 
   @override
   String caregiverPatientTime(String name, String time) {
-    return 'রোগী: $name • $time';
+    return 'সদস্য: $name • $time';
   }
 
   @override
@@ -918,7 +918,8 @@ class AppLocalizationsBn extends AppLocalizations {
   String get noAlertsMatchFilter => 'এই ফিল্টারের সাথে কোনো সতর্কতা মেলে না';
 
   @override
-  String get allPatientActivitiesSmooth => 'সব রোগীর কার্যকলাপ সুচারুভাবে চলছে';
+  String get allPatientActivitiesSmooth =>
+      'সদস্যদের সব কার্যক্রম সুচারুভাবে চলছে';
 
   @override
   String get tryAdjustingFilter => 'আরও সতর্কতা দেখতে ফিল্টার সামঞ্জস্য করুন';
@@ -938,13 +939,13 @@ class AppLocalizationsBn extends AppLocalizations {
   String get allAlertsAlreadyRead => 'সব সতর্কতা ইতিমধ্যে পঠিত';
 
   @override
-  String get myPatientsTitle => 'আমার রোগী';
+  String get myPatientsTitle => 'আমার সদস্যরা';
 
   @override
-  String get patientsConnectedSubtitle => 'আপনার সাথে সংযুক্ত রোগী';
+  String get patientsConnectedSubtitle => 'আপনার সঙ্গে সংযুক্ত সদস্যরা';
 
   @override
-  String get myPatientsSection => 'আমার রোগী';
+  String get myPatientsSection => 'আমার সদস্যরা';
 
   @override
   String connectedCount(int count) {
@@ -952,18 +953,18 @@ class AppLocalizationsBn extends AppLocalizations {
   }
 
   @override
-  String get searchPatientsHint => 'রোগী খুঁজুন...';
+  String get searchPatientsHint => 'সদস্যদের খুঁজুন...';
 
   @override
   String get noPatientsMatchSearch =>
-      'আপনার অনুসন্ধানের সাথে কোনো রোগী মেলে না।';
+      'আপনার অনুসন্ধানের সঙ্গে কোনো সদস্য মেলেনি।';
 
   @override
-  String get noPatientsConnectedYet => 'এখনও কোনো রোগী সংযুক্ত নেই';
+  String get noPatientsConnectedYet => 'এখনও কোনো সদস্য নেই';
 
   @override
   String get acceptInvitationToSeePatient =>
-      'রোগী দেখতে একটি আমন্ত্রণ গ্রহণ করুন।';
+      'এখানে কোনো সদস্যকে দেখতে একটি আমন্ত্রণ গ্রহণ করুন।';
 
   @override
   String get badgeNew => 'নতুন';
@@ -1035,7 +1036,7 @@ class AppLocalizationsBn extends AppLocalizations {
   }
 
   @override
-  String get patientOverviewTitle => 'রোগীর সংক্ষিপ্ত বিবরণ';
+  String get patientOverviewTitle => 'সদস্যের সংক্ষিপ্ত বিবরণ';
 
   @override
   String get patientOverviewTabVisits => 'ভিজিট';
@@ -1050,7 +1051,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get patientOverviewNoReminders => 'কোনো অনুস্মারক নেই';
 
   @override
-  String get patientOverviewMissingPatientId => 'রোগীর তথ্য অনুপস্থিত';
+  String get patientOverviewMissingPatientId => 'সদস্যের তথ্য পাওয়া যায়নি';
 
   @override
   String get patientOverviewLastVisit => 'শেষ ভিজিট';

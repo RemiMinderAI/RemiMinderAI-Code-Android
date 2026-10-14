@@ -50,7 +50,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get navProfile => 'Perfil';
 
   @override
-  String get navPatients => 'Pacientes';
+  String get navPatients => 'Membros';
 
   @override
   String get goodMorning => 'Bom dia';
@@ -247,7 +247,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get failedToLoadSummaries => 'Falha ao carregar resumos';
 
   @override
-  String get failedToLoadPatients => 'Falha ao carregar pacientes';
+  String get failedToLoadPatients => 'Não foi possível carregar os membros';
 
   @override
   String get retry => 'Tentar novamente';
@@ -351,7 +351,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get accountType => 'Tipo de conta';
 
   @override
-  String get patientRole => 'Paciente';
+  String get patientRole => 'Membro';
 
   @override
   String get caregiverRole => 'Cuidador';
@@ -853,7 +853,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get sectionInvitations => 'Convites';
 
   @override
-  String get summaryPatients => 'Pacientes';
+  String get summaryPatients => 'Membros';
 
   @override
   String get summaryAlerts => 'Alertas';
@@ -883,14 +883,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get viewInvitations => 'Ver convites';
 
   @override
-  String get defaultPatient => 'Paciente';
+  String get defaultPatient => 'Membro';
 
   @override
   String get defaultCaregiver => 'Cuidador';
 
   @override
   String caregiverPatientTime(String name, String time) {
-    return 'Paciente: $name • $time';
+    return 'Membro: $name • $time';
   }
 
   @override
@@ -927,7 +927,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get allPatientActivitiesSmooth =>
-      'Todas as atividades dos pacientes estão normais';
+      'Todas as atividades dos membros estão funcionando normalmente';
 
   @override
   String get tryAdjustingFilter =>
@@ -948,13 +948,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get allAlertsAlreadyRead => 'Todos os alertas já foram lidos';
 
   @override
-  String get myPatientsTitle => 'Meus pacientes';
+  String get myPatientsTitle => 'Meus membros';
 
   @override
-  String get patientsConnectedSubtitle => 'Pacientes conectados a você';
+  String get patientsConnectedSubtitle => 'Membros conectados a você';
 
   @override
-  String get myPatientsSection => 'Meus pacientes';
+  String get myPatientsSection => 'Meus membros';
 
   @override
   String connectedCount(int count) {
@@ -962,18 +962,17 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get searchPatientsHint => 'Buscar pacientes...';
+  String get searchPatientsHint => 'Buscar membros...';
 
   @override
-  String get noPatientsMatchSearch =>
-      'Nenhum paciente corresponde à sua busca.';
+  String get noPatientsMatchSearch => 'Nenhum membro corresponde à sua busca.';
 
   @override
-  String get noPatientsConnectedYet => 'Nenhum paciente conectado ainda';
+  String get noPatientsConnectedYet => 'Ainda não há membros';
 
   @override
   String get acceptInvitationToSeePatient =>
-      'Aceite um convite para ver um paciente aqui.';
+      'Aceite um convite para ver um membro aqui.';
 
   @override
   String get badgeNew => 'Novo';
@@ -1044,7 +1043,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get patientOverviewTitle => 'Visão geral do paciente';
+  String get patientOverviewTitle => 'Visão geral do membro';
 
   @override
   String get patientOverviewTabVisits => 'Consultas';
@@ -1059,8 +1058,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get patientOverviewNoReminders => 'Nenhum lembrete disponível';
 
   @override
-  String get patientOverviewMissingPatientId =>
-      'Informações do paciente ausentes';
+  String get patientOverviewMissingPatientId => 'Faltam informações do membro';
 
   @override
   String get patientOverviewLastVisit => 'Última consulta';

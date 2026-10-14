@@ -19,7 +19,7 @@
   "navOverview": "વિહંગાવલોકન",
   "navCareTeam": "સંભાળ ટીમ",
   "navProfile": "પ્રોફાઇલ",
-  "navPatients": "દર્દીઓ",
+  "navPatients": "સભ્યો",
   "goodMorning": "શુભ સવાર",
   "goodAfternoon": "શુભ બપોર",
   "goodEvening": "શુભ સાંજ",
@@ -99,7 +99,7 @@
   "noSummariesYet": "હજુ સુધી કોઈ સારાંશ નથી",
   "summariesWillAppearHere": "તમારી મુલાકાતના સારાંશ અહીં દેખાશે",
   "failedToLoadSummaries": "સારાંશ લોડ કરવામાં નિષ્ફળ",
-  "failedToLoadPatients": "દર્દીઓ લોડ કરવામાં નિષ્ફળ",
+  "failedToLoadPatients": "સભ્યોને લોડ કરી શકાયા નથી",
   "retry": "ફરી પ્રયાસ કરો",
   "shareLabel": "શેર કરો",
   "doctorVisit": "ડૉક્ટરની મુલાકાત",
@@ -152,7 +152,7 @@
   "notSet": "સેટ નથી",
   "appleIdHidden": "Apple ID (છુપાયેલ)",
   "accountType": "એકાઉન્ટ પ્રકાર",
-  "patientRole": "દર્દી",
+  "patientRole": "સભ્ય",
   "caregiverRole": "સંભાળ રાખનાર",
   "phoneLabel": "ફોન",
   "edit": "સંપાદિત કરો",
@@ -434,7 +434,7 @@
   "sectionRecentAlerts": "તાજેતરની ચેતવણીઓ",
   "viewAll": "બધા જુઓ",
   "sectionInvitations": "આમંત્રણો",
-  "summaryPatients": "દર્દીઓ",
+  "summaryPatients": "સભ્યો",
   "summaryAlerts": "ચેતવણીઓ",
   "summaryPending": "બાકી છે",
   "noAlertsAtThisTime": "આ સમયે કોઈ ચેતવણીઓ નથી",
@@ -450,9 +450,9 @@
   },
   "reviewAcceptInvitations": "કેરગીવર આમંત્રણોની સમીક્ષા કરો અને સ્વીકારો.",
   "viewInvitations": "આમંત્રણો જુઓ",
-  "defaultPatient": "દર્દી",
+  "defaultPatient": "સભ્ય",
   "defaultCaregiver": "સંભાળ રાખનાર",
-  "caregiverPatientTime": "દર્દી:{name} • {time}",
+  "caregiverPatientTime": "સભ્ય: {name} • {time}",
   "@caregiverPatientTime": {
     "placeholders": {
       "name": {
@@ -480,7 +480,7 @@
   "alertsPlural": "ચેતવણીઓ",
   "clearFilter": "ફિલ્ટર સાફ કરો",
   "noAlertsMatchFilter": "કોઈ ચેતવણીઓ આ ફિલ્ટર સાથે મેળ ખાતી નથી",
-  "allPatientActivitiesSmooth": "દર્દીઓની તમામ પ્રવૃતિઓ સરળતાથી ચાલી રહી છે",
+  "allPatientActivitiesSmooth": "સભ્યોની બધી પ્રવૃત્તિઓ સુચારુ રીતે ચાલી રહી છે",
   "tryAdjustingFilter": "વધુ ચેતવણીઓ જોવા માટે તમારા ફિલ્ટરને સમાયોજિત કરવાનો પ્રયાસ કરો",
   "viewAllAlerts": "બધી ચેતવણીઓ જુઓ",
   "alertMarkedAsRead": "ચેતવણી વાંચેલી તરીકે ચિહ્નિત કરી",
@@ -493,9 +493,9 @@
     }
   },
   "allAlertsAlreadyRead": "બધી ચેતવણીઓ પહેલેથી જ વાંચવામાં આવી છે",
-  "myPatientsTitle": "મારા દર્દીઓ",
-  "patientsConnectedSubtitle": "તમારી સાથે જોડાયેલા દર્દીઓ",
-  "myPatientsSection": "મારા દર્દીઓ",
+  "myPatientsTitle": "મારા સભ્યો",
+  "patientsConnectedSubtitle": "તમારી સાથે જોડાયેલા સભ્યો",
+  "myPatientsSection": "મારા સભ્યો",
   "connectedCount": "{count}જોડાયેલ",
   "@connectedCount": {
     "placeholders": {
@@ -504,10 +504,10 @@
       }
     }
   },
-  "searchPatientsHint": "દર્દીઓને શોધો...",
-  "noPatientsMatchSearch": "કોઈ દર્દી તમારી શોધ સાથે મેળ ખાતા નથી.",
-  "noPatientsConnectedYet": "હજુ સુધી કોઈ દર્દી જોડાયેલા નથી",
-  "acceptInvitationToSeePatient": "અહીં દર્દીને જોવા માટેનું આમંત્રણ સ્વીકારો.",
+  "searchPatientsHint": "સભ્યો શોધો...",
+  "noPatientsMatchSearch": "તમારી શોધ સાથે કોઈ સભ્ય મેળ ખાતો નથી.",
+  "noPatientsConnectedYet": "હજુ સુધી કોઈ સભ્ય નથી",
+  "acceptInvitationToSeePatient": "અહીં કોઈ સભ્યને જોવા માટે આમંત્રણ સ્વીકારો.",
   "badgeNew": "નવી",
   "joinedOn": "જોડાયા{date}",
   "@joinedOn": {
@@ -562,12 +562,12 @@
       }
     }
   },
-  "patientOverviewTitle": "દર્દીની ઝાંખી",
+  "patientOverviewTitle": "સભ્યની સંક્ષિપ્ત માહિતી",
   "patientOverviewTabVisits": "મુલાકાતો",
   "patientOverviewTabReminders": "રીમાઇન્ડર્સ",
   "patientOverviewNoVisits": "કોઈ મુલાકાતો ઉપલબ્ધ નથી",
   "patientOverviewNoReminders": "કોઈ રીમાઇન્ડર ઉપલબ્ધ નથી",
-  "patientOverviewMissingPatientId": "દર્દીની માહિતી ખૂટે છે",
+  "patientOverviewMissingPatientId": "સભ્યની માહિતી ઉપલબ્ધ નથી",
   "patientOverviewLastVisit": "છેલ્લી મુલાકાત",
   "patientOverviewCareTeam": "સંભાળ ટીમના સભ્ય",
   "patientOverviewScheduledReminder": "સુનિશ્ચિત રીમાઇન્ડર",
