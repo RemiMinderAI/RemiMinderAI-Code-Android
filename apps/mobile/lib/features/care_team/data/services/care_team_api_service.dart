@@ -160,7 +160,7 @@ class CareTeamApiService {
     final emailNorm = _normalizeEmail(email);
     final patient = FirebaseAuth.instance.currentUser;
     final patientName =
-        patient?.displayName ?? patient?.email ?? 'Patient';
+        patient?.displayName ?? patient?.email ?? 'Member';
     final patientEmail = patient?.email;
 
     final batch = _db.batch();
@@ -424,7 +424,7 @@ class CareTeamApiService {
     );
     if (response.statusCode != 200) {
       throw Exception(
-        'Failed to load patient reminders: ${response.statusCode}',
+        'Failed to load Member reminders: ${response.statusCode}',
       );
     }
     final decoded = json.decode(response.body);

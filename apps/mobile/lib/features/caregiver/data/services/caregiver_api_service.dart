@@ -28,7 +28,7 @@ class CaregiverApiService {
       final decoded = json.decode(response.body);
       if (decoded is! List) {
         throw Exception(
-          'Failed to fetch patient summaries: unexpected response',
+          'Failed to fetch Member summaries: unexpected response',
         );
       }
       return decoded
@@ -38,7 +38,7 @@ class CaregiverApiService {
     }
 
     throw Exception(
-      'Failed to fetch patient summaries: ${response.statusCode} ${response.body}',
+      'Failed to fetch Member summaries: ${response.statusCode} ${response.body}',
     );
   }
 
@@ -57,12 +57,12 @@ class CaregiverApiService {
         return Map<String, dynamic>.from(decoded);
       }
       throw Exception(
-        'Failed to fetch patient reminders: unexpected response',
+        'Failed to fetch Member reminders: unexpected response',
       );
     }
 
     throw Exception(
-      'Failed to fetch patient reminders: ${response.statusCode} ${response.body}',
+      'Failed to fetch Member reminders: ${response.statusCode} ${response.body}',
     );
   }
 
@@ -78,7 +78,7 @@ class CaregiverApiService {
     }
 
     throw Exception(
-      'Failed to sync patient access: ${response.statusCode} ${response.body}',
+      'Failed to sync Member access: ${response.statusCode} ${response.body}',
     );
   }
 }

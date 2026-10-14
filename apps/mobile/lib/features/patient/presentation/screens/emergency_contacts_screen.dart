@@ -50,8 +50,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     },
   ];
 
-  String _medicalAlertInfo =
-      'Cardiac patient, allergic to penicillin, takes daily medications';
+  String _medicalAlertInfo = 'Lives nearby, has a spare key';
 
   final List<String> _contactTypes = ['family', 'medical', 'friend', 'other'];
 

@@ -97,7 +97,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
           onPressed: () => context.go('/caregiver/home'),
         ),
         title: const Text(
-          'My Patients',
+          'My Members',
           style: TextStyle(
             fontWeight: FontWeight.w600,
           ),
@@ -121,7 +121,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText:
-                    'Search patients by name, relationship, or condition...',
+                    'Search Members by name, relationship, or condition...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -230,8 +230,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
           const SizedBox(height: 24),
           Text(
             _searchQuery.isNotEmpty
-                ? 'No patients match your search'
-                : 'No patients found',
+                ? 'No Members match your search'
+                : 'No Members yet',
             style: TextStyle(
               fontSize: 20,
               color: Theme.of(context).colorScheme.secondary,
@@ -243,7 +243,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
           Text(
             _searchQuery.isNotEmpty
                 ? 'Try adjusting your search terms'
-                : 'Add patients to start managing their care',
+                : 'Accept an invitation to start supporting a Member',
             style: TextStyle(
               fontSize: 16,
               color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
@@ -282,7 +282,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              _error ?? 'Failed to load patients',
+              _error ?? 'Failed to load Members',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -531,7 +531,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Filter Patients'),
+        title: const Text('Filter Members'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

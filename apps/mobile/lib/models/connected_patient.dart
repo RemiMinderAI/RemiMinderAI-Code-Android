@@ -45,7 +45,7 @@ class ConnectedPatient {
     final name = (row['full_name'] as String?)?.trim() ?? '';
     return ConnectedPatient(
       patientId: (row['patient_id'] ?? row['firebase_uid'] ?? '').toString(),
-      displayName: name.isNotEmpty ? name : 'Patient',
+      displayName: name.isNotEmpty ? name : 'Member',
       role: (row['relationship'] as String?)?.trim() ?? '',
       invitationId: '',
       joinedAt: _readTimestamp(row['joined_at']),

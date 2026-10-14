@@ -45,7 +45,7 @@ extension UpgradePromptReasonCopy on UpgradePromptReason {
         // summaries and caregivers, which still work.
         return "You've used all 15 voice commands in your trial. Everything else keeps working — upgrade to keep talking to Vox.";
       case UpgradePromptReason.caregiverLimit:
-        return 'Premium lets you invite more caregivers so your loved ones can stay connected to your care.';
+        return 'Premium lets you invite more caregivers so they can stay connected.';
       case UpgradePromptReason.trialExpired:
         return 'Your 14-day trial has ended. Subscribe to RemiMinderAI Premium to keep using all features — summaries, caregivers, and reminders.';
     }

@@ -50,7 +50,7 @@ class AppLocalizationsPa extends AppLocalizations {
   String get navProfile => 'ਪ੍ਰੋਫਾਈਲ';
 
   @override
-  String get navPatients => 'ਮਰੀਜ਼';
+  String get navPatients => 'ਸਦੱਸ';
 
   @override
   String get goodMorning => 'ਸ਼ੁਭ ਸਵੇਰ';
@@ -246,7 +246,7 @@ class AppLocalizationsPa extends AppLocalizations {
   String get failedToLoadSummaries => 'ਸਾਰਾਂਸ਼ਾਂ ਨੂੰ ਲੋਡ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ';
 
   @override
-  String get failedToLoadPatients => 'ਮਰੀਜ਼ਾਂ ਨੂੰ ਲੋਡ ਕਰਨਾ ਅਸਫਲ ਰਿਹਾ';
+  String get failedToLoadPatients => 'ਸਦੱਸਾਂ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ';
 
   @override
   String get retry => 'ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ';
@@ -351,7 +351,7 @@ class AppLocalizationsPa extends AppLocalizations {
   String get accountType => 'ਖਾਤੇ ਦੀ ਕਿਸਮ';
 
   @override
-  String get patientRole => 'ਮਰੀਜ਼';
+  String get patientRole => 'ਸਦੱਸ';
 
   @override
   String get caregiverRole => 'ਦੇਖਭਾਲ ਕਰਨ ਵਾਲਾ';
@@ -522,7 +522,7 @@ class AppLocalizationsPa extends AppLocalizations {
   String get allowSmsNotifications => 'SMS ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ';
 
   @override
-  String get allowPushNotifications => 'ਪੁਸ਼ ਸੂਚਨਾਵਾਂ ਦੀ ਆਗਿਆ ਦਿਓ';
+  String get notificationSettings => 'ਸੂਚਨਾ ਸੈਟਿੰਗਾਂ';
 
   @override
   String get dataControl => 'ਡਾਟਾ ਕੰਟਰੋਲ';
@@ -571,11 +571,6 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get close => 'ਬੰਦ ਕਰੋ';
-
-  @override
-  String featureComingSoon(String feature) {
-    return '$featureਆਨ ਵਾਲੀ';
-  }
 
   @override
   String get caregiverSharingEnabled => 'ਕੇਅਰਗਿਵਰ ਸ਼ੇਅਰਿੰਗ ਸਮਰੱਥ ਹੈ';
@@ -859,7 +854,7 @@ class AppLocalizationsPa extends AppLocalizations {
   String get sectionInvitations => 'ਸੱਦੇ';
 
   @override
-  String get summaryPatients => 'ਮਰੀਜ਼';
+  String get summaryPatients => 'ਸਦੱਸ';
 
   @override
   String get summaryAlerts => 'ਚੇਤਾਵਨੀਆਂ';
@@ -889,14 +884,14 @@ class AppLocalizationsPa extends AppLocalizations {
   String get viewInvitations => 'ਸੱਦੇ ਵੇਖੋ';
 
   @override
-  String get defaultPatient => 'ਮਰੀਜ਼';
+  String get defaultPatient => 'ਸਦੱਸ';
 
   @override
   String get defaultCaregiver => 'ਦੇਖਭਾਲ ਕਰਨ ਵਾਲਾ';
 
   @override
   String caregiverPatientTime(String name, String time) {
-    return 'ਮਰੀਜ਼:$name • $time';
+    return 'ਸਦੱਸ: $name • $time';
   }
 
   @override
@@ -934,7 +929,7 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get allPatientActivitiesSmooth =>
-      'ਮਰੀਜ਼ਾਂ ਦੀਆਂ ਸਾਰੀਆਂ ਗਤੀਵਿਧੀਆਂ ਸੁਚਾਰੂ ਢੰਗ ਨਾਲ ਚੱਲ ਰਹੀਆਂ ਹਨ';
+      'ਸਦੱਸਾਂ ਦੀਆਂ ਸਾਰੀਆਂ ਗਤੀਵਿਧੀਆਂ ਸੁਚਾਰੂ ਢੰਗ ਨਾਲ ਚੱਲ ਰਹੀਆਂ ਹਨ';
 
   @override
   String get tryAdjustingFilter =>
@@ -957,13 +952,13 @@ class AppLocalizationsPa extends AppLocalizations {
       'ਸਾਰੀਆਂ ਚੇਤਾਵਨੀਆਂ ਪਹਿਲਾਂ ਹੀ ਪੜ੍ਹੀਆਂ ਗਈਆਂ ਹਨ';
 
   @override
-  String get myPatientsTitle => 'ਮੇਰੇ ਮਰੀਜ਼';
+  String get myPatientsTitle => 'ਮੇਰੇ ਸਦੱਸ';
 
   @override
-  String get patientsConnectedSubtitle => 'ਤੁਹਾਡੇ ਨਾਲ ਜੁੜੇ ਮਰੀਜ਼';
+  String get patientsConnectedSubtitle => 'ਤੁਹਾਡੇ ਨਾਲ ਜੁੜੇ ਸਦੱਸ';
 
   @override
-  String get myPatientsSection => 'ਮੇਰੇ ਮਰੀਜ਼';
+  String get myPatientsSection => 'ਮੇਰੇ ਸਦੱਸ';
 
   @override
   String connectedCount(int count) {
@@ -971,18 +966,18 @@ class AppLocalizationsPa extends AppLocalizations {
   }
 
   @override
-  String get searchPatientsHint => 'ਮਰੀਜ਼ਾਂ ਦੀ ਭਾਲ...';
+  String get searchPatientsHint => 'ਸਦੱਸਾਂ ਨੂੰ ਖੋਜੋ...';
 
   @override
   String get noPatientsMatchSearch =>
-      'ਕੋਈ ਮਰੀਜ਼ ਤੁਹਾਡੀ ਖੋਜ ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ।';
+      'ਕੋਈ ਵੀ ਸਦੱਸ ਤੁਹਾਡੀ ਖੋਜ ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ।';
 
   @override
-  String get noPatientsConnectedYet => 'ਅਜੇ ਤੱਕ ਕੋਈ ਮਰੀਜ਼ ਜੁੜਿਆ ਨਹੀਂ ਹੈ';
+  String get noPatientsConnectedYet => 'ਹਾਲੇ ਕੋਈ ਸਦੱਸ ਨਹੀਂ ਹੈ';
 
   @override
   String get acceptInvitationToSeePatient =>
-      'ਇੱਥੇ ਇੱਕ ਮਰੀਜ਼ ਨੂੰ ਦੇਖਣ ਲਈ ਇੱਕ ਸੱਦਾ ਸਵੀਕਾਰ ਕਰੋ.';
+      'ਇੱਥੇ ਕਿਸੇ ਸਦੱਸ ਨੂੰ ਦੇਖਣ ਲਈ ਸੱਦਾ ਸਵੀਕਾਰ ਕਰੋ।';
 
   @override
   String get badgeNew => 'ਨਵਾਂ';
@@ -997,7 +992,7 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get privacyDataRequestMessage =>
-      'ਆਪਣੇ ਡੇਟਾ ਨੂੰ ਨਿਰਯਾਤ ਕਰਨ ਜਾਂ ਮਿਟਾਉਣ ਲਈ privacy@remiminder.ai \'ਤੇ ਸੰਪਰਕ ਕਰੋ।';
+      'ਆਪਣੇ ਡੇਟਾ ਨੂੰ ਨਿਰਯਾਤ ਕਰਨ ਜਾਂ ਮਿਟਾਉਣ ਲਈ team@remiminderai.com \'ਤੇ ਸੰਪਰਕ ਕਰੋ।';
 
   @override
   String syncMinutesAgo(int minutes) {
@@ -1054,7 +1049,7 @@ class AppLocalizationsPa extends AppLocalizations {
   }
 
   @override
-  String get patientOverviewTitle => 'ਮਰੀਜ਼ ਦੀ ਸੰਖੇਪ ਜਾਣਕਾਰੀ';
+  String get patientOverviewTitle => 'ਸਦੱਸ ਬਾਰੇ ਸੰਖੇਪ ਜਾਣਕਾਰੀ';
 
   @override
   String get patientOverviewTabVisits => 'ਮੁਲਾਕਾਤਾਂ';
@@ -1069,7 +1064,7 @@ class AppLocalizationsPa extends AppLocalizations {
   String get patientOverviewNoReminders => 'ਕੋਈ ਰੀਮਾਈਂਡਰ ਉਪਲਬਧ ਨਹੀਂ ਹਨ';
 
   @override
-  String get patientOverviewMissingPatientId => 'ਮਰੀਜ਼ ਦੀ ਜਾਣਕਾਰੀ ਗੁੰਮ ਹੈ';
+  String get patientOverviewMissingPatientId => 'ਸਦੱਸ ਦੀ ਜਾਣਕਾਰੀ ਮੌਜੂਦ ਨਹੀਂ ਹੈ';
 
   @override
   String get patientOverviewLastVisit => 'ਆਖਰੀ ਫੇਰੀ';

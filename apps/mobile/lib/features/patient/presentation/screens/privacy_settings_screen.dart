@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../care_team/data/models/care_team_member.dart';
@@ -19,7 +20,6 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
 
   bool _allowEmailNotifications = true;
   bool _allowSmsNotifications = false;
-  bool _allowPushNotifications = true;
 
   CareTeamMember? _activeCaregiver;
   bool _isLoadingCaregiver = true;
@@ -49,7 +49,6 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     _allowAiImprovement = value;
     _allowEmailNotifications = value;
     _allowSmsNotifications = value;
-    _allowPushNotifications = value;
   }
 
   Future<void> _loadCaregiver() async {
@@ -227,6 +226,10 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     }
   }
 
+  Future<void> _openNotificationSettings() async {
+    await openAppSettings();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -353,13 +356,10 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                       ),
                       isEnabled: !_isLoadingCaregiver,
                     ),
-                    _buildToggleTile(
-                      l10n.allowPushNotifications,
-                      _allowPushNotifications,
-                      (value) => _updateLocalPreference(
-                        () => _allowPushNotifications = value,
-                      ),
-                      isEnabled: !_isLoadingCaregiver,
+                    _buildActionButton(
+                      l10n.notificationSettings,
+                      Icons.settings,
+                      _openNotificationSettings,
                     ),
                     const SizedBox(height: 24),
                     _buildSectionHeader(l10n.dataControl, Icons.storage),

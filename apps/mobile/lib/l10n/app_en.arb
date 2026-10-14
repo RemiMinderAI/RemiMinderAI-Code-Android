@@ -19,7 +19,7 @@
   "navOverview": "Overview",
   "navCareTeam": "Care Team",
   "navProfile": "Profile",
-  "navPatients": "Patients",
+  "navPatients": "Members",
   "goodMorning": "Good morning",
   "goodAfternoon": "Good afternoon",
   "goodEvening": "Good evening",
@@ -99,7 +99,7 @@
   "noSummariesYet": "No summaries yet",
   "summariesWillAppearHere": "Your visit summaries will appear here",
   "failedToLoadSummaries": "Failed to load summaries",
-  "failedToLoadPatients": "Failed to load patients",
+  "failedToLoadPatients": "Failed to load Members",
   "@failedToLoadPatients": {
     "description": "Shown when the caregiver patient roster fetch fails, so it is distinguishable from having no patients"
   },
@@ -155,7 +155,7 @@
   "notSet": "Not set",
   "appleIdHidden": "Apple ID (hidden)",
   "accountType": "Account Type",
-  "patientRole": "Patient",
+  "patientRole": "Member",
   "caregiverRole": "Caregiver",
   "phoneLabel": "Phone",
   "edit": "Edit",
@@ -231,7 +231,7 @@
   "communicationAndConsent": "Communication & Consent",
   "allowEmailNotifications": "Allow email notifications",
   "allowSmsNotifications": "Allow SMS notifications",
-  "allowPushNotifications": "Allow push notifications",
+  "notificationSettings": "Notification settings",
   "dataControl": "Data Control",
   "exportMyData": "Export my data",
   "deleteAllMedicalRecords": "Delete all my medical records",
@@ -247,14 +247,6 @@
   "privacyPolicy": "Privacy Policy",
   "privacyPolicyBody": "Privacy Policy for RemiMinder\n\n1. Information We Collect\nWe collect information you provide and usage data to improve our service.\n\n2. How We Use Information\nInformation is used to provide healthcare management services.\n\n3. Information Sharing\nWe do not sell your personal information.\n\nFor the complete Privacy Policy, please visit our website.",
   "close": "Close",
-  "featureComingSoon": "{feature} coming soon",
-  "@featureComingSoon": {
-    "placeholders": {
-      "feature": {
-        "type": "String"
-      }
-    }
-  },
   "caregiverSharingEnabled": "Caregiver sharing enabled",
   "caregiverSharingDisabled": "Caregiver sharing disabled",
   "dataExport": "Data export",
@@ -437,7 +429,7 @@
   "sectionRecentAlerts": "Recent Alerts",
   "viewAll": "View All",
   "sectionInvitations": "Invitations",
-  "summaryPatients": "Patients",
+  "summaryPatients": "Members",
   "summaryAlerts": "Alerts",
   "summaryPending": "Pending",
   "noAlertsAtThisTime": "No alerts at this time",
@@ -453,9 +445,9 @@
   },
   "reviewAcceptInvitations": "Review and accept caregiver invitations.",
   "viewInvitations": "View Invitations",
-  "defaultPatient": "Patient",
+  "defaultPatient": "Member",
   "defaultCaregiver": "Caregiver",
-  "caregiverPatientTime": "Patient: {name} • {time}",
+  "caregiverPatientTime": "Member: {name} • {time}",
   "@caregiverPatientTime": {
     "placeholders": {
       "name": {
@@ -483,7 +475,7 @@
   "alertsPlural": "Alerts",
   "clearFilter": "Clear Filter",
   "noAlertsMatchFilter": "No alerts match this filter",
-  "allPatientActivitiesSmooth": "All patient activities are running smoothly",
+  "allPatientActivitiesSmooth": "All Members' activities are running smoothly",
   "tryAdjustingFilter": "Try adjusting your filter to see more alerts",
   "viewAllAlerts": "View All Alerts",
   "alertMarkedAsRead": "Alert marked as read",
@@ -496,9 +488,9 @@
     }
   },
   "allAlertsAlreadyRead": "All alerts are already read",
-  "myPatientsTitle": "My Patients",
-  "patientsConnectedSubtitle": "Patients connected to you",
-  "myPatientsSection": "My patients",
+  "myPatientsTitle": "My Members",
+  "patientsConnectedSubtitle": "Members connected to you",
+  "myPatientsSection": "My Members",
   "connectedCount": "{count} connected",
   "@connectedCount": {
     "placeholders": {
@@ -507,10 +499,10 @@
       }
     }
   },
-  "searchPatientsHint": "Search patients...",
-  "noPatientsMatchSearch": "No patients match your search.",
-  "noPatientsConnectedYet": "No patients connected yet",
-  "acceptInvitationToSeePatient": "Accept an invitation to see a patient here.",
+  "searchPatientsHint": "Search Members...",
+  "noPatientsMatchSearch": "No Members match your search.",
+  "noPatientsConnectedYet": "No Members yet",
+  "acceptInvitationToSeePatient": "Accept an invitation to see a Member here.",
   "badgeNew": "New",
   "joinedOn": "Joined {date}",
   "@joinedOn": {
@@ -521,7 +513,7 @@
     }
   },
   "neverSynced": "Not loaded yet",
-  "privacyDataRequestMessage": "Contact privacy@remiminder.ai to export or delete your data.",
+  "privacyDataRequestMessage": "Contact team@remiminderai.com to export or delete your data.",
   "syncMinutesAgo": "{minutes}m ago",
   "@syncMinutesAgo": {
     "placeholders": {
@@ -571,12 +563,12 @@
       }
     }
   },
-  "patientOverviewTitle": "Patient Overview",
+  "patientOverviewTitle": "Member Overview",
   "patientOverviewTabVisits": "Visits",
   "patientOverviewTabReminders": "Reminders",
   "patientOverviewNoVisits": "No visits available",
   "patientOverviewNoReminders": "No reminders available",
-  "patientOverviewMissingPatientId": "Missing patient information",
+  "patientOverviewMissingPatientId": "Missing Member information",
   "patientOverviewLastVisit": "Last visit",
   "patientOverviewCareTeam": "Care team member",
   "patientOverviewScheduledReminder": "Scheduled reminder",

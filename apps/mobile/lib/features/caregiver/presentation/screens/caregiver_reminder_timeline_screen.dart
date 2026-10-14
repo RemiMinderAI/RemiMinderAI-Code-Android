@@ -138,10 +138,10 @@ class _CaregiverReminderTimelineScreenState
       if (p['patient_id']?.toString() == patientId) {
         final n = (p['full_name'] as String?)?.trim();
         if (n != null && n.isNotEmpty) return n;
-        return (p['email'] as String?)?.trim() ?? 'Patient';
+        return (p['email'] as String?)?.trim() ?? 'Member';
       }
     }
-    return 'Patient';
+    return 'Member';
   }
 
   String _dayKey(DateTime d) =>
@@ -306,14 +306,14 @@ class _CaregiverReminderTimelineScreenState
             DropdownButtonFormField<String?>(
                   value: selectedPatientValue,
                   decoration: const InputDecoration(
-                    labelText: 'Patient',
+                    labelText: 'Member',
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
                   items: [
                     const DropdownMenuItem<String?>(
                       value: null,
-                      child: Text('All patients'),
+                      child: Text('All Members'),
                     ),
                     ..._patients.where((p) {
                       final id = p['patient_id']?.toString() ?? '';
@@ -460,7 +460,7 @@ class _CaregiverReminderTimelineScreenState
                   const SizedBox(height: 12),
                   Text(
                     'No events match your filters.\n'
-                    'Try All time, another patient, or All types.',
+                    'Try All time, another Member, or All types.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.secondary,
@@ -639,7 +639,7 @@ class _ReminderRow extends StatelessWidget {
     final title = (data['title'] as String?)?.trim().isNotEmpty == true
         ? data['title'] as String
         : 'Reminder';
-    final patient = (data['_patient_name'] as String?) ?? 'Patient';
+    final patient = (data['_patient_name'] as String?) ?? 'Member';
     final st =
         DateTime.tryParse(data['scheduled_time']?.toString() ?? '') ?? DateTime.now();
     final type = (data['reminder_type'] ?? 'task').toString();

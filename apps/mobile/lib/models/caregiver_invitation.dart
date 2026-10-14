@@ -35,7 +35,7 @@ class CaregiverInvitation {
     return CaregiverInvitation(
       invitationId: doc.id,
       patientId: data['patientId'] as String? ?? '',
-      patientName: data['patientName'] as String? ?? 'Patient',
+      patientName: data['patientName'] as String? ?? 'Member',
       invitedBy: data['invitedBy'] as String? ?? '',
       inviteeId: data['inviteeId'] as String? ?? '',
       role: (data['relationship'] as String?) ??
