@@ -127,9 +127,9 @@ async def process_reminder_due_push_notifications(
             logger.warning("list_patient_caregivers_for_alerts %s: %s", patient_uid, e)
             caregivers = []
 
-        cg_body = f"Patient reminder due now: {title}"
+        cg_body = f"Member reminder due now: {title}"
         patient = await get_patient_info(patient_uid)
-        patient_name = (patient or {}).get("full_name") or "Your patient"
+        patient_name = (patient or {}).get("full_name") or "Your Member"
         ctx = f"reminder_due:{rid}:{st.isoformat() if hasattr(st, 'isoformat') else str(st)}"
         for cg in caregivers:
             cg_id = cg.get("caregiver_id")
@@ -164,7 +164,7 @@ async def process_reminder_due_push_notifications(
 
             cg_delivered = await send_fcm_to_tokens(
                 fcm_tokens=cgtokens,
-                title="Patient reminder due",
+                title="Member reminder due",
                 body=cg_body,
                 data={
                     "type": "reminder_due",
