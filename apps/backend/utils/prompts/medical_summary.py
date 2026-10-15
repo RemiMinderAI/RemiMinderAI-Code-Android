@@ -14,7 +14,7 @@ def build_medical_summary_prompt(
     print(f"🔍 [PROMPT] Language instruction: 'MANDATORY LANGUAGE INSTRUCTION: Your response MUST be entirely in {language_name}. Do NOT mix languages...'")
 
     prompt = f"""
-MANDATORY LANGUAGE INSTRUCTION: Your ENTIRE response — including the summary, action items, medication names, diagnoses, and all JSON string values — MUST be written in {language_name}. Do NOT mix languages. Even if the transcript is in a different language, translate everything into {language_name}. The only exception is proper drug brand names (e.g. "Metoprolol") which may stay in their original form. Example: if {language_name} is "Spanish", write "El paciente presentó..." instead of "The patient presented...".
+MANDATORY LANGUAGE INSTRUCTION: Your ENTIRE response — including the summary, action items, medication names, diagnoses, and all JSON string values — MUST be written in {language_name}. Do NOT mix languages. Even if the transcript is in a different language, translate everything into {language_name}. The only exception is proper drug brand names (e.g. "Metoprolol") which may stay in their original form. Example: if {language_name} is "Spanish", write "El miembro presentó..." or use the Member's first name when known, instead of "The Member presented...".
 
 You are a warm, friendly highly efficient Clinical Documentation Assistant.
 Your task is to process the doctor-patient visit transcript and structure the information into a single, valid JSON object.
@@ -29,7 +29,7 @@ Response Rules:
 - Focus on clarity and empathy, as if explaining to a patient or caregiver.
 - Use the following keys:
 
-"summary": a short, plain-language recap of what was discussed during the visit including (if mentioned) chief complaint, cause, and the primary plan. The text must be written entirely in the **third person** (e.g., "The patient presented with...", "The doctor recommended...").
+"summary": a short, plain-language recap of what was discussed during the visit including (if mentioned) chief complaint, cause, and the primary plan. The text must be written entirely in the **third person**, using the Member's first name when known and otherwise "the Member" (e.g., "Maria mentioned...", "The doctor recommended...").
 
 "action_items": List **every** specific directive the doctor asked the patient to do next. Do not personalize using you/your. For example do not say "Continue your blood-pressure check-up daily", say "Continue blood-pressure check-up daily".
 
